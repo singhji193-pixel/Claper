@@ -4,7 +4,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: POEditor.com\n"
-"Project-Id-Version: Claper\n"
+"Project-Id-Version: CoreOrbit Ask\n"
 "Language: de\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -30,8 +30,8 @@ msgstr "E-Mail"
 
 #: lib/claper_web/templates/user_registration/new.html.heex:12
 #, elixir-autogen, elixir-format
-msgid "Join the Claper experience"
-msgstr "Werden Sie Teil der Claper Erfahrung"
+msgid "Join the CoreOrbit Ask experience"
+msgstr "Werden Sie Teil der CoreOrbit Ask Erfahrung"
 
 #: lib/claper_web/templates/user_registration/new.html.heex:19
 #: lib/claper_web/templates/user_reset_password/edit.html.heex:25
@@ -253,8 +253,8 @@ msgstr "Ihre E-Mail ändern"
 #: lib/claper_web/notifiers/user_notifier.ex:12
 #: lib/claper_web/templates/user_notifier/magic.html.heex:17
 #, elixir-autogen, elixir-format
-msgid "Connect to Claper"
-msgstr "Einloggen zu Claper"
+msgid "Connect to CoreOrbit Ask"
+msgstr "Einloggen zu CoreOrbit Ask"
 
 #: lib/claper_web/templates/user_notifier/magic.html.heex:29
 #, elixir-autogen, elixir-format
@@ -521,8 +521,8 @@ msgstr "Klicken Sie auf <span style='font-weight: 700'>Präsentieren/Anpassen</s
 
 #: lib/claper_web/templates/user_notifier/welcome.html.heex:22
 #, elixir-autogen, elixir-format
-msgid "Congrats! You've taken the first step to improving your presentations. Here are the next steps to create step up your presentations with Claper:"
-msgstr "Herzlichen Glückwunsch! Sie haben den ersten Schritt zur Verbesserung Ihrer Präsentationen getan. Hier sind die nächsten Schritte, um Ihre Präsentationen mit Claper noch besser zu gestalten:"
+msgid "Congrats! You've taken the first step to improving your presentations. Here are the next steps to create step up your presentations with CoreOrbit Ask:"
+msgstr "Herzlichen Glückwunsch! Sie haben den ersten Schritt zur Verbesserung Ihrer Präsentationen getan. Hier sind die nächsten Schritte, um Ihre Präsentationen mit CoreOrbit Ask noch besser zu gestalten:"
 
 #: lib/claper_web/templates/user_notifier/welcome.html.heex:69
 #, elixir-autogen, elixir-format
@@ -1101,8 +1101,8 @@ msgstr "Sie können jede Einstellung für die Präsentation (Anzeige auf dem Gro
 
 #: lib/claper_web/live/event_live/index.html.heex:149
 #, elixir-autogen, elixir-format
-msgid "Your first steps with Claper"
-msgstr "Ihre ersten Schritte mit Claper"
+msgid "Your first steps with CoreOrbit Ask"
+msgstr "Ihre ersten Schritte mit CoreOrbit Ask"
 
 #: lib/claper_web/live/event_live/event_form_component.html.heex:317
 #, elixir-autogen, elixir-format, fuzzy
@@ -1202,8 +1202,8 @@ msgstr "Diese Veranstaltung wurde beendet"
 
 #: lib/claper_web/live/event_live/index.html.heex:148
 #, elixir-autogen, elixir-format, fuzzy
-msgid "Welcome to Claper! You can create a new event here."
-msgstr "Willkommen bei Claper! Hier können Sie eine neue Veranstaltung erstellen."
+msgid "Welcome to CoreOrbit Ask! You can create a new event here."
+msgstr "Willkommen bei CoreOrbit Ask! Hier können Sie eine neue Veranstaltung erstellen."
 
 #: lib/claper_web/live/event_live/event_form_component.html.heex:326
 #, elixir-autogen, elixir-format, fuzzy
@@ -1301,8 +1301,8 @@ msgstr "Aktivieren Sie das Tool in Ihrem LMS"
 
 #: lib/claper_web/templates/lti/registration/new.html.heex:24
 #, elixir-autogen, elixir-format
-msgid "Bring Claper to your LMS"
-msgstr "Bringen Sie Claper zu Ihrem LMS"
+msgid "Bring CoreOrbit Ask to your LMS"
+msgstr "Bringen Sie CoreOrbit Ask zu Ihrem LMS"
 
 #: lib/claper_web/templates/lti/registration/success.html.heex:17
 #, elixir-autogen, elixir-format
@@ -1341,8 +1341,8 @@ msgstr "Ihre nächsten Schritte"
 
 #: lib/claper_web/templates/lti/registration/new.html.heex:40
 #, elixir-autogen, elixir-format
-msgid "Add Claper"
-msgstr "Claper hinzufügen"
+msgid "Add CoreOrbit Ask"
+msgstr "CoreOrbit Ask hinzufügen"
 
 #: lib/claper_web/live/event_live/manage.html.heex:123
 #: lib/claper_web/live/event_live/manage.html.heex:538
@@ -1526,8 +1526,8 @@ msgstr "CSRF-Verifizierung fehlgeschlagen"
 
 #: lib/claper_web/templates/error/csrf_error.html.heex:17
 #, elixir-autogen, elixir-format
-msgid "Clear cookies (at least for Claper domain)"
-msgstr "Cookies löschen (mindestens für die Claper-Domain)"
+msgid "Clear cookies (at least for CoreOrbit Ask domain)"
+msgstr "Cookies löschen (mindestens für die CoreOrbit Ask-Domain)"
 
 #: lib/claper_web/templates/error/csrf_error.html.heex:20
 #, elixir-autogen, elixir-format

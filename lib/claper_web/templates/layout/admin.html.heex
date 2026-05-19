@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     {csrf_meta_tag()}
-    <.live_title suffix=" · Claper Admin">
+    <.live_title suffix=" · CoreOrbit Ask Admin">
       {assigns[:page_title] || "Admin Dashboard"}
     </.live_title>
     <link phx-track-static rel="stylesheet" href="/assets/app.css" />
@@ -41,7 +41,7 @@
           </div>
           <div class="flex-1">
             <a href={~p"/admin"} class="btn btn-ghost normal-case text-xl">
-              <img src="/images/logo.svg" class="h-24 mr-2" /> {gettext("Admin")}
+              <img src="/images/logo.png" class="h-24 mr-2" /> {gettext("Admin")}
             </a>
           </div>
         </div>
@@ -178,7 +178,7 @@
         <label for="drawer-toggle" class="drawer-overlay"></label>
         <aside class="bg-base-100 min-h-full px-12">
           <div class="flex items-center p-5 gap-x-3">
-            <img src="/images/logo.svg" class="h-24" />
+            <img src="/images/logo.png" class="h-24" />
             <h1 class="text-xl font-bold !font-display">{gettext("Admin")}</h1>
           </div>
           <ul class="menu">
@@ -266,7 +266,7 @@
             <div class="divider"></div>
 
             <li>
-              <a href="https://docs.claper.co" target="_blank" rel="noopener noreferrer">
+              <a href="https://ask.coreorbit.io" target="_blank" rel="noopener noreferrer">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"

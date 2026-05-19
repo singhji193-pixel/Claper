@@ -4,7 +4,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: POEditor.com\n"
-"Project-Id-Version: Claper\n"
+"Project-Id-Version: CoreOrbit Ask\n"
 "Language: lv\n"
 "Plural-Forms: nplurals=3; plural=(n%10==0 || n%100>=11 && n%100<=19) ? 0 : ((n%10==1 && n%100 != 11) ? 1 : 2);\n"
 

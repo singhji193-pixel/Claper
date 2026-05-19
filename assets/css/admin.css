@@ -22,7 +22,7 @@
 }
 
 @plugin "daisyui/theme" {
-  name: "claper";
+  name: "coreorbit";
   default: true; /* set as default */
   prefersdark: false; /* set as default dark mode (prefers-color-scheme:dark) */
   color-scheme: light; /* color of browser-provided UI */
@@ -31,7 +31,7 @@
   --color-primary-content: #ffffff;
   --color-secondary: #f4f4f4;
   --color-secondary-content: #140553;
-  --color-accent: #8611ed;
+  --color-accent: #f15a24;
   --color-accent-content: #ffffff;
   --color-neutral: #000000;
   --color-neutral-content: #ffffff;
