@@ -137,7 +137,7 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, gettext("Agenda item saved successfully"))
-         |> push_navigate(to: ~p"/admin/agenda?event_id=#{agenda_item.event_id}")}
+         |> push_navigate(to: saved_path(socket, agenda_item))}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -152,7 +152,7 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
         {:noreply,
          socket
          |> put_flash(:info, gettext("Agenda item saved successfully"))
-         |> push_navigate(to: ~p"/admin/agenda?event_id=#{agenda_item.event_id}")}
+         |> push_navigate(to: saved_path(socket, agenda_item))}
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
@@ -161,6 +161,10 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset))
+  end
+
+  defp saved_path(socket, agenda_item) do
+    socket.assigns[:navigate_after_save] || ~p"/admin/agenda?event_id=#{agenda_item.event_id}"
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})

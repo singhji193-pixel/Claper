@@ -22,6 +22,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
               >
                 {@event.name}
               </a>
+
               <p
                 :if={@event.lti_resource}
                 class="text-xs text-white rounded-md px-2 py-0.5 bg-gray-500 mx-2 flex items-center space-x-1"
@@ -38,23 +39,24 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                     clip-rule="evenodd"
                   />
                 </svg>
-
                 <span>LTI</span>
               </p>
             </div>
+
             <div class="ml-2 shrink-0 flex">
               <%= if Event.started?(@event) && !Event.finished?(@event) do %>
                 <div class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-500 text-white items-center gap-x-1">
                   <span class="h-2 w-2 bg-white rounded-full animate__animated animate__flash animate__infinite animate__slow_slow">
-                  </span>
-                  {gettext("Live")}
+                  </span> {gettext("Live")}
                 </div>
               <% end %>
+
               <%= if !Event.started?(@event) && !Event.finished?(@event) do %>
                 <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                   {gettext("Incoming")}
                 </p>
               <% end %>
+
               <%= if Event.finished?(@event) do %>
                 <p class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
                   {gettext("Finished")}
@@ -62,6 +64,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
               <% end %>
             </div>
           </div>
+
           <div class="mt-2 flex flex-col space-y-2 sm:space-y-0 justify-between sm:flex-row items-start">
             <div class="text-sm font-medium uppercase text-gray-700 flex justify-center space-x-1 items-center">
               <img src="/images/icons/hashtag.svg" class="h-5 w-5" />
@@ -69,6 +72,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                 {@event.code}
               </p>
             </div>
+
             <div
               id={"event-infos-#{@event.uuid}"}
               class="flex items-center text-sm text-gray-500 space-x-1"
@@ -86,6 +90,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                 {gettext("Starting on")}
                 <span x-text={"moment.utc('#{@event.started_at}').local().format('lll')"}></span>
               </p>
+
               <p :if={Event.finished?(@event)}>
                 {gettext("Finished on")}
                 <span x-text={"moment.utc('#{@event.expired_at}').local().format('lll')"}></span>
@@ -124,6 +129,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                     />
                   </svg>
                 </button>
+
                 <div
                   phx-hook="Dropdown"
                   id={"dropdown-#{@event.uuid}"}
@@ -157,6 +163,30 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                         data-phx-link="patch"
                         data-phx-link-state="push"
                         class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                        href={~p"/e/#{@event.code}/manage/agenda"}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="w-6 h-6"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+                          />
+                        </svg>
+                        <span>{gettext("Agenda")}</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        data-phx-link="patch"
+                        data-phx-link-state="push"
+                        class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
                         href={~p"/e/#{@event.code}"}
                       >
                         <svg
@@ -177,6 +207,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                     </li>
                   </ul>
                 </div>
+
                 <.link
                   :if={Event.started?(@event) && not @is_leader}
                   data-confirm={
@@ -201,6 +232,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                   <span>{gettext("End")}</span>
                 </.link>
               </div>
+
               <div class="flex items-start gap-x-2 relative text-sm ">
                 <%= if not @is_leader do %>
                   <button
@@ -225,6 +257,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                       />
                     </svg>
                   </button>
+
                   <div
                     phx-hook="Dropdown"
                     id={"dropdown-action-#{@event.uuid}"}
@@ -248,6 +281,30 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                             <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
                           </svg>
                           <span>{gettext("Edit")}</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                          href={~p"/e/#{@event.code}/manage/agenda"}
+                          data-phx-link="patch"
+                          data-phx-link-state="push"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="h-5 w-5"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+                            />
+                          </svg>
+                          <span>{gettext("Agenda")}</span>
                         </a>
                       </li>
                       <li>
@@ -281,6 +338,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
               <span class="text-sm text-supporting-red-500">
                 {gettext("Error when processing the file")}
               </span>
+
               <div class="relative text-sm">
                 <%= if not @is_leader do %>
                   <button
@@ -305,6 +363,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                       />
                     </svg>
                   </button>
+
                   <div
                     phx-hook="Dropdown"
                     id={"dropdown-action-#{@event.uuid}"}
@@ -328,6 +387,30 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                             <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z" />
                           </svg>
                           <span>{gettext("Edit")}</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                          href={~p"/e/#{@event.code}/manage/agenda"}
+                          data-phx-link="patch"
+                          data-phx-link-state="push"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="h-5 w-5"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+                            />
+                          </svg>
+                          <span>{gettext("Agenda")}</span>
                         </a>
                       </li>
                     </ul>
@@ -370,6 +453,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                 <span>{gettext("View report")}</span>
               </a>
             </div>
+
             <div class="relative text-sm">
               <%= if not @is_leader do %>
                 <button
@@ -394,6 +478,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                     />
                   </svg>
                 </button>
+
                 <div
                   phx-hook="Dropdown"
                   id={"dropdown-action-#{@event.uuid}"}
@@ -418,6 +503,7 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                         <span>{gettext("Duplicate")}</span>
                       </button>
                     </li>
+
                     <li>
                       <.link
                         phx-click="delete"

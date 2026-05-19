@@ -4,6 +4,9 @@ defmodule ClaperWeb.EventLiveTest do
   import Phoenix.LiveViewTest
   import Claper.{AgendasFixtures, PresentationsFixtures}
 
+  alias Claper.Agendas
+  alias Claper.Repo
+
   @update_attrs %{name: "some updated name"}
 
   defp create_event(params) do
@@ -20,6 +23,16 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert html =~ "events"
       assert html =~ presentation_file.event.name
+    end
+
+    test "shows agenda management link in event actions", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      {:ok, _index_live, html} = live(conn, ~p"/events")
+
+      assert html =~ "Agenda"
+      assert html =~ ~p"/e/#{presentation_file.event.code}/manage/agenda"
     end
 
     test "updates event in listing", %{conn: conn, presentation_file: presentation_file} do
@@ -115,6 +128,82 @@ defmodule ClaperWeb.EventLiveTest do
       refute html =~ "Edit agenda item"
       refute html =~ "Delete agenda item"
       refute html =~ "phx-click=\"delete\""
+    end
+  end
+
+  describe "Owner agenda management" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "creates, edits, deletes, and reorders agenda items from the event owner flow", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      {:ok, new_live, _html} = live(conn, ~p"/e/#{event.code}/manage/agenda/new")
+
+      {:ok, _index_live, html} =
+        new_live
+        |> form("#agenda-item-form",
+          agenda_item: %{
+            starts_at: "2026-06-01T09:00",
+            title: "Opening keynote",
+            description: "Welcome to the event",
+            speaker_name: "Avery Singh",
+            duration_minutes: "30"
+          }
+        )
+        |> render_submit()
+        |> follow_redirect(conn, ~p"/e/#{event.code}/manage/agenda")
+
+      assert html =~ "Opening keynote"
+      agenda_item = event.id |> Agendas.list_agenda_items() |> List.first()
+
+      {:ok, edit_live, _html} =
+        live(conn, ~p"/e/#{event.code}/manage/agenda/#{agenda_item}/edit")
+
+      {:ok, _index_live, html} =
+        edit_live
+        |> form("#agenda-item-form",
+          agenda_item: %{
+            starts_at: "2026-06-01T09:30",
+            title: "Updated keynote",
+            description: "Updated details",
+            speaker_name: "Avery Singh",
+            duration_minutes: "45",
+            position: agenda_item.position
+          }
+        )
+        |> render_submit()
+        |> follow_redirect(conn, ~p"/e/#{event.code}/manage/agenda")
+
+      assert html =~ "Updated keynote"
+
+      first = Repo.reload!(agenda_item)
+      second = agenda_item_fixture(%{event: event, title: "Second item"})
+
+      {:ok, index_live, _html} = live(conn, ~p"/e/#{event.code}/manage/agenda")
+
+      index_live
+      |> element("button[phx-value-id='#{second.id}'][phx-value-direction='up']")
+      |> render_click()
+
+      assert [second.id, first.id] == event.id |> Agendas.list_agenda_items() |> Enum.map(& &1.id)
+
+      index_live
+      |> element("button[phx-value-id='#{first.id}'][phx-click='delete']")
+      |> render_click()
+
+      refute Repo.reload(first)
+    end
+
+    test "redirects non-owners away from agenda management", %{conn: conn} do
+      other_user = Claper.AccountsFixtures.confirmed_user_fixture()
+      presentation_file = presentation_file_fixture(%{user: other_user}, [:event])
+      presentation_state_fixture(%{presentation_file: presentation_file})
+
+      assert {:error, {:redirect, %{to: "/events"}}} =
+               live(conn, ~p"/e/#{presentation_file.event.code}/manage/agenda")
     end
   end
 end
