@@ -19,7 +19,28 @@
         </div>
 
         <a
-          class="flex items-center px-3 py-2 bg-gray-200 mb-15 rounded-lg mt-5"
+          class="flex items-center px-3 py-2 bg-gray-200 rounded-lg mt-5"
+          href={~p"/e/#{@event.code}/agenda"}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="h-5 w-5 mr-3"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+            />
+          </svg>
+          <span>{gettext("Agenda")}</span>
+        </a>
+
+        <a
+          class="flex items-center px-3 py-2 bg-gray-200 mb-15 rounded-lg mt-3"
           href={~p"/?disconnected_from=#{@event.uuid}"}
         >
           <img src="/images/icons/exit-outline.svg" class="h-5 mr-3" />

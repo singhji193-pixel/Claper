@@ -2,7 +2,7 @@ defmodule ClaperWeb.EventLiveTest do
   use ClaperWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Claper.{PresentationsFixtures}
+  import Claper.{AgendasFixtures, PresentationsFixtures}
 
   @update_attrs %{name: "some updated name"}
 
@@ -59,6 +59,62 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert html =~ "Be the first to react !"
       assert html =~ presentation_file.event.name
+    end
+
+    test "shows agenda link in the audience hamburger menu", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      {:ok, _show_live, html} = live(conn, ~p"/e/#{presentation_file.event.code}")
+
+      assert html =~ "Agenda"
+      assert html =~ ~p"/e/#{presentation_file.event.code}/agenda"
+    end
+  end
+
+  describe "Agenda" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "displays agenda items for the event in order", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      second =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 10:00:00],
+          title: "Second session"
+        })
+
+      first =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 09:00:00],
+          title: "First session"
+        })
+
+      {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
+
+      assert html =~ event.name
+      assert html =~ first.title
+      assert html =~ second.title
+      assert html =~ "Jun 01, 10:00"
+    end
+
+    test "does not expose agenda management controls to audience users", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      agenda_item_fixture(%{event: presentation_file.event})
+
+      {:ok, _agenda_live, html} = live(conn, ~p"/e/#{presentation_file.event.code}/agenda")
+
+      refute html =~ "New agenda item"
+      refute html =~ "Edit agenda item"
+      refute html =~ "Delete agenda item"
+      refute html =~ "phx-click=\"delete\""
     end
   end
 end

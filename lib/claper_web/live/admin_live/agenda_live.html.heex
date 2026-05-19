@@ -1,0 +1,163 @@
+<div id="admin-agenda">
+  <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div>
+      <h1 class="text-3xl font-bold">{gettext("Agenda")}</h1>
+      <p class="mt-2 text-sm text-base-content/70">
+        {gettext("Manage event agenda items for attendees.")}
+      </p>
+    </div>
+
+    <.link
+      :if={@selected_event_id}
+      navigate={~p"/admin/agenda/new?event_id=#{@selected_event_id}"}
+      class="btn btn-primary btn-sm"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        class="w-4 h-4"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" />
+      </svg>
+      {gettext("New agenda item")}
+    </.link>
+  </div>
+
+  <div class="mt-8 card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <%= if Enum.empty?(@events) do %>
+        <div class="rounded-lg border border-dashed border-base-300 p-8 text-center">
+          <h2 class="font-semibold">{gettext("No events found")}</h2>
+          <p class="mt-2 text-sm text-base-content/70">
+            {gettext("Create an event before adding agenda items.")}
+          </p>
+        </div>
+      <% else %>
+        <form phx-change="select-event" class="max-w-xl">
+          <label class="label">
+            <span class="label-text">{gettext("Event")}</span>
+          </label>
+          <select name="event_id" class="select select-bordered w-full">
+            <%= for {label, id} <- @event_options do %>
+              <option value={id} selected={id == @selected_event_id}>{label}</option>
+            <% end %>
+          </select>
+        </form>
+      <% end %>
+    </div>
+  </div>
+
+  <%= if @live_action in [:new, :edit] && @agenda_item do %>
+    <div class="mt-8 card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title">{@page_title}</h2>
+        <.live_component
+          module={ClaperWeb.AdminLive.AgendaLive.FormComponent}
+          id={"agenda-item-form-#{@agenda_item.id || "new"}"}
+          action={@live_action}
+          agenda_item={@agenda_item}
+          event_options={@event_options}
+          navigate={~p"/admin/agenda?event_id=#{@selected_event_id}"}
+        />
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mt-8 card bg-base-100 shadow-xl">
+    <div class="card-body p-0">
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>{gettext("Order")}</th>
+              <th>{gettext("Time")}</th>
+              <th>{gettext("Title")}</th>
+              <th>{gettext("Speaker")}</th>
+              <th>{gettext("Duration")}</th>
+              <th class="text-right">{gettext("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= if Enum.empty?(@agenda_items) do %>
+              <tr>
+                <td colspan="6" class="py-8 text-center text-base-content/60">
+                  {gettext("No agenda items yet")}
+                </td>
+              </tr>
+            <% else %>
+              <%= for {agenda_item, index} <- Enum.with_index(@agenda_items) do %>
+                <tr id={"agenda-item-#{agenda_item.id}"}>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold">{index + 1}</span>
+                      <div class="join">
+                        <button
+                          type="button"
+                          phx-click="move"
+                          phx-value-id={agenda_item.id}
+                          phx-value-direction="up"
+                          class="btn btn-xs join-item"
+                          disabled={index == 0}
+                          title={gettext("Move up")}
+                        >
+                          &uarr;
+                        </button>
+                        <button
+                          type="button"
+                          phx-click="move"
+                          phx-value-id={agenda_item.id}
+                          phx-value-direction="down"
+                          class="btn btn-xs join-item"
+                          disabled={index == length(@agenda_items) - 1}
+                          title={gettext("Move down")}
+                        >
+                          &darr;
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{format_agenda_time(agenda_item.starts_at)}</td>
+                  <td>
+                    <div class="font-medium">{agenda_item.title}</div>
+                    <%= if agenda_item.description do %>
+                      <div class="mt-1 max-w-md whitespace-pre-line text-sm text-base-content/60">
+                        {agenda_item.description}
+                      </div>
+                    <% end %>
+                  </td>
+                  <td>{agenda_item.speaker_name || gettext("No speaker")}</td>
+                  <td>{format_duration(agenda_item.duration_minutes)}</td>
+                  <td class="text-right">
+                    <div class="flex justify-end gap-2">
+                      <.link
+                        navigate={~p"/admin/agenda/#{agenda_item}/edit"}
+                        class="btn btn-link btn-sm text-primary"
+                        title={gettext("Edit agenda item")}
+                      >
+                        {gettext("Edit")}
+                      </.link>
+                      <a
+                        href="#"
+                        phx-click="delete"
+                        phx-value-id={agenda_item.id}
+                        data-confirm={
+                          gettext("Are you sure you want to delete this agenda item?")
+                        }
+                        class="btn btn-link btn-sm text-error"
+                        title={gettext("Delete agenda item")}
+                      >
+                        {gettext("Delete")}
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

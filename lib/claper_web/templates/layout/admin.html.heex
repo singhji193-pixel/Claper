@@ -216,6 +216,22 @@
             </li>
             <li>
               <.link
+                navigate={~p"/admin/agenda"}
+                class={"#{if Enum.take(@conn.path_info, 2) == ["admin", "agenda"], do: "active", else: ""}"}
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+                  />
+                </svg>
+                {gettext("Agenda")}
+              </.link>
+            </li>
+            <li>
+              <.link
                 patch={~p"/admin/users"}
                 class={"#{if @conn.path_info == ["admin", "users"], do: "active", else: ""}"}
               >

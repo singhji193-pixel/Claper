@@ -54,6 +54,7 @@ defmodule ClaperWeb.Router do
       live("/", EventLive.Join, :index)
       live("/join", EventLive.Join, :join)
       live("/e/:code", EventLive.Show, :show)
+      live("/e/:code/agenda", EventLive.Agenda, :show)
     end
   end
 
@@ -193,6 +194,10 @@ defmodule ClaperWeb.Router do
       live "/events/new", EventLive, :new
       live "/events/:id/edit", EventLive, :edit
       live "/events/:id", EventLive, :show
+
+      live "/agenda", AgendaLive, :index
+      live "/agenda/new", AgendaLive, :new
+      live "/agenda/:id/edit", AgendaLive, :edit
 
       live "/oidc_providers", OidcProviderLive, :index
       live "/oidc_providers/new", OidcProviderLive, :new
