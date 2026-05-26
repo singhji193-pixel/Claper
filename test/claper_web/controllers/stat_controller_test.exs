@@ -1,7 +1,7 @@
 defmodule ClaperWeb.StatControllerTest do
   use ClaperWeb.ConnCase, async: true
 
-  import Claper.{AccountsFixtures, FormsFixtures, PresentationsFixtures}
+  import Claper.{AccountsFixtures, BingosFixtures, FormsFixtures, PresentationsFixtures}
 
   describe "POST /export/forms/:form_id" do
     setup %{conn: conn} do
@@ -55,6 +55,49 @@ defmodule ClaperWeb.StatControllerTest do
       conn = build_conn() |> log_in_user(stranger)
 
       conn = post(conn, ~p"/export/forms/#{form.id}")
+
+      assert response(conn, 403) == "Forbidden"
+    end
+  end
+
+  describe "POST /export/:event_id/bingo" do
+    setup %{conn: conn} do
+      owner = confirmed_user_fixture()
+      presentation_file = presentation_file_fixture(%{user: owner}, [:event])
+      event = presentation_file.event
+
+      player =
+        bingo_player_fixture(%{
+          event: event,
+          name: "Avery",
+          title: "Founder",
+          email: "avery@example.com",
+          phone: "555-111-2222",
+          share_title: true,
+          share_email: true,
+          share_phone: false
+        })
+
+      %{conn: log_in_user(conn, owner), event: event, player: player}
+    end
+
+    test "exports only opted-in Bingo contact fields", %{conn: conn, event: event} do
+      conn = post(conn, ~p"/export/#{event.uuid}/bingo")
+
+      assert response_content_type(conn, :csv)
+      body = response(conn, 200)
+
+      assert body =~ "Avery"
+      assert body =~ "Founder"
+      assert body =~ "avery@example.com"
+      refute body =~ "555-111-2222"
+    end
+
+    test "returns 403 for users who don't own the event", %{event: event} do
+      stranger = confirmed_user_fixture()
+      conn = build_conn() |> log_in_user(stranger)
+
+      conn = post(conn, ~p"/export/#{event.uuid}/bingo")
 
       assert response(conn, 403) == "Forbidden"
     end

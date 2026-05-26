@@ -55,6 +55,7 @@ defmodule ClaperWeb.Router do
       live("/join", EventLive.Join, :join)
       live("/e/:code", EventLive.Show, :show)
       live("/e/:code/agenda", EventLive.Agenda, :show)
+      live("/e/:code/bingo", EventLive.Bingo, :show)
     end
   end
 
@@ -68,6 +69,7 @@ defmodule ClaperWeb.Router do
       post "/export/quizzes/:quiz_id", StatController, :export_quiz
       post "/export/quizzes/:quiz_id/qti", StatController, :export_quiz_qti
       post "/export/:event_id/messages", StatController, :export_all_messages
+      post "/export/:event_id/bingo", StatController, :export_bingo
 
       live("/events", EventLive.Index, :index)
       live("/events/new", EventLive.Index, :new)
@@ -99,6 +101,9 @@ defmodule ClaperWeb.Router do
       live("/e/:code/manage/agenda", EventLive.AgendaManage, :index)
       live("/e/:code/manage/agenda/new", EventLive.AgendaManage, :new)
       live("/e/:code/manage/agenda/:id/edit", EventLive.AgendaManage, :edit)
+      live("/e/:code/manage/bingo", EventLive.BingoManage, :index)
+      live("/e/:code/manage/bingo/new", EventLive.BingoManage, :new)
+      live("/e/:code/manage/bingo/:id/edit", EventLive.BingoManage, :edit)
     end
   end
 

@@ -187,6 +187,19 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                         data-phx-link="patch"
                         data-phx-link-state="push"
                         class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                        href={~p"/e/#{@event.code}/manage/bingo"}
+                      >
+                        <span class="flex h-6 w-6 items-center justify-center rounded bg-primary-100 text-sm font-bold text-primary-700">
+                          B
+                        </span>
+                        <span>{gettext("Bingo")}</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        data-phx-link="patch"
+                        data-phx-link-state="push"
+                        class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
                         href={~p"/e/#{@event.code}"}
                       >
                         <svg

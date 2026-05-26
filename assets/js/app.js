@@ -22,6 +22,7 @@ import "moment/locale/it";
 import "moment/locale/hu";
 import "moment/locale/lv";
 import QRCodeStyling from "qr-code-styling";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import { Presenter } from "./presenter";
 import { Manager } from "./manager";
 import Split from "split-grid";
@@ -561,22 +562,34 @@ Hooks.ClickFeedback = {
 };
 Hooks.QRCode = {
   draw() {
-    var url = this.el.dataset.code
+    var fixedSize = this.el.dataset.size
+      ? parseInt(this.el.dataset.size, 10)
+      : null;
+    var url = this.el.dataset.url
+      ? this.el.dataset.url
+      : this.el.dataset.code
       ? window.location.protocol +
         "//" +
         window.location.host +
         "/e/" +
         this.el.dataset.code
       : window.location.href;
-    this.el.style.width = document.documentElement.clientWidth * 0.27 + "px";
-    this.el.style.height = document.documentElement.clientWidth * 0.27 + "px";
+
+    if (!fixedSize) {
+      this.el.style.width = document.documentElement.clientWidth * 0.27 + "px";
+      this.el.style.height = document.documentElement.clientWidth * 0.27 + "px";
+    }
 
     if (this.qrCode == null) {
       this.qrCode = new QRCodeStyling({
-        width: this.el.dataset.dynamic
+        width: fixedSize
+          ? fixedSize
+          : this.el.dataset.dynamic
           ? document.documentElement.clientWidth * 0.25
           : 240,
-        height: this.el.dataset.dynamic
+        height: fixedSize
+          ? fixedSize
+          : this.el.dataset.dynamic
           ? document.documentElement.clientWidth * 0.25
           : 240,
         margin: 0,
@@ -600,10 +613,14 @@ Hooks.QRCode = {
       this.qrCode.append(this.el);
     } else {
       this.qrCode.update({
-        width: this.el.dataset.dynamic
+        width: fixedSize
+          ? fixedSize
+          : this.el.dataset.dynamic
           ? document.documentElement.clientWidth * 0.25
           : 240,
-        height: this.el.dataset.dynamic
+        height: fixedSize
+          ? fixedSize
+          : this.el.dataset.dynamic
           ? document.documentElement.clientWidth * 0.25
           : 240,
       });
@@ -621,6 +638,35 @@ Hooks.QRCode = {
   },
   updated() {},
   destroyed() {},
+};
+
+Hooks.BingoScanner = {
+  mounted() {
+    this.hasScanned = false;
+    this.scanner = new Html5QrcodeScanner(
+      this.el.id,
+      {
+        fps: 8,
+        qrbox: { width: 220, height: 220 },
+      },
+      false
+    );
+
+    this.scanner.render(
+      (decodedText) => {
+        if (this.hasScanned) return;
+        this.hasScanned = true;
+        this.pushEvent("scan-code", { code: decodedText });
+        this.scanner.clear().catch(() => {});
+      },
+      () => {}
+    );
+  },
+  destroyed() {
+    if (this.scanner) {
+      this.scanner.clear().catch(() => {});
+    }
+  },
 };
 
 Hooks.Dropdown = {

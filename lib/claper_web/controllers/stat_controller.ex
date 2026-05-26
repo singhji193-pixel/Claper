@@ -5,7 +5,7 @@ defmodule ClaperWeb.StatController do
   """
   use ClaperWeb, :controller
 
-  alias Claper.{Forms, Events, Polls, Presentations, Quizzes}
+  alias Claper.{Bingos, Forms, Events, Polls, Presentations, Quizzes}
 
   @doc """
   Exports form submissions as a CSV file.
@@ -57,6 +57,23 @@ defmodule ClaperWeb.StatController do
         content = format_messages_for_export(event.posts)
 
         export_as_csv(conn, headers, content, "messages-#{sanitize(event.name)}")
+
+      :unauthorized ->
+        send_resp(conn, 403, "Forbidden")
+    end
+  end
+
+  @doc """
+  Exports Bingo player progress and opted-in contact fields.
+  Requires user to be either an event leader or the event owner.
+  """
+  def export_bingo(%{assigns: %{current_user: current_user}} = conn, %{"event_id" => event_id}) do
+    event = Events.get_event!(event_id)
+
+    case authorize_event_access(current_user, event) do
+      :ok ->
+        {headers, rows} = Bingos.export_players_rows(event.id)
+        export_as_csv(conn, headers, rows, "bingo-#{sanitize(event.name)}")
 
       :unauthorized ->
         send_resp(conn, 403, "Forbidden")

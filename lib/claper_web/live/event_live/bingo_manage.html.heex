@@ -1,0 +1,316 @@
+<div class="min-h-screen bg-gray-100">
+  <div class="bg-white shadow-sm">
+    <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-sm font-medium uppercase text-primary-600">{@event.code}</p>
+        <h1 class="text-2xl font-bold text-gray-900">{gettext("Bingo")}</h1>
+        <p class="mt-1 text-sm text-gray-500">{@event.name}</p>
+      </div>
+
+      <div class="flex flex-col gap-2 sm:flex-row">
+        <a
+          href={~p"/e/#{@event.code}/bingo"}
+          target="_blank"
+          class="inline-flex items-center justify-center rounded-md border border-primary-500 px-4 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50"
+        >
+          {gettext("View attendee Bingo")}
+        </a>
+        {link(gettext("Export CSV"),
+          to: ~p"/export/#{@event.uuid}/bingo",
+          method: :post,
+          target: "_blank",
+          class:
+            "inline-flex items-center justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        )}
+        <a
+          href={~p"/e/#{@event.code}/manage"}
+          class="inline-flex items-center justify-center rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-300"
+        >
+          {gettext("Event manager")}
+        </a>
+        <.link
+          :if={@live_action == :index}
+          patch={~p"/e/#{@event.code}/manage/bingo/new"}
+          class="inline-flex items-center justify-center rounded-md bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] px-4 py-2 text-sm font-semibold text-white transition-all duration-500 hover:bg-position-[100%_100%]"
+        >
+          {gettext("New Bingo prompt")}
+        </.link>
+      </div>
+    </div>
+  </div>
+
+  <main class="mx-auto max-w-6xl px-4 py-6">
+    <section class="rounded-lg bg-white p-5 shadow-base">
+      <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0 flex-1">
+          <h2 class="text-xl font-semibold text-gray-900">{gettext("Bingo dashboard")}</h2>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase text-gray-500">{gettext("Players")}</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{@stats.player_count}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase text-gray-500">
+                {gettext("Connections")}
+              </p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{@stats.connection_count}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase text-gray-500">{gettext("Prompts")}</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{@stats.prompt_count}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase text-gray-500">{gettext("Completed")}</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{@stats.completed_count}</p>
+            </div>
+            <div class="rounded-lg bg-gray-50 p-4">
+              <p class="text-xs font-semibold uppercase text-gray-500">{gettext("Rate")}</p>
+              <p class="mt-2 text-2xl font-bold text-gray-900">{@stats.completion_rate}%</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-full rounded-lg border border-gray-200 p-4 lg:w-64">
+          <p class="text-sm font-semibold text-gray-700">{gettext("Attendee QR")}</p>
+          <div
+            id="bingo-join-qr"
+            phx-hook="QRCode"
+            phx-update="ignore"
+            data-url={@join_url}
+            data-size="180"
+            class="mx-auto mt-3 flex h-48 w-48 items-center justify-center rounded-lg bg-white p-2"
+          >
+          </div>
+          <p class="mt-3 break-all text-xs text-gray-500">{@join_url}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div class="rounded-lg bg-white p-5 shadow-base">
+        <h2 class="text-xl font-semibold text-gray-900">{gettext("Game settings")}</h2>
+        <.form
+          for={@settings_form}
+          id="bingo-settings-form"
+          phx-submit="save-settings"
+          class="mt-4 space-y-3"
+        >
+          <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            {checkbox(@settings_form, :leaderboard_enabled,
+              class: "mt-1 h-4 w-4 rounded border-gray-300 text-primary-600"
+            )}
+            <span>
+              <span class="block text-sm font-semibold text-gray-800">
+                {gettext("Leaderboard")}
+              </span>
+              <span class="block text-sm text-gray-500">
+                {gettext("Show friendly ranking by completed prompts.")}
+              </span>
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            {checkbox(@settings_form, :forum_enabled,
+              class: "mt-1 h-4 w-4 rounded border-gray-300 text-primary-600"
+            )}
+            <span>
+              <span class="block text-sm font-semibold text-gray-800">
+                {gettext("Self-introduction forum")}
+              </span>
+              <span class="block text-sm text-gray-500">
+                {gettext("Let players browse attendee introductions.")}
+              </span>
+            </span>
+          </label>
+
+          <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            {checkbox(@settings_form, :contact_sharing_enabled,
+              class: "mt-1 h-4 w-4 rounded border-gray-300 text-primary-600"
+            )}
+            <span>
+              <span class="block text-sm font-semibold text-gray-800">
+                {gettext("Contact sharing")}
+              </span>
+              <span class="block text-sm text-gray-500">
+                {gettext("Show opted-in profile fields to saved connections.")}
+              </span>
+            </span>
+          </label>
+
+          <button
+            type="submit"
+            phx-disable-with={gettext("Saving...")}
+            class="inline-flex items-center justify-center rounded-md bg-primary-500 px-5 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+          >
+            {gettext("Save settings")}
+          </button>
+        </.form>
+      </div>
+
+      <div class="rounded-lg bg-white p-5 shadow-base">
+        <h2 class="text-xl font-semibold text-gray-900">{gettext("Prompt performance")}</h2>
+        <%= if Enum.empty?(@stats.prompt_performance) do %>
+          <p class="mt-3 rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500">
+            {gettext("Prompt stats appear after prompts are created.")}
+          </p>
+        <% else %>
+          <div class="mt-4 space-y-3">
+            <%= for prompt <- @stats.prompt_performance do %>
+              <div class="rounded-lg border border-gray-200 p-3">
+                <div class="flex items-start justify-between gap-3">
+                  <p class="text-sm font-semibold text-gray-800">{prompt.prompt}</p>
+                  <span class="rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
+                    {prompt.connection_count}
+                  </span>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <section :if={@settings.leaderboard_enabled} class="mt-6 rounded-lg bg-white p-5 shadow-base">
+      <h2 class="text-xl font-semibold text-gray-900">{gettext("Leaderboard")}</h2>
+      <div class="mt-4 divide-y divide-gray-200 overflow-hidden rounded-lg border border-gray-200">
+        <%= for {row, index} <- Enum.with_index(@leaderboard, 1) do %>
+          <div class="flex items-center justify-between p-3">
+            <div class="flex items-center gap-3">
+              <span class="flex h-8 w-8 items-center justify-center rounded-md bg-gray-100 text-sm font-bold text-gray-700">
+                {index}
+              </span>
+              <span class="font-semibold text-gray-900">{row.name}</span>
+            </div>
+            <span class="text-sm text-gray-500">{row.completed_prompts}/{row.total_prompts}</span>
+          </div>
+        <% end %>
+      </div>
+    </section>
+
+    <%= if @live_action in [:new, :edit] && @form do %>
+      <section class="mt-6 rounded-lg bg-white p-5 shadow-base">
+        <div class="mb-5 flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900">{@page_title}</h2>
+          <button
+            type="button"
+            phx-click="cancel"
+            class="rounded-md px-3 py-2 text-sm font-semibold text-gray-500 hover:bg-gray-100"
+          >
+            {gettext("Cancel")}
+          </button>
+        </div>
+
+        <.form for={@form} id="bingo-prompt-form" phx-change="validate" phx-submit="save">
+          {hidden_input(@form, :position)}
+          {hidden_input(@form, :event_id)}
+
+          <label class="block text-sm font-semibold text-gray-700">
+            {gettext("Prompt")}
+          </label>
+          {textarea(@form, :prompt,
+            class:
+              "mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500",
+            rows: 4,
+            required: true,
+            maxlength: 500
+          )}
+          <div class="mt-1 text-sm text-red-500">{error_tag(@form, :prompt)}</div>
+
+          <div class="mt-6 flex justify-end">
+            <button
+              type="submit"
+              phx-disable-with={gettext("Saving...")}
+              class="inline-flex items-center justify-center rounded-md bg-primary-500 px-5 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+            >
+              {if @live_action == :new,
+                do: gettext("Create Bingo prompt"),
+                else: gettext("Update Bingo prompt")}
+            </button>
+          </div>
+        </.form>
+      </section>
+    <% end %>
+
+    <section class="mt-6 overflow-hidden rounded-lg bg-white shadow-base">
+      <div class="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+        <h2 class="text-xl font-semibold text-gray-900">{gettext("Prompts")}</h2>
+        <.link
+          :if={@live_action == :index}
+          patch={~p"/e/#{@event.code}/manage/bingo/new"}
+          class="rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+        >
+          {gettext("New prompt")}
+        </.link>
+      </div>
+
+      <%= if Enum.empty?(@prompts) do %>
+        <div class="p-8 text-center">
+          <p class="text-lg font-semibold text-gray-700">{gettext("No Bingo prompts yet")}</p>
+          <p class="mt-2 text-sm text-gray-500">
+            {gettext("Create prompts attendees will unlock as they meet each other.")}
+          </p>
+        </div>
+      <% else %>
+        <div class="divide-y divide-gray-200">
+          <%= for {prompt, index} <- Enum.with_index(@prompts) do %>
+            <article id={"bingo-prompt-#{prompt.id}"} class="p-5">
+              <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 text-sm text-gray-500">
+                    <span class="rounded-full bg-primary-100 px-2 py-0.5 font-semibold text-primary-700">
+                      {index + 1}
+                    </span>
+                    <span>{gettext("Prompt")}</span>
+                  </div>
+                  <p class="mt-2 whitespace-pre-line text-base leading-7 text-gray-800">
+                    {prompt.prompt}
+                  </p>
+                </div>
+
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    phx-click="move"
+                    phx-value-id={prompt.id}
+                    phx-value-direction="up"
+                    disabled={index == 0}
+                    class="rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={gettext("Move up")}
+                  >
+                    &uarr;
+                  </button>
+                  <button
+                    type="button"
+                    phx-click="move"
+                    phx-value-id={prompt.id}
+                    phx-value-direction="down"
+                    disabled={index == length(@prompts) - 1}
+                    class="rounded-md bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-40"
+                    title={gettext("Move down")}
+                  >
+                    &darr;
+                  </button>
+                  <.link
+                    patch={~p"/e/#{@event.code}/manage/bingo/#{prompt}/edit"}
+                    class="rounded-md px-3 py-2 text-sm font-semibold text-primary-600 hover:bg-primary-50"
+                  >
+                    {gettext("Edit")}
+                  </.link>
+                  <button
+                    type="button"
+                    phx-click="delete"
+                    phx-value-id={prompt.id}
+                    data-confirm={gettext("Are you sure you want to delete this Bingo prompt?")}
+                    class="rounded-md px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50"
+                  >
+                    {gettext("Delete")}
+                  </button>
+                </div>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  </main>
+</div>

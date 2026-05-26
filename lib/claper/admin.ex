@@ -536,7 +536,7 @@ defmodule Claper.Admin do
     |> apply_event_creator_filter(Map.get(params, "creator_id", nil))
     |> order_by([e], desc: e.started_at)
     |> Repo.all()
-    |> Enum.map(fn event -> Map.put(event, :user_email, event.user.email) end)
+    |> Enum.map(fn event -> Map.put(event, :user_email, event.user && event.user.email) end)
   end
 
   defp apply_event_search_filter(query, ""), do: query

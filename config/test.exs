@@ -9,7 +9,7 @@ config :claper, Claper.Repo,
   username: "claper",
   password: "claper",
   database: "claper_test#{System.get_env("MIX_TEST_PARTITION")}",
-  hostname: "localhost",
+  hostname: System.get_env("DB_HOST", "localhost"),
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 1
 

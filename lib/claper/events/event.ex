@@ -11,6 +11,9 @@ defmodule Claper.Events.Event do
           started_at: NaiveDateTime.t(),
           expired_at: NaiveDateTime.t() | nil,
           agenda_items: [Claper.Agendas.AgendaItem.t()] | nil,
+          bingo_prompts: [Claper.Bingos.BingoPrompt.t()] | nil,
+          bingo_players: [Claper.Bingos.BingoPlayer.t()] | nil,
+          bingo_setting: Claper.Bingos.BingoSetting.t() | nil,
           posts: [Claper.Posts.Post.t()] | nil,
           leaders: [Claper.Events.ActivityLeader.t()] | nil,
           presentation_file: Claper.Presentations.PresentationFile.t() | nil,
@@ -30,6 +33,9 @@ defmodule Claper.Events.Event do
     has_many :posts, Claper.Posts.Post
     has_many :leaders, Claper.Events.ActivityLeader, on_replace: :delete
     has_many :agenda_items, Claper.Agendas.AgendaItem
+    has_many :bingo_prompts, Claper.Bingos.BingoPrompt
+    has_many :bingo_players, Claper.Bingos.BingoPlayer
+    has_one :bingo_setting, Claper.Bingos.BingoSetting
 
     has_one :presentation_file, Claper.Presentations.PresentationFile
     has_one :lti_resource, Lti13.Resources.Resource

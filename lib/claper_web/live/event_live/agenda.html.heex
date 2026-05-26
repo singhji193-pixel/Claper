@@ -39,6 +39,14 @@
 
       <a
         class="flex items-center px-3 py-2 bg-gray-200 rounded-lg mt-3"
+        href={~p"/e/#{@event.code}/bingo"}
+      >
+        <span class="mr-3 text-lg font-bold">B</span>
+        <span>{gettext("Bingo")}</span>
+      </a>
+
+      <a
+        class="flex items-center px-3 py-2 bg-gray-200 rounded-lg mt-3"
         href={~p"/e/#{@event.code}"}
       >
         <svg
