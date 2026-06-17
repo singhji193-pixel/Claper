@@ -90,6 +90,59 @@ defmodule ClaperWeb.EventLiveTest do
     end
   end
 
+  describe "PWA shell" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "displays the modern event app shell with bottom navigation", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      agenda_item_fixture(%{event: event, title: "Opening session"})
+      bingo_prompt_fixture(%{event: event, prompt: "Find another founder"})
+
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}")
+
+      assert html =~ "NextGen event app"
+      assert html =~ event.name
+      assert html =~ "Agenda"
+      assert html =~ "Bingo"
+      assert html =~ "People"
+      assert html =~ "Profile"
+      assert html =~ ~p"/app/#{event.code}/agenda"
+      assert html =~ ~p"/app/#{event.code}/bingo"
+    end
+
+    test "renders agenda items inside the PWA shell", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 09:00:00],
+        title: "Opening keynote",
+        speaker_name: "Avery Singh",
+        duration_minutes: 30
+      })
+
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/agenda")
+
+      assert html =~ "Opening keynote"
+      assert html =~ "Avery Singh"
+      assert html =~ "09:00"
+      assert html =~ ~p"/e/#{event.code}/agenda"
+    end
+
+    test "shows a designed unavailable state for missing events", %{conn: conn} do
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/missing")
+
+      assert html =~ "Event not found"
+      assert html =~ "Enter another code"
+    end
+  end
+
   describe "Bingo" do
     setup [:register_and_log_in_user, :create_event]
 

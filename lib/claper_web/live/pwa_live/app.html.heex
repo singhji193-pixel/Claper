@@ -1,0 +1,272 @@
+<%= if @status == :not_found do %>
+  <div class="nextgen-pwa" style="--pwa-primary: #f15a24; --pwa-accent: #365a91;">
+    <main class="pwa-unavailable-shell">
+      <section class="pwa-unavailable">
+        <span class="pwa-unavailable-icon">
+          <.pwa_icon name="hero-exclamation-triangle" class="size-7" />
+        </span>
+        <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
+        <h1>{gettext("Event not found")}</h1>
+        <p>
+          {gettext(
+            "Check the event code and try again. If you were invited, use the link from your ticket email."
+          )}
+        </p>
+        <.link navigate={~p"/join"} class="pwa-primary-action pwa-focus">
+          {gettext("Enter another code")}
+        </.link>
+      </section>
+    </main>
+  </div>
+<% else %>
+  <div class="nextgen-pwa" style={pwa_theme_style(@settings)}>
+    <div class="pwa-shell">
+      <header class="pwa-hero">
+        <div class="pwa-brand-row">
+          <div class="pwa-brand-mark">
+            <img src="/images/favicon.png" alt="CoreOrbit" />
+          </div>
+          <div>
+            <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
+            <p class="pwa-code">#{String.upcase(@event.code)}</p>
+          </div>
+          <span class="pwa-status">{event_status(@event)}</span>
+        </div>
+
+        <div class="pwa-hero-copy">
+          <h1>{@event.name}</h1>
+          <p>{@settings.home_tagline}</p>
+        </div>
+
+        <div class="pwa-stat-grid" aria-label={gettext("Event app status")}>
+          <.stat_pill
+            icon="hero-calendar-days"
+            value={format_event_time(@event.started_at)}
+            label={gettext("Start")}
+            tone="primary"
+          />
+          <.stat_pill
+            icon="hero-list-bullet"
+            value={feature_count(@bootstrap.features.agenda, gettext("item"), gettext("items"))}
+            label={gettext("Agenda")}
+            tone="accent"
+          />
+          <.stat_pill
+            icon="hero-qr-code"
+            value={
+              feature_count(@bootstrap.features.bingo, gettext("prompt"), gettext("prompts"))
+            }
+            label={gettext("Bingo")}
+            tone="neutral"
+          />
+        </div>
+      </header>
+
+      <main id="pwa-main" class="pwa-main" tabindex="-1">
+        <%= case @live_action do %>
+          <% :agenda -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Schedule")}</p>
+              <h2>{gettext("Agenda")}</h2>
+              <p>
+                {gettext(
+                  "Sessions from the existing CoreOrbit Ask agenda, presented in the new app shell."
+                )}
+              </p>
+            </section>
+
+            <%= if Enum.empty?(@agenda_items) do %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-calendar-days" class="size-7" />
+                </span>
+                <h3>{gettext("Agenda is being finalized")}</h3>
+                <p>{gettext("The organizer has not published sessions for this event yet.")}</p>
+              </section>
+            <% else %>
+              <section class="pwa-agenda-list">
+                <article :for={item <- @agenda_items} class="pwa-agenda-item">
+                  <time>{format_agenda_time(item.starts_at)}</time>
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p :if={item.speaker_name} class="pwa-agenda-speaker">{item.speaker_name}</p>
+                    <p :if={item.description} class="pwa-agenda-description">
+                      {item.description}
+                    </p>
+                    <span>{format_duration(item.duration_minutes)}</span>
+                  </div>
+                </article>
+              </section>
+            <% end %>
+
+            <.feature_action
+              icon="hero-arrow-top-right-on-square"
+              title={gettext("Classic attendee agenda")}
+              description={
+                gettext("Open the current public Agenda route while the PWA agenda grows.")
+              }
+              navigate={~p"/e/#{@event.code}/agenda"}
+            />
+          <% :people -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Networking")}</p>
+              <h2>{gettext("People")}</h2>
+              <p>
+                {gettext(
+                  "The attendee directory will use ticketed attendee profiles and opt-in sharing."
+                )}
+              </p>
+            </section>
+
+            <section class="pwa-empty-state">
+              <span class="pwa-empty-icon">
+                <.pwa_icon name="hero-user-group" class="size-7" />
+              </span>
+              <h3>{gettext("People directory is next")}</h3>
+              <p>
+                {gettext(
+                  "Profiles, search, QR connections, and saved contacts arrive after ticket sync and attendee login."
+                )}
+              </p>
+            </section>
+          <% :bingo -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Networking game")}</p>
+              <h2>{gettext("Bingo")}</h2>
+              <p>
+                {gettext(
+                  "Your existing Bingo feature stays active while we bring it into the PWA experience."
+                )}
+              </p>
+            </section>
+
+            <%= if @bootstrap.features.bingo.count > 0 do %>
+              <.feature_action
+                icon="hero-qr-code"
+                title={gettext("Open Bingo")}
+                description={gettext("Play the current QR networking game for this event.")}
+                meta={
+                  feature_count(@bootstrap.features.bingo, gettext("prompt"), gettext("prompts"))
+                }
+                navigate={~p"/e/#{@event.code}/bingo"}
+              />
+            <% else %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-qr-code" class="size-7" />
+                </span>
+                <h3>{gettext("Bingo is not ready yet")}</h3>
+                <p>{gettext("Organizer prompts will appear here when the game is ready.")}</p>
+              </section>
+            <% end %>
+          <% :profile -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Account")}</p>
+              <h2>{gettext("Profile")}</h2>
+              <p>
+                {gettext(
+                  "Email code login and ticket-linked profiles arrive in the authentication phase."
+                )}
+              </p>
+            </section>
+
+            <section class="pwa-empty-state">
+              <span class="pwa-empty-icon">
+                <.pwa_icon name="hero-user-circle" class="size-7" />
+              </span>
+              <h3>{gettext("Profile setup is coming")}</h3>
+              <p>
+                {gettext(
+                  "For now, Bingo still stores its own name-only player profile on the existing route."
+                )}
+              </p>
+            </section>
+          <% _ -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Companion app")}</p>
+              <h2>{gettext("Welcome")}</h2>
+              <p>
+                {gettext(
+                  "Use the new app shell for schedule, networking, and live event tools as they come online."
+                )}
+              </p>
+            </section>
+
+            <section class="pwa-action-grid">
+              <.feature_action
+                icon="hero-calendar-days"
+                title={gettext("Agenda")}
+                description={gettext("Browse the event schedule in a mobile-first view.")}
+                meta={
+                  feature_count(@bootstrap.features.agenda, gettext("item"), gettext("items"))
+                }
+                navigate={~p"/app/#{@event.code}/agenda"}
+              />
+              <.feature_action
+                icon="hero-qr-code"
+                title={gettext("Bingo")}
+                description={gettext("Meet attendees with QR prompts and saved connections.")}
+                meta={
+                  feature_count(@bootstrap.features.bingo, gettext("prompt"), gettext("prompts"))
+                }
+                navigate={~p"/app/#{@event.code}/bingo"}
+              />
+              <.feature_action
+                icon="hero-user-group"
+                title={gettext("People")}
+                description={
+                  gettext(
+                    "Attendee directory, search, and contact sharing are queued for the networking phase."
+                  )
+                }
+                navigate={~p"/app/#{@event.code}/people"}
+              />
+              <.feature_action
+                icon="hero-user-circle"
+                title={gettext("Profile")}
+                description={
+                  gettext(
+                    "Ticket-linked attendee profiles begin after email code login is added."
+                  )
+                }
+                navigate={~p"/app/#{@event.code}/profile"}
+              />
+            </section>
+        <% end %>
+      </main>
+
+      <nav class="pwa-bottom-nav" aria-label={gettext("Event app navigation")}>
+        <.nav_item
+          active={@live_action == :home}
+          icon="hero-home"
+          label={gettext("Home")}
+          navigate={~p"/app/#{@event.code}"}
+        />
+        <.nav_item
+          active={@live_action == :agenda}
+          icon="hero-calendar-days"
+          label={gettext("Agenda")}
+          navigate={~p"/app/#{@event.code}/agenda"}
+        />
+        <.nav_item
+          active={@live_action == :people}
+          icon="hero-user-group"
+          label={gettext("People")}
+          navigate={~p"/app/#{@event.code}/people"}
+        />
+        <.nav_item
+          active={@live_action == :bingo}
+          icon="hero-qr-code"
+          label={gettext("Bingo")}
+          navigate={~p"/app/#{@event.code}/bingo"}
+        />
+        <.nav_item
+          active={@live_action == :profile}
+          icon="hero-user-circle"
+          label={gettext("Profile")}
+          navigate={~p"/app/#{@event.code}/profile"}
+        />
+      </nav>
+    </div>
+  </div>
+<% end %>

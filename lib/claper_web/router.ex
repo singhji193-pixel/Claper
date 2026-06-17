@@ -35,6 +35,12 @@ defmodule ClaperWeb.Router do
     plug(:accepts, ["json"])
   end
 
+  pipeline :pwa_api do
+    plug(:accepts, ["json"])
+    plug(:fetch_session)
+    plug(:attendee_identifier)
+  end
+
   pipeline :rate_limit_auth do
     plug ClaperWeb.Plugs.RateLimitPlug,
       max_requests: 10,
@@ -57,6 +63,24 @@ defmodule ClaperWeb.Router do
       live("/e/:code/agenda", EventLive.Agenda, :show)
       live("/e/:code/bingo", EventLive.Bingo, :show)
     end
+  end
+
+  live_session :pwa_attendee do
+    scope "/app", ClaperWeb do
+      pipe_through([:browser, :attendee_registration])
+
+      live("/:code", PwaLive.App, :home)
+      live("/:code/agenda", PwaLive.App, :agenda)
+      live("/:code/people", PwaLive.App, :people)
+      live("/:code/bingo", PwaLive.App, :bingo)
+      live("/:code/profile", PwaLive.App, :profile)
+    end
+  end
+
+  scope "/api/pwa", ClaperWeb do
+    pipe_through([:pwa_api])
+
+    get("/:code/bootstrap", PwaController, :bootstrap)
   end
 
   live_session :user,

@@ -783,3 +783,13 @@ liveSocket.connect();
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket;
+
+if (
+  "serviceWorker" in navigator &&
+  (window.location.protocol === "https:" ||
+    ["localhost", "127.0.0.1"].includes(window.location.hostname))
+) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
