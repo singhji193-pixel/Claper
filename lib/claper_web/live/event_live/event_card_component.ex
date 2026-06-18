@@ -200,6 +200,31 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                         data-phx-link="patch"
                         data-phx-link-state="push"
                         class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                        href={~p"/e/#{@event.code}/manage/app"}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="2"
+                          stroke="currentColor"
+                          class="w-6 h-6"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M10.5 1.5h3A2.5 2.5 0 0 1 16 4v16a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 8 20V4a2.5 2.5 0 0 1 2.5-2.5Z"
+                          />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 19h2" />
+                        </svg>
+                        <span>{gettext("Event app")}</span>
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        data-phx-link="patch"
+                        data-phx-link-state="push"
+                        class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
                         href={~p"/e/#{@event.code}"}
                       >
                         <svg
@@ -318,6 +343,31 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
                             />
                           </svg>
                           <span>{gettext("Agenda")}</span>
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          class="py-2 px-2 rounded-sm text-gray-600 hover:bg-gray-100 flex items-center gap-x-2"
+                          href={~p"/e/#{@event.code}/manage/app"}
+                          data-phx-link="patch"
+                          data-phx-link-state="push"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke-width="2"
+                            stroke="currentColor"
+                            class="h-5 w-5"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M10.5 1.5h3A2.5 2.5 0 0 1 16 4v16a2.5 2.5 0 0 1-2.5 2.5h-3A2.5 2.5 0 0 1 8 20V4a2.5 2.5 0 0 1 2.5-2.5Z"
+                            />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 19h2" />
+                          </svg>
+                          <span>{gettext("Event app")}</span>
                         </a>
                       </li>
                       <li>

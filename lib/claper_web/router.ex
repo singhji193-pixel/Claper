@@ -83,6 +83,13 @@ defmodule ClaperWeb.Router do
     get("/:code/bootstrap", PwaController, :bootstrap)
   end
 
+  scope "/api/integrations", ClaperWeb do
+    pipe_through([:api])
+
+    post("/hi-events/webhook", HiEventsWebhookController, :create)
+    post("/hievents/events", HiEventsWebhookController, :create)
+  end
+
   live_session :user,
     root_layout: {ClaperWeb.LayoutView, :user} do
     scope "/", ClaperWeb do
@@ -128,6 +135,7 @@ defmodule ClaperWeb.Router do
       live("/e/:code/manage/bingo", EventLive.BingoManage, :index)
       live("/e/:code/manage/bingo/new", EventLive.BingoManage, :new)
       live("/e/:code/manage/bingo/:id/edit", EventLive.BingoManage, :edit)
+      live("/e/:code/manage/app", EventLive.AppManage, :index)
     end
   end
 

@@ -53,6 +53,7 @@ defmodule ClaperWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    body_reader: {ClaperWeb.CacheBodyReader, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride
@@ -70,7 +71,7 @@ defmodule ClaperWeb.Endpoint do
     Plug.run(conn, [{Plug.Session, runtime_opts()}])
   end
 
-  def runtime_opts() do
+  def runtime_opts do
     @session_options
     |> Keyword.put(:same_site, Application.get_env(:claper, __MODULE__)[:same_site_cookie])
     |> Keyword.put(:secure, Application.get_env(:claper, __MODULE__)[:secure_cookie])

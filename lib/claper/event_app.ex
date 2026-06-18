@@ -3,7 +3,7 @@ defmodule Claper.EventApp do
   Event companion app settings and bootstrap helpers.
   """
 
-  alias Claper.{Agendas, Bingos, Events, Repo}
+  alias Claper.{Agendas, Bingos, Events, HiEvents, Repo}
   alias Claper.EventApp.Setting
   alias Claper.Events.Event
 
@@ -44,6 +44,7 @@ defmodule Claper.EventApp do
   def bootstrap_for_event(%Event{} = event, attendee_identifier \\ nil) do
     agenda_items = Agendas.list_agenda_items(event.id)
     bingo_prompts = Bingos.list_prompts(event.id)
+    ticket_count = HiEvents.ticket_count(event.id)
     settings = settings_for_event(event.id)
 
     %{
@@ -53,7 +54,8 @@ defmodule Claper.EventApp do
         agenda: feature("Agenda", true, length(agenda_items), "/app/#{event.code}/agenda"),
         bingo: feature("Bingo", true, length(bingo_prompts), "/app/#{event.code}/bingo"),
         people: feature("People", settings.people_enabled, 0, "/app/#{event.code}/people"),
-        ticket: feature("Ticket", settings.ticket_enabled, 0, "/app/#{event.code}/ticket"),
+        ticket:
+          feature("Ticket", settings.ticket_enabled, ticket_count, "/app/#{event.code}/ticket"),
         chat: feature("Chat", settings.chat_enabled, 0, "/app/#{event.code}/chat"),
         sponsors: feature("Sponsors", settings.sponsors_enabled, 0, "/app/#{event.code}/sponsors")
       },
