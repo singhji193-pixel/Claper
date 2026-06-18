@@ -60,6 +60,34 @@
             tone="neutral"
           />
         </div>
+
+        <section :if={!signed_in?(@attendee)} class="pwa-auth-nudge">
+          <span class="pwa-auth-nudge-icon">
+            <.pwa_icon name="hero-envelope" class="size-6" />
+          </span>
+          <div>
+            <strong>{gettext("Ticket login")}</strong>
+            <span>
+              {gettext("Use your event ticket email to unlock profile and networking.")}
+            </span>
+          </div>
+          <.link href={~p"/app/#{@event.code}/login"} class="pwa-auth-nudge-action pwa-focus">
+            {gettext("Sign in")}
+          </.link>
+        </section>
+
+        <section :if={signed_in?(@attendee)} class="pwa-auth-nudge pwa-auth-nudge-signed-in">
+          <span class="pwa-auth-nudge-icon">
+            <.pwa_icon name="hero-ticket" class="size-6" />
+          </span>
+          <div>
+            <strong>{attendee_display_name(@attendee)}</strong>
+            <span>{@attendee.ticket_name || gettext("Ticket verified")}</span>
+          </div>
+          <.link href={~p"/app/#{@event.code}/profile"} class="pwa-auth-nudge-action pwa-focus">
+            {gettext("Profile")}
+          </.link>
+        </section>
       </header>
 
       <main id="pwa-main" class="pwa-main" tabindex="-1">
@@ -118,17 +146,30 @@
               </p>
             </section>
 
-            <section class="pwa-empty-state">
-              <span class="pwa-empty-icon">
-                <.pwa_icon name="hero-user-group" class="size-7" />
-              </span>
-              <h3>{gettext("People directory is next")}</h3>
-              <p>
-                {gettext(
-                  "Profiles, search, QR connections, and saved contacts arrive after ticket sync and attendee login."
-                )}
-              </p>
-            </section>
+            <%= if signed_in?(@attendee) do %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-user-group" class="size-7" />
+                </span>
+                <h3>{gettext("People directory is next")}</h3>
+                <p>
+                  {gettext(
+                    "Your ticket is verified. Search, QR connections, and contact sharing come in the networking phase."
+                  )}
+                </p>
+              </section>
+            <% else %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-envelope" class="size-7" />
+                </span>
+                <h3>{gettext("Sign in to view people")}</h3>
+                <p>{gettext("Use your ticket email before networking tools open.")}</p>
+                <.link href={~p"/app/#{@event.code}/login"} class="pwa-primary-action pwa-focus">
+                  {gettext("Sign in")}
+                </.link>
+              </section>
+            <% end %>
           <% :bingo -> %>
             <section class="pwa-section-header">
               <p class="pwa-eyebrow">{gettext("Networking game")}</p>
@@ -164,23 +205,55 @@
               <p class="pwa-eyebrow">{gettext("Account")}</p>
               <h2>{gettext("Profile")}</h2>
               <p>
-                {gettext(
-                  "Email code login and ticket-linked profiles arrive in the authentication phase."
-                )}
+                {gettext("Your event app access is tied to your synced ticket.")}
               </p>
             </section>
 
-            <section class="pwa-empty-state">
-              <span class="pwa-empty-icon">
-                <.pwa_icon name="hero-user-circle" class="size-7" />
-              </span>
-              <h3>{gettext("Profile setup is coming")}</h3>
-              <p>
-                {gettext(
-                  "For now, Bingo still stores its own name-only player profile on the existing route."
-                )}
-              </p>
-            </section>
+            <%= if signed_in?(@attendee) do %>
+              <section class="pwa-profile-card">
+                <span class="pwa-profile-avatar">
+                  <.pwa_icon name="hero-user-circle" class="size-8" />
+                </span>
+                <div class="pwa-profile-main">
+                  <p class="pwa-eyebrow">{gettext("Verified attendee")}</p>
+                  <h3>{attendee_display_name(@attendee)}</h3>
+                  <dl>
+                    <div>
+                      <dt>{gettext("Email")}</dt>
+                      <dd>{@attendee.email}</dd>
+                    </div>
+                    <div>
+                      <dt>{gettext("Ticket")}</dt>
+                      <dd>{@attendee.ticket_name || gettext("Ticket verified")}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
+
+              <form action={~p"/app/#{@event.code}/session"} method="post" class="pwa-inline-form">
+                <input type="hidden" name="_method" value="delete" />
+                <input
+                  type="hidden"
+                  name="_csrf_token"
+                  value={Phoenix.Controller.get_csrf_token()}
+                />
+                <button type="submit" class="pwa-secondary-action pwa-focus">
+                  <.pwa_icon name="hero-arrow-right-on-rectangle" class="size-5" />
+                  {gettext("Sign out")}
+                </button>
+              </form>
+            <% else %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-envelope" class="size-7" />
+                </span>
+                <h3>{gettext("Sign in to create your profile")}</h3>
+                <p>{gettext("Enter your ticket email and 4-digit code to continue.")}</p>
+                <.link href={~p"/app/#{@event.code}/login"} class="pwa-primary-action pwa-focus">
+                  {gettext("Sign in")}
+                </.link>
+              </section>
+            <% end %>
           <% _ -> %>
             <section class="pwa-section-header">
               <p class="pwa-eyebrow">{gettext("Companion app")}</p>
@@ -225,9 +298,9 @@
                 icon="hero-user-circle"
                 title={gettext("Profile")}
                 description={
-                  gettext(
-                    "Ticket-linked attendee profiles begin after email code login is added."
-                  )
+                  if signed_in?(@attendee),
+                    do: gettext("View your verified ticket profile."),
+                    else: gettext("Sign in with your event ticket email.")
                 }
                 navigate={~p"/app/#{@event.code}/profile"}
               />

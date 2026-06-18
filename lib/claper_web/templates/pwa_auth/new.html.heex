@@ -1,0 +1,67 @@
+<div class="nextgen-pwa" style={theme_style(@event)}>
+  <main class="pwa-auth-shell">
+    <section class="pwa-auth-panel">
+      <div class="pwa-brand-row">
+        <div class="pwa-brand-mark">
+          <img src="/images/favicon.png" alt="CoreOrbit" />
+        </div>
+        <div>
+          <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
+          <p class="pwa-code">
+            <%= if @event do %>
+              #{String.upcase(@event.code)}
+            <% else %>
+              {String.upcase(@event_code)}
+            <% end %>
+          </p>
+        </div>
+      </div>
+
+      <div class="pwa-auth-copy">
+        <h1>{gettext("Sign in with your ticket email")}</h1>
+        <p>
+          <%= if @event do %>
+            {@event.name}
+          <% else %>
+            {gettext("This event app is not available.")}
+          <% end %>
+        </p>
+      </div>
+
+      <.form
+        :let={f}
+        for={@conn}
+        action={~p"/app/#{@event_code}/login"}
+        as={:attendee}
+        class="pwa-auth-form"
+      >
+        <div :if={@error_message} class="pwa-form-error" role="alert">
+          <.pwa_icon name="hero-exclamation-triangle" class="size-5" />
+          <span>{@error_message}</span>
+        </div>
+
+        <label for="attendee_email">{gettext("Email address")}</label>
+        <input
+          id="attendee_email"
+          name={f[:email].name}
+          value={@email}
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          required
+          autofocus
+          placeholder="you@example.com"
+          class="pwa-auth-input"
+        />
+
+        <button type="submit" class="pwa-primary-action pwa-focus" disabled={!@event}>
+          {gettext("Send code")}
+        </button>
+      </.form>
+
+      <.link href={~p"/app/#{@event_code}"} class="pwa-secondary-link pwa-focus">
+        {gettext("Back to event app")}
+      </.link>
+    </section>
+  </main>
+</div>

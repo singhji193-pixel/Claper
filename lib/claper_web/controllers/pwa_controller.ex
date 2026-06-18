@@ -4,9 +4,10 @@ defmodule ClaperWeb.PwaController do
   alias Claper.EventApp
 
   def bootstrap(conn, %{"code" => code}) do
-    attendee_identifier = get_session(conn, :attendee_identifier)
+    attendee_session_token =
+      get_session(conn, :event_app_session_token) || get_session(conn, :attendee_identifier)
 
-    case EventApp.bootstrap_event(code, attendee_identifier) do
+    case EventApp.bootstrap_event(code, attendee_session_token) do
       {:ok, bootstrap} ->
         json(conn, bootstrap)
 

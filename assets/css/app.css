@@ -502,6 +502,7 @@
       BlinkMacSystemFont, "Segoe UI", sans-serif;
     min-height: 100vh;
     min-height: 100dvh;
+    max-width: 100vw;
     overflow-x: hidden;
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--pwa-primary) 10%, white), transparent 340px),
@@ -512,8 +513,10 @@
   }
 
   .pwa-shell {
+    box-sizing: border-box;
     position: relative;
     width: min(100%, 68rem);
+    max-width: 100vw;
     min-height: 100vh;
     min-height: 100dvh;
     margin: 0 auto;
@@ -523,6 +526,7 @@
 
   .pwa-hero {
     display: grid;
+    min-width: 0;
     gap: 1.25rem;
     padding: 1rem 0 1.5rem;
   }
@@ -580,6 +584,7 @@
 
   .pwa-hero-copy {
     display: grid;
+    min-width: 0;
     gap: 0.625rem;
   }
 
@@ -591,6 +596,10 @@
     font-size: clamp(2rem, 7vw, 4rem);
     font-weight: 900;
     line-height: 0.98;
+    max-width: 100%;
+    overflow-wrap: break-word;
+    text-wrap: balance;
+    word-break: normal;
   }
 
   .pwa-hero-copy p,
@@ -601,14 +610,17 @@
     color: var(--pwa-muted);
     font-size: 1rem;
     line-height: 1.55;
+    overflow-wrap: anywhere;
   }
 
   .pwa-stat-grid {
     display: grid;
+    min-width: 0;
     gap: 0.75rem;
   }
 
   .pwa-stat-pill {
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
@@ -658,13 +670,83 @@
     text-transform: uppercase;
   }
 
+  .pwa-brand-row > div,
+  .pwa-stat-pill > div,
+  .pwa-auth-nudge > div {
+    min-width: 0;
+  }
+
+  .pwa-auth-nudge {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--pwa-primary) 18%, var(--pwa-border));
+    border-radius: 1.125rem;
+    background: color-mix(in srgb, var(--pwa-primary) 6%, white);
+  }
+
+  .pwa-auth-nudge-signed-in {
+    border-color: color-mix(in srgb, var(--pwa-accent) 18%, var(--pwa-border));
+    background: color-mix(in srgb, var(--pwa-accent) 6%, white);
+  }
+
+  .pwa-auth-nudge-icon {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border-radius: 0.875rem;
+    background: var(--pwa-surface);
+    color: var(--pwa-primary);
+  }
+
+  .pwa-auth-nudge-signed-in .pwa-auth-nudge-icon {
+    color: var(--pwa-accent);
+  }
+
+  .pwa-auth-nudge strong,
+  .pwa-auth-nudge span {
+    display: block;
+  }
+
+  .pwa-auth-nudge strong {
+    color: var(--pwa-ink);
+    font-weight: 850;
+    line-height: 1.25;
+  }
+
+  .pwa-auth-nudge span {
+    margin-top: 0.25rem;
+    color: var(--pwa-muted);
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .pwa-auth-nudge-action {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--pwa-surface);
+    color: var(--pwa-primary);
+    font-weight: 850;
+    text-decoration: none;
+  }
+
   .pwa-main {
     display: grid;
+    min-width: 0;
     gap: 1rem;
   }
 
   .pwa-section-header {
     display: grid;
+    min-width: 0;
     gap: 0.5rem;
     padding-top: 0.5rem;
   }
@@ -675,10 +757,12 @@
 
   .pwa-action-grid {
     display: grid;
+    min-width: 0;
     gap: 0.75rem;
   }
 
   .pwa-feature-action {
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
@@ -749,6 +833,7 @@
 
   .pwa-empty-state,
   .pwa-unavailable {
+    box-sizing: border-box;
     display: grid;
     justify-items: start;
     gap: 0.75rem;
@@ -767,10 +852,12 @@
 
   .pwa-agenda-list {
     display: grid;
+    min-width: 0;
     gap: 0.75rem;
   }
 
   .pwa-agenda-item {
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: 4.25rem minmax(0, 1fr);
     gap: 0.875rem;
@@ -821,6 +908,7 @@
   }
 
   .pwa-bottom-nav {
+    box-sizing: border-box;
     position: fixed;
     z-index: 40;
     right: 0;
@@ -829,6 +917,7 @@
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     width: min(100%, 42rem);
+    max-width: 100vw;
     margin: 0 auto;
     padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
     border-top: 1px solid var(--pwa-border);
@@ -874,9 +963,11 @@
   .pwa-primary-action {
     display: inline-flex;
     min-height: 2.75rem;
+    gap: 0.5rem;
     align-items: center;
     justify-content: center;
     padding: 0 1rem;
+    border: 0;
     border-radius: 999px;
     background: var(--pwa-primary);
     color: white;
@@ -884,6 +975,188 @@
     text-decoration: none;
     touch-action: manipulation;
     transition: transform 180ms ease, background-color 180ms ease;
+  }
+
+  .pwa-primary-action:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .pwa-secondary-action,
+  .pwa-secondary-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 999px;
+    background: var(--pwa-surface);
+    color: var(--pwa-ink);
+    font-weight: 850;
+    text-decoration: none;
+    touch-action: manipulation;
+  }
+
+  .pwa-auth-shell {
+    display: grid;
+    min-height: 100vh;
+    min-height: 100dvh;
+    place-items: center;
+    padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .pwa-auth-panel {
+    box-sizing: border-box;
+    display: grid;
+    width: min(100%, 30rem);
+    max-width: calc(100vw - 2rem);
+    gap: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 1.25rem;
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .pwa-auth-copy {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .pwa-auth-copy h1 {
+    margin: 0;
+    color: var(--pwa-ink);
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    font-weight: 900;
+    line-height: 0.98;
+  }
+
+  .pwa-auth-copy p {
+    margin: 0;
+    color: var(--pwa-muted);
+    font-size: 1rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-auth-form {
+    display: grid;
+    gap: 0.875rem;
+  }
+
+  .pwa-auth-form label {
+    color: var(--pwa-ink);
+    font-size: 0.875rem;
+    font-weight: 850;
+  }
+
+  .pwa-auth-input {
+    box-sizing: border-box;
+    min-height: 3.25rem;
+    width: 100%;
+    border: 1px solid var(--pwa-border);
+    border-radius: 0.875rem;
+    background: var(--pwa-surface);
+    color: var(--pwa-ink);
+    font-size: 1rem;
+  }
+
+  .pwa-auth-input:focus {
+    border-color: var(--pwa-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pwa-primary) 20%, transparent);
+    outline: none;
+  }
+
+  .pwa-code-input {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-align: center;
+  }
+
+  .pwa-form-error {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, #dc2626 22%, white);
+    border-radius: 0.875rem;
+    background: #fef2f2;
+    color: #991b1b;
+    font-size: 0.875rem;
+    font-weight: 750;
+    line-height: 1.35;
+  }
+
+  .pwa-auth-links,
+  .pwa-inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .pwa-auth-form .pwa-primary-action {
+    width: 100%;
+  }
+
+  .pwa-auth-links .pwa-secondary-link {
+    flex: 1 1 auto;
+  }
+
+  .pwa-profile-card {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 1.125rem;
+    background: var(--pwa-surface);
+  }
+
+  .pwa-profile-avatar {
+    display: grid;
+    width: 4rem;
+    height: 4rem;
+    place-items: center;
+    border-radius: 1.125rem;
+    background: color-mix(in srgb, var(--pwa-primary) 12%, white);
+    color: var(--pwa-primary);
+  }
+
+  .pwa-profile-main {
+    min-width: 0;
+  }
+
+  .pwa-profile-main h3 {
+    margin: 0.25rem 0 0;
+    color: var(--pwa-ink);
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-profile-main dl {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1rem 0 0;
+  }
+
+  .pwa-profile-main dt {
+    color: var(--pwa-muted);
+    font-size: 0.75rem;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
+
+  .pwa-profile-main dd {
+    margin: 0.125rem 0 0;
+    color: var(--pwa-ink);
+    overflow-wrap: anywhere;
   }
 
   .pwa-focus:focus-visible {
@@ -900,6 +1173,28 @@
   }
 }
 
+@media (max-width: 480px) {
+  .pwa-hero-copy h1 {
+    font-size: clamp(1.875rem, 8vw, 2.25rem);
+    line-height: 1.04;
+  }
+
+  .pwa-section-header h2,
+  .pwa-unavailable h1 {
+    font-size: clamp(1.65rem, 8vw, 2.25rem);
+    line-height: 1.08;
+  }
+
+  .pwa-profile-card {
+    grid-template-columns: 1fr;
+  }
+
+  .pwa-profile-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
 @media (min-width: 768px) {
   .pwa-shell {
     padding-right: 2rem;
@@ -909,6 +1204,19 @@
   .pwa-stat-grid,
   .pwa-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pwa-auth-nudge {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .pwa-auth-nudge-action {
+    grid-column: auto;
+    padding: 0 1rem;
+  }
+
+  .pwa-auth-panel {
+    padding: 1.25rem;
   }
 }
 

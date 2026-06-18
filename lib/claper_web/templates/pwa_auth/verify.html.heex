@@ -1,0 +1,72 @@
+<div class="nextgen-pwa" style={theme_style(@event)}>
+  <main class="pwa-auth-shell">
+    <section class="pwa-auth-panel">
+      <div class="pwa-brand-row">
+        <div class="pwa-brand-mark">
+          <img src="/images/favicon.png" alt="CoreOrbit" />
+        </div>
+        <div>
+          <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
+          <p class="pwa-code">
+            <%= if @event do %>
+              #{String.upcase(@event.code)}
+            <% else %>
+              {String.upcase(@event_code)}
+            <% end %>
+          </p>
+        </div>
+      </div>
+
+      <div class="pwa-auth-copy">
+        <h1>{gettext("Enter your 4-digit code")}</h1>
+        <p>{@email}</p>
+      </div>
+
+      <.form
+        :let={f}
+        for={@conn}
+        action={~p"/app/#{@event_code}/verify"}
+        as={:attendee}
+        class="pwa-auth-form"
+      >
+        <div :if={@error_message} class="pwa-form-error" role="alert">
+          <.pwa_icon name="hero-exclamation-triangle" class="size-5" />
+          <span>{@error_message}</span>
+        </div>
+
+        <input type="hidden" name={f[:email].name} value={@email} />
+
+        <label for="attendee_code">{gettext("4-digit code")}</label>
+        <input
+          id="attendee_code"
+          name={f[:code].name}
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          pattern="[0-9]{4}"
+          maxlength="4"
+          required
+          autofocus
+          placeholder="0000"
+          class="pwa-auth-input pwa-code-input"
+        />
+
+        <button type="submit" class="pwa-primary-action pwa-focus" disabled={!@event}>
+          {gettext("Verify code")}
+        </button>
+      </.form>
+
+      <div class="pwa-auth-links">
+        <.link
+          href={~p"/app/#{@event_code}/login?email=#{@email}"}
+          class="pwa-secondary-link pwa-focus"
+        >
+          {gettext("Send a new code")}
+        </.link>
+        <.link href={~p"/app/#{@event_code}"} class="pwa-secondary-link pwa-focus">
+          {gettext("Back to event app")}
+        </.link>
+      </div>
+    </section>
+  </main>
+</div>
