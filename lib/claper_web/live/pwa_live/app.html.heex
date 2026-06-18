@@ -97,9 +97,7 @@
               <p class="pwa-eyebrow">{gettext("Schedule")}</p>
               <h2>{gettext("Agenda")}</h2>
               <p>
-                {gettext(
-                  "Sessions from the existing CoreOrbit Ask agenda, presented in the new app shell."
-                )}
+                {gettext("Browse sessions by day and track, then save the ones you care about.")}
               </p>
             </section>
 
@@ -112,29 +110,143 @@
                 <p>{gettext("The organizer has not published sessions for this event yet.")}</p>
               </section>
             <% else %>
+              <section class="pwa-filter-group" aria-label={gettext("Agenda days")}>
+                <.day_chip
+                  :for={day <- @agenda_days}
+                  event={@event}
+                  day={day}
+                  selected_day={@selected_day}
+                />
+              </section>
+
+              <section
+                :if={!Enum.empty?(@agenda_tracks)}
+                class="pwa-filter-group"
+                aria-label={gettext("Agenda tracks")}
+              >
+                <.track_chip
+                  event={@event}
+                  track="all"
+                  selected_day={@selected_day}
+                  selected_track={@selected_track}
+                />
+                <.track_chip
+                  :for={track <- @agenda_tracks}
+                  event={@event}
+                  track={track}
+                  selected_day={@selected_day}
+                  selected_track={@selected_track}
+                />
+              </section>
+
               <section class="pwa-agenda-list">
-                <article :for={item <- @agenda_items} class="pwa-agenda-item">
-                  <time>{format_agenda_time(item.starts_at)}</time>
-                  <div>
-                    <h3>{item.title}</h3>
-                    <p :if={item.speaker_name} class="pwa-agenda-speaker">{item.speaker_name}</p>
-                    <p :if={item.description} class="pwa-agenda-description">
-                      {item.description}
-                    </p>
-                    <span>{format_duration(item.duration_minutes)}</span>
-                  </div>
-                </article>
+                <%= if Enum.empty?(@visible_agenda_items) do %>
+                  <section class="pwa-empty-state">
+                    <span class="pwa-empty-icon">
+                      <.pwa_icon name="hero-calendar-days" class="size-7" />
+                    </span>
+                    <h3>{gettext("No sessions match this filter")}</h3>
+                    <p>{gettext("Try another day or track.")}</p>
+                  </section>
+                <% else %>
+                  <.agenda_card
+                    :for={item <- @visible_agenda_items}
+                    event={@event}
+                    item={item}
+                    signed_in={signed_in?(@attendee)}
+                    saved={saved_agenda_item?(@bookmarked_agenda_item_ids, item)}
+                  />
+                <% end %>
               </section>
             <% end %>
+          <% :session -> %>
+            <%= if @session_item do %>
+              <section class="pwa-session-detail">
+                <.link
+                  navigate={
+                    ~p"/app/#{@event.code}/agenda?day=#{@selected_day}&track=#{@selected_track}"
+                  }
+                  class="pwa-secondary-link pwa-focus"
+                >
+                  {gettext("Back to agenda")}
+                </.link>
 
-            <.feature_action
-              icon="hero-arrow-top-right-on-square"
-              title={gettext("Classic attendee agenda")}
-              description={
-                gettext("Open the current public Agenda route while the PWA agenda grows.")
-              }
-              navigate={~p"/e/#{@event.code}/agenda"}
-            />
+                <div class="pwa-session-detail-card">
+                  <p
+                    :if={@session_item.session_type || @session_item.track_name}
+                    class="pwa-session-kicker"
+                  >
+                    {session_kicker(@session_item)}
+                  </p>
+                  <h2>{@session_item.title}</h2>
+                  <p :if={@session_item.speaker_name} class="pwa-session-speaker">
+                    {speaker_line(@session_item)}
+                  </p>
+
+                  <div class="pwa-session-meta pwa-session-meta-detail">
+                    <span>
+                      <.pwa_icon name="hero-calendar-days" class="size-4" />
+                      {format_session_date(@session_item.starts_at)}
+                    </span>
+                    <span>
+                      <.pwa_icon name="hero-clock" class="size-4" />
+                      {format_agenda_time(@session_item.starts_at)} · {format_duration(
+                        @session_item.duration_minutes
+                      )}
+                    </span>
+                    <span :if={@session_item.location_name}>
+                      <.pwa_icon name="hero-map-pin" class="size-4" />
+                      {@session_item.location_name}
+                    </span>
+                  </div>
+
+                  <p :if={@session_item.description} class="pwa-session-detail-description">
+                    {@session_item.description}
+                  </p>
+
+                  <button
+                    type="button"
+                    phx-click="toggle-agenda-bookmark"
+                    phx-value-id={@session_item.id}
+                    class={[
+                      "pwa-save-button pwa-save-button-wide pwa-focus",
+                      saved_agenda_item?(@bookmarked_agenda_item_ids, @session_item) &&
+                        "pwa-save-button-active"
+                    ]}
+                    aria-pressed={saved_agenda_item?(@bookmarked_agenda_item_ids, @session_item)}
+                  >
+                    <.pwa_icon
+                      name={
+                        if saved_agenda_item?(@bookmarked_agenda_item_ids, @session_item),
+                          do: "hero-check-circle",
+                          else: "hero-bookmark"
+                      }
+                      class="size-5"
+                    />
+                    <span>
+                      {save_label(
+                        saved_agenda_item?(@bookmarked_agenda_item_ids, @session_item),
+                        signed_in?(@attendee)
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </section>
+            <% else %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-exclamation-triangle" class="size-7" />
+                </span>
+                <h3>{gettext("Session not found")}</h3>
+                <p>{gettext("This session may have been removed or moved.")}</p>
+                <.link
+                  navigate={~p"/app/#{@event.code}/agenda"}
+                  class="pwa-primary-action pwa-focus"
+                >
+                  {gettext("Back to agenda")}
+                </.link>
+              </section>
+            <% end %>
           <% :people -> %>
             <section class="pwa-section-header">
               <p class="pwa-eyebrow">{gettext("Networking")}</p>
@@ -200,6 +312,29 @@
                 <p>{gettext("Organizer prompts will appear here when the game is ready.")}</p>
               </section>
             <% end %>
+          <% :ticket -> %>
+            <section class="pwa-section-header">
+              <p class="pwa-eyebrow">{gettext("Wallet")}</p>
+              <h2>{gettext("Ticket")}</h2>
+              <p>
+                {gettext("Your synced event pass for check-in and attendee verification.")}
+              </p>
+            </section>
+
+            <%= if signed_in?(@attendee) && @ticket_wallet do %>
+              <.ticket_wallet_card event={@event} wallet={@ticket_wallet} />
+            <% else %>
+              <section class="pwa-empty-state">
+                <span class="pwa-empty-icon">
+                  <.pwa_icon name="hero-ticket" class="size-7" />
+                </span>
+                <h3>{gettext("Sign in to view your ticket")}</h3>
+                <p>{gettext("Use your ticket email to unlock your event pass.")}</p>
+                <.link href={~p"/app/#{@event.code}/login"} class="pwa-primary-action pwa-focus">
+                  {gettext("Sign in")}
+                </.link>
+              </section>
+            <% end %>
           <% :profile -> %>
             <section class="pwa-section-header">
               <p class="pwa-eyebrow">{gettext("Account")}</p>
@@ -210,6 +345,8 @@
             </section>
 
             <%= if signed_in?(@attendee) do %>
+              <.ticket_wallet_card :if={@ticket_wallet} event={@event} wallet={@ticket_wallet} />
+
               <section class="pwa-profile-card">
                 <span class="pwa-profile-avatar">
                   <.pwa_icon name="hero-user-circle" class="size-8" />
@@ -229,6 +366,14 @@
                   </dl>
                 </div>
               </section>
+
+              <.link
+                navigate={~p"/app/#{@event.code}/ticket"}
+                class="pwa-primary-action pwa-focus"
+              >
+                <.pwa_icon name="hero-identification" class="size-5" />
+                {gettext("Open ticket")}
+              </.link>
 
               <form action={~p"/app/#{@event.code}/session"} method="post" class="pwa-inline-form">
                 <input type="hidden" name="_method" value="delete" />
@@ -275,6 +420,21 @@
                 }
                 navigate={~p"/app/#{@event.code}/agenda"}
               />
+              <%= if signed_in?(@attendee) do %>
+                <.feature_action
+                  icon="hero-ticket"
+                  title={gettext("Ticket")}
+                  description={gettext("Open your synced event pass.")}
+                  navigate={~p"/app/#{@event.code}/ticket"}
+                />
+              <% else %>
+                <.feature_action
+                  icon="hero-ticket"
+                  title={gettext("Ticket")}
+                  description={gettext("Sign in to unlock your ticket wallet.")}
+                  href={~p"/app/#{@event.code}/login"}
+                />
+              <% end %>
               <.feature_action
                 icon="hero-qr-code"
                 title={gettext("Bingo")}
@@ -316,7 +476,7 @@
           navigate={~p"/app/#{@event.code}"}
         />
         <.nav_item
-          active={@live_action == :agenda}
+          active={@live_action in [:agenda, :session]}
           icon="hero-calendar-days"
           label={gettext("Agenda")}
           navigate={~p"/app/#{@event.code}/agenda"}
@@ -334,7 +494,7 @@
           navigate={~p"/app/#{@event.code}/bingo"}
         />
         <.nav_item
-          active={@live_action == :profile}
+          active={@live_action in [:profile, :ticket]}
           icon="hero-user-circle"
           label={gettext("Profile")}
           navigate={~p"/app/#{@event.code}/profile"}

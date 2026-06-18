@@ -6,7 +6,7 @@ defmodule Claper.EventApp do
   import Ecto.Query, warn: false
 
   alias Claper.{Agendas, Bingos, Events, HiEvents, Repo}
-  alias Claper.EventApp.{Attendee, Notifications, OtpChallenge, Session, Setting}
+  alias Claper.EventApp.{AgendaBookmark, Attendee, Notifications, OtpChallenge, Session, Setting}
   alias Claper.Events.Event
   alias Claper.HiEvents.EventTicket
 
@@ -125,6 +125,56 @@ defmodule Claper.EventApp do
     case attendee_session(event_id, token) do
       {:ok, %Session{attendee: attendee}} -> {:ok, attendee}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def ticket_wallet(event_id, token) do
+    case attendee_session(event_id, token) do
+      {:ok, %Session{attendee: attendee}} ->
+        {:ok, attendee |> Repo.preload(:hi_events_ticket) |> public_ticket_wallet()}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def list_bookmarked_agenda_item_ids(event_id, token) do
+    case attendee_session(event_id, token) do
+      {:ok, %Session{attendee: attendee}} ->
+        AgendaBookmark
+        |> where([b], b.event_id == ^event_id and b.event_app_attendee_id == ^attendee.id)
+        |> select([b], b.agenda_item_id)
+        |> Repo.all()
+        |> MapSet.new()
+
+      {:error, _reason} ->
+        MapSet.new()
+    end
+  end
+
+  def toggle_agenda_bookmark(event_id, token, agenda_item_id) do
+    with {:ok, %Session{attendee: attendee}} <- attendee_session(event_id, token),
+         {:ok, agenda_item_id} <- fetch_agenda_item_id(event_id, agenda_item_id) do
+      case get_agenda_bookmark(event_id, attendee.id, agenda_item_id) do
+        %AgendaBookmark{} = bookmark ->
+          case Repo.delete(bookmark) do
+            {:ok, _bookmark} -> {:ok, :removed}
+            {:error, changeset} -> {:error, changeset}
+          end
+
+        nil ->
+          %AgendaBookmark{}
+          |> AgendaBookmark.changeset(%{
+            event_id: event_id,
+            event_app_attendee_id: attendee.id,
+            agenda_item_id: agenda_item_id
+          })
+          |> Repo.insert()
+          |> case do
+            {:ok, _bookmark} -> {:ok, :saved}
+            {:error, changeset} -> {:error, changeset}
+          end
+      end
     end
   end
 
@@ -413,6 +463,57 @@ defmodule Claper.EventApp do
     }
   end
 
+  defp public_ticket_wallet(%Attendee{hi_events_ticket: %EventTicket{} = ticket} = attendee) do
+    %{
+      attendee_name: attendee.name || ticket.attendee_name || attendee.email,
+      attendee_email: attendee.email,
+      ticket_name: attendee.ticket_name || ticket.ticket_name,
+      status: ticket.status,
+      checked_in: ticket.status == "checked_in" or not is_nil(ticket.checked_in_at),
+      checked_in_at: format_datetime(ticket.checked_in_at),
+      reference: ticket_reference(ticket),
+      external_ticket_id: ticket.external_ticket_id,
+      external_attendee_id: ticket.external_attendee_id
+    }
+  end
+
+  defp public_ticket_wallet(%Attendee{} = attendee) do
+    %{
+      attendee_name: attendee.name || attendee.email,
+      attendee_email: attendee.email,
+      ticket_name: attendee.ticket_name,
+      status: "verified",
+      checked_in: false,
+      checked_in_at: nil,
+      reference: "ATT-#{attendee.id}",
+      external_ticket_id: nil,
+      external_attendee_id: nil
+    }
+  end
+
+  defp ticket_reference(%EventTicket{} = ticket) do
+    cond do
+      present?(ticket.external_ticket_id) -> ticket.external_ticket_id
+      present?(ticket.external_attendee_id) -> ticket.external_attendee_id
+      true -> "TICKET-#{ticket.id}"
+    end
+  end
+
+  defp fetch_agenda_item_id(event_id, agenda_item_id) do
+    case Agendas.get_agenda_item_for_event(event_id, agenda_item_id) do
+      %{id: id} -> {:ok, id}
+      nil -> {:error, :agenda_item_not_found}
+    end
+  end
+
+  defp get_agenda_bookmark(event_id, attendee_id, agenda_item_id) do
+    Repo.get_by(AgendaBookmark,
+      event_id: event_id,
+      event_app_attendee_id: attendee_id,
+      agenda_item_id: agenda_item_id
+    )
+  end
+
   defp format_datetime(nil), do: nil
   defp format_datetime(%DateTime{} = datetime), do: DateTime.to_iso8601(datetime)
 
@@ -470,6 +571,8 @@ defmodule Claper.EventApp do
   defp now do
     DateTime.utc_now() |> DateTime.truncate(:second)
   end
+
+  defp present?(value), do: is_binary(value) and String.trim(value) != ""
 
   defp join_name(nil, nil), do: nil
   defp join_name(first_name, nil), do: first_name

@@ -907,6 +907,302 @@
     font-weight: 800;
   }
 
+  .pwa-filter-group {
+    box-sizing: border-box;
+    display: flex;
+    max-width: 100%;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.125rem 0 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .pwa-filter-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pwa-filter-chip {
+    display: inline-flex;
+    min-height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.875rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 999px;
+    background: var(--pwa-surface);
+    color: var(--pwa-muted);
+    font-size: 0.875rem;
+    font-weight: 850;
+    text-decoration: none;
+    touch-action: manipulation;
+  }
+
+  .pwa-filter-chip-active {
+    border-color: color-mix(in srgb, var(--pwa-primary) 32%, var(--pwa-border));
+    background: color-mix(in srgb, var(--pwa-primary) 12%, white);
+    color: var(--pwa-primary);
+  }
+
+  .pwa-session-card {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 4.25rem minmax(0, 1fr);
+    gap: 0.875rem;
+    padding: 1rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 1.125rem;
+    background: var(--pwa-surface);
+  }
+
+  .pwa-session-time {
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+    color: var(--pwa-primary);
+  }
+
+  .pwa-session-time time {
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  .pwa-session-time span {
+    color: var(--pwa-muted);
+    font-size: 0.75rem;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+
+  .pwa-session-body,
+  .pwa-session-heading {
+    display: grid;
+    min-width: 0;
+    gap: 0.4rem;
+  }
+
+  .pwa-session-kicker {
+    margin: 0;
+    color: var(--pwa-primary);
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-transform: uppercase;
+  }
+
+  .pwa-session-title {
+    color: var(--pwa-ink);
+    font-size: 1.05rem;
+    font-weight: 900;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+  }
+
+  .pwa-session-title:hover {
+    color: var(--pwa-primary);
+  }
+
+  .pwa-session-speaker,
+  .pwa-session-description {
+    margin: 0;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-session-speaker {
+    color: var(--pwa-accent);
+    font-size: 0.92rem;
+    font-weight: 850;
+  }
+
+  .pwa-session-description {
+    color: var(--pwa-muted);
+    font-size: 0.875rem;
+  }
+
+  .pwa-session-meta {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .pwa-session-meta span {
+    display: inline-flex;
+    min-height: 1.75rem;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0 0.625rem;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-save-button {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0 0.875rem;
+    border: 1px solid color-mix(in srgb, var(--pwa-accent) 22%, var(--pwa-border));
+    border-radius: 999px;
+    background: var(--pwa-surface);
+    color: var(--pwa-accent);
+    font-weight: 850;
+    touch-action: manipulation;
+  }
+
+  .pwa-save-button-active {
+    border-color: color-mix(in srgb, var(--pwa-primary) 30%, var(--pwa-border));
+    background: color-mix(in srgb, var(--pwa-primary) 10%, white);
+    color: var(--pwa-primary);
+  }
+
+  .pwa-session-detail {
+    display: grid;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  .pwa-session-detail-card {
+    box-sizing: border-box;
+    display: grid;
+    min-width: 0;
+    gap: 0.875rem;
+    padding: 1.25rem;
+    border: 1px solid var(--pwa-border);
+    border-radius: 1.125rem;
+    background: var(--pwa-surface);
+  }
+
+  .pwa-session-detail-card h2 {
+    margin: 0;
+    color: var(--pwa-ink);
+    font-size: clamp(1.75rem, 6vw, 3rem);
+    font-weight: 900;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-session-meta-detail {
+    gap: 0.625rem;
+  }
+
+  .pwa-session-detail-description {
+    margin: 0;
+    color: var(--pwa-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
+
+  .pwa-save-button-wide {
+    width: 100%;
+  }
+
+  .pwa-ticket-card {
+    box-sizing: border-box;
+    display: grid;
+    min-width: 0;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--pwa-primary) 22%, var(--pwa-border));
+    border-radius: 1.25rem;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--pwa-primary) 10%, white), white 48%),
+      var(--pwa-surface);
+  }
+
+  .pwa-ticket-header {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.875rem;
+  }
+
+  .pwa-ticket-icon {
+    display: grid;
+    width: 3.75rem;
+    height: 3.75rem;
+    place-items: center;
+    border-radius: 1rem;
+    background: var(--pwa-surface);
+    color: var(--pwa-primary);
+  }
+
+  .pwa-ticket-header h3,
+  .pwa-ticket-holder p {
+    margin: 0;
+    color: var(--pwa-ink);
+    font-weight: 900;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-ticket-header h3 {
+    font-size: 1.35rem;
+  }
+
+  .pwa-ticket-holder {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .pwa-ticket-holder p {
+    font-size: 1.2rem;
+  }
+
+  .pwa-ticket-holder span {
+    color: var(--pwa-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-ticket-code {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem;
+    border: 1px dashed color-mix(in srgb, var(--pwa-accent) 35%, var(--pwa-border));
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--pwa-accent) 6%, white);
+  }
+
+  .pwa-ticket-code span,
+  .pwa-ticket-details dt {
+    color: var(--pwa-muted);
+    font-size: 0.75rem;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
+
+  .pwa-ticket-code strong {
+    color: var(--pwa-ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1.2rem;
+    overflow-wrap: anywhere;
+  }
+
+  .pwa-ticket-details {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+  }
+
+  .pwa-ticket-details dd {
+    margin: 0.125rem 0 0;
+    color: var(--pwa-ink);
+    font-weight: 750;
+    overflow-wrap: anywhere;
+  }
+
   .pwa-bottom-nav {
     box-sizing: border-box;
     position: fixed;
@@ -1217,6 +1513,20 @@
 
   .pwa-auth-panel {
     padding: 1.25rem;
+  }
+
+  .pwa-session-card {
+    grid-template-columns: 5rem minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .pwa-save-button {
+    grid-column: auto;
+    min-width: 7.5rem;
+  }
+
+  .pwa-ticket-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

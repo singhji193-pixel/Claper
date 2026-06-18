@@ -84,12 +84,64 @@ defmodule Claper.AgendasTest do
                Agendas.update_agenda_item(agenda_item, %{
                  title: "Updated title",
                  speaker_name: "Updated speaker",
+                 speaker_title: "Founder",
+                 speaker_company: "CoreOrbit",
+                 location_name: "Main Stage",
+                 track_name: "Growth",
+                 session_type: "Keynote",
                  duration_minutes: 45
                })
 
       assert updated.title == "Updated title"
       assert updated.speaker_name == "Updated speaker"
+      assert updated.speaker_title == "Founder"
+      assert updated.speaker_company == "CoreOrbit"
+      assert updated.location_name == "Main Stage"
+      assert updated.track_name == "Growth"
+      assert updated.session_type == "Keynote"
       assert updated.duration_minutes == 45
+    end
+
+    test "list_agenda_items_for_app/2 filters by day and track" do
+      event = event_fixture()
+
+      growth =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 09:00:00],
+          title: "Growth playbook",
+          track_name: "Growth"
+        })
+
+      product =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 10:00:00],
+          title: "Product clinic",
+          track_name: "Product"
+        })
+
+      next_day =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-02 09:00:00],
+          title: "Founder breakfast",
+          track_name: "Growth"
+        })
+
+      assert [growth.id, product.id] ==
+               event.id
+               |> Agendas.list_agenda_items_for_app(day: "2026-06-01")
+               |> Enum.map(& &1.id)
+
+      assert [growth.id] ==
+               event.id
+               |> Agendas.list_agenda_items_for_app(day: "2026-06-01", track: "Growth")
+               |> Enum.map(& &1.id)
+
+      assert [~D[2026-06-01], ~D[2026-06-02]] == Agendas.agenda_days(event.id)
+      assert ["Growth", "Product"] == Agendas.agenda_tracks(event.id)
+      assert next_day.id
     end
 
     test "delete_agenda_item/1 removes item and normalizes positions" do

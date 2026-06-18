@@ -1,7 +1,7 @@
 defmodule Claper.EventAppAuthTest do
   use Claper.DataCase
 
-  import Claper.EventsFixtures
+  import Claper.{AgendasFixtures, EventsFixtures}
 
   alias Claper.EventApp
   alias Claper.EventApp.{Attendee, Notifications, OtpChallenge, Session}
@@ -54,6 +54,58 @@ defmodule Claper.EventAppAuthTest do
       assert {:ok, bootstrap} = EventApp.bootstrap_event(event.code, token)
       assert bootstrap.attendee.authenticated
       assert bootstrap.attendee.email == "avery@example.com"
+    end
+
+    test "returns a safe ticket wallet for a signed-in attendee" do
+      event = event_fixture()
+
+      ticket_fixture(event, %{
+        attendee_email: "avery@example.com",
+        attendee_name: "Avery Singh",
+        external_ticket_id: "ticket_public_1",
+        raw_payload: %{"secret" => "hidden"}
+      })
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert {:ok, wallet} = EventApp.ticket_wallet(event.id, token)
+
+      assert wallet.attendee_name == "Avery Singh"
+      assert wallet.attendee_email == "avery@example.com"
+      assert wallet.ticket_name == "Builder Pass"
+      assert wallet.reference == "ticket_public_1"
+      refute Map.has_key?(wallet, :raw_payload)
+    end
+
+    test "toggles saved agenda sessions for a signed-in attendee" do
+      event = event_fixture()
+      agenda_item = agenda_item_fixture(%{event: event, title: "Investor meetup"})
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert EventApp.list_bookmarked_agenda_item_ids(event.id, token) == MapSet.new()
+      assert {:ok, :saved} = EventApp.toggle_agenda_bookmark(event.id, token, agenda_item.id)
+
+      assert MapSet.member?(
+               EventApp.list_bookmarked_agenda_item_ids(event.id, token),
+               agenda_item.id
+             )
+
+      assert {:ok, :removed} = EventApp.toggle_agenda_bookmark(event.id, token, agenda_item.id)
+
+      refute MapSet.member?(
+               EventApp.list_bookmarked_agenda_item_ids(event.id, token),
+               agenda_item.id
+             )
     end
 
     test "increments attempts and locks after too many invalid codes" do

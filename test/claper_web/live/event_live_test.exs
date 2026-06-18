@@ -129,15 +129,62 @@ defmodule ClaperWeb.EventLiveTest do
         starts_at: ~N[2026-06-01 09:00:00],
         title: "Opening keynote",
         speaker_name: "Avery Singh",
+        speaker_title: "Founder",
+        speaker_company: "CoreOrbit",
+        location_name: "Main Stage",
+        track_name: "Growth",
+        session_type: "Keynote",
         duration_minutes: 30
       })
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/agenda")
 
       assert html =~ "Opening keynote"
-      assert html =~ "Avery Singh"
+      assert html =~ "Avery Singh - Founder, CoreOrbit"
+      assert html =~ "Main Stage"
+      assert html =~ "Growth"
       assert html =~ "09:00"
-      assert html =~ ~p"/e/#{event.code}/agenda"
+      assert html =~ "Sign in to save"
+      assert html =~ ~p"/app/#{event.code}/agenda"
+    end
+
+    test "renders PWA session detail and lets signed-in attendees save a session", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      ticket_fixture(event, %{attendee_email: "avery@example.com", attendee_name: "Avery Singh"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      agenda_item =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 09:00:00],
+          title: "Investor breakfast",
+          location_name: "Atrium",
+          track_name: "Capital",
+          session_type: "Roundtable"
+        })
+
+      conn = init_test_session(conn, %{event_app_session_token: token})
+
+      {:ok, session_live, html} = live(conn, ~p"/app/#{event.code}/agenda/#{agenda_item.id}")
+
+      assert html =~ "Investor breakfast"
+      assert html =~ "Atrium"
+      assert html =~ "Roundtable / Capital"
+
+      html =
+        session_live
+        |> element("button[phx-value-id='#{agenda_item.id}']")
+        |> render_click()
+
+      assert html =~ "Saved"
     end
 
     test "shows a designed unavailable state for missing events", %{conn: conn} do
@@ -176,9 +223,11 @@ defmodule ClaperWeb.EventLiveTest do
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/profile")
 
+      assert html =~ "Event pass"
       assert html =~ "Verified attendee"
       assert html =~ "Avery Singh"
       assert html =~ "Builder Pass"
+      assert html =~ "Open ticket"
       assert html =~ "Sign out"
     end
   end

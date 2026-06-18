@@ -8,6 +8,11 @@ defmodule Claper.Agendas.AgendaItem do
           title: String.t(),
           description: String.t() | nil,
           speaker_name: String.t() | nil,
+          speaker_title: String.t() | nil,
+          speaker_company: String.t() | nil,
+          location_name: String.t() | nil,
+          track_name: String.t() | nil,
+          session_type: String.t() | nil,
           duration_minutes: integer() | nil,
           position: integer(),
           event_id: integer(),
@@ -21,6 +26,11 @@ defmodule Claper.Agendas.AgendaItem do
     field :title, :string
     field :description, :string
     field :speaker_name, :string
+    field :speaker_title, :string
+    field :speaker_company, :string
+    field :location_name, :string
+    field :track_name, :string
+    field :session_type, :string
     field :duration_minutes, :integer
     field :position, :integer, default: 0
 
@@ -38,12 +48,22 @@ defmodule Claper.Agendas.AgendaItem do
       :title,
       :description,
       :speaker_name,
+      :speaker_title,
+      :speaker_company,
+      :location_name,
+      :track_name,
+      :session_type,
       :duration_minutes,
       :position
     ])
     |> validate_required([:event_id, :starts_at, :title, :position])
     |> validate_length(:title, max: 255)
     |> validate_length(:speaker_name, max: 255)
+    |> validate_length(:speaker_title, max: 255)
+    |> validate_length(:speaker_company, max: 255)
+    |> validate_length(:location_name, max: 255)
+    |> validate_length(:track_name, max: 120)
+    |> validate_length(:session_type, max: 120)
     |> validate_number(:duration_minutes, greater_than: 0, less_than_or_equal_to: 1440)
     |> validate_number(:position, greater_than_or_equal_to: 0)
     |> assoc_constraint(:event)
