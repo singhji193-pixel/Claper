@@ -6,6 +6,7 @@ defmodule ClaperWeb.EventLiveTest do
 
   alias Claper.Agendas
   alias Claper.Bingos
+  alias Claper.HiEvents
   alias Claper.Repo
 
   @update_attrs %{name: "some updated name"}
@@ -36,6 +37,8 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~p"/e/#{presentation_file.event.code}/manage/agenda"
       assert html =~ "Bingo"
       assert html =~ ~p"/e/#{presentation_file.event.code}/manage/bingo"
+      assert html =~ "Event app"
+      assert html =~ ~p"/e/#{presentation_file.event.code}/manage/app"
     end
 
     test "updates event in listing", %{conn: conn, presentation_file: presentation_file} do
@@ -524,6 +527,47 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert {:error, {:redirect, %{to: "/events"}}} =
                live(conn, ~p"/e/#{presentation_file.event.code}/manage/bingo")
+    end
+  end
+
+  describe "Owner event app management" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "saves Hi.Events integration settings and shows webhook setup", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      {:ok, manage_live, html} = live(conn, ~p"/e/#{event.code}/manage/app")
+
+      assert html =~ "Event app integrations"
+      assert html =~ "Realtime ticket sync"
+      assert html =~ "No webhook deliveries yet"
+
+      html =
+        manage_live
+        |> form("#hi-events-integration-form",
+          integration: %{external_event_id: "hi_evt_liveview", enabled: "true"}
+        )
+        |> render_submit()
+
+      integration = HiEvents.get_integration(event.id)
+      assert integration.external_event_id == "hi_evt_liveview"
+      assert integration.enabled
+      assert html =~ "Hi.Events integration saved"
+      assert html =~ "Signing secret"
+      assert html =~ "/api/integrations/hi-events/webhook"
+      assert html =~ "X-Hi-Events-Signature"
+    end
+
+    test "redirects non-owners away from event app management", %{conn: conn} do
+      other_user = Claper.AccountsFixtures.confirmed_user_fixture()
+      presentation_file = presentation_file_fixture(%{user: other_user}, [:event])
+      presentation_state_fixture(%{presentation_file: presentation_file})
+
+      assert {:error, {:redirect, %{to: "/events"}}} =
+               live(conn, ~p"/e/#{presentation_file.event.code}/manage/app")
     end
   end
 end

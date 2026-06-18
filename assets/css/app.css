@@ -9,6 +9,11 @@
   include: toggle;
 }
 
+:root {
+  --font-family-sans: "Montserrat", "Roboto", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
 @layer base {
   *,
   ::after,
