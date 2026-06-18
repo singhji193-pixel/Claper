@@ -136,6 +136,20 @@ defmodule Claper.HiEvents do
     |> Repo.all()
   end
 
+  def get_ticket_by_event_and_email(event_id, email) when is_binary(email) do
+    normalized_email = normalize_email(email)
+
+    EventTicket
+    |> where([t], t.event_id == ^event_id)
+    |> where([t], t.attendee_email == ^normalized_email)
+    |> where([t], t.status not in ["cancelled", "canceled", "refunded", "void"])
+    |> order_by([t], asc: t.id)
+    |> limit(1)
+    |> Repo.one()
+  end
+
+  def get_ticket_by_event_and_email(_event_id, _email), do: nil
+
   def list_orders(event_id) do
     Order
     |> where([o], o.event_id == ^event_id)
@@ -810,6 +824,12 @@ defmodule Claper.HiEvents do
   defp to_string_value(nil), do: nil
   defp to_string_value(value) when is_binary(value), do: String.trim(value)
   defp to_string_value(value), do: value |> to_string() |> String.trim()
+
+  defp normalize_email(email) do
+    email
+    |> to_string_value()
+    |> String.downcase()
+  end
 
   defp uppercase_string(nil), do: nil
   defp uppercase_string(value), do: value |> to_string_value() |> String.upcase()

@@ -65,6 +65,16 @@ defmodule ClaperWeb.Router do
     end
   end
 
+  scope "/app", ClaperWeb do
+    pipe_through([:browser, :attendee_registration])
+
+    get("/:code/login", PwaAuthController, :new)
+    post("/:code/login", PwaAuthController, :create)
+    get("/:code/verify", PwaAuthController, :verify)
+    post("/:code/verify", PwaAuthController, :verify_code)
+    delete("/:code/session", PwaAuthController, :delete)
+  end
+
   live_session :pwa_attendee do
     scope "/app", ClaperWeb do
       pipe_through([:browser, :attendee_registration])

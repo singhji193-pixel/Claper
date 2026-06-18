@@ -12,12 +12,16 @@ defmodule ClaperWeb.PwaLive.App do
       Gettext.put_locale(ClaperWeb.Gettext, locale)
     end
 
-    attendee_identifier =
-      socket.assigns[:attendee_identifier] || Map.get(session, "attendee_identifier")
+    attendee_session_token =
+      socket.assigns[:event_app_session_token] ||
+        Map.get(session, "event_app_session_token") ||
+        socket.assigns[:attendee_identifier] ||
+        Map.get(session, "attendee_identifier")
 
     case Events.get_event_with_code(code) do
       %Event{} = event ->
         settings = EventApp.settings_for_event(event.id)
+        bootstrap = EventApp.bootstrap_for_event(event, attendee_session_token)
 
         {:ok,
          socket
@@ -25,7 +29,8 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:event, event)
          |> assign(:event_code, event.code)
          |> assign(:settings, settings)
-         |> assign(:bootstrap, EventApp.bootstrap_for_event(event, attendee_identifier))
+         |> assign(:bootstrap, bootstrap)
+         |> assign(:attendee, bootstrap.attendee)
          |> assign(:agenda_items, Agendas.list_agenda_items(event.id))
          |> assign(:status, :ready)}
 
@@ -37,6 +42,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:event_code, code)
          |> assign(:settings, nil)
          |> assign(:bootstrap, nil)
+         |> assign(:attendee, nil)
          |> assign(:agenda_items, [])
          |> assign(:status, :not_found)}
     end
@@ -79,6 +85,15 @@ defmodule ClaperWeb.PwaLive.App do
           <path d="M12 13a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
           <path d="M5.75 19.25a7 7 0 0 1 12.5 0" />
           <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+        <% "hero-ticket" -> %>
+          <path d="M4.75 7.25A1.75 1.75 0 0 1 6.5 5.5h11a1.75 1.75 0 0 1 1.75 1.75v2.2a2.55 2.55 0 0 0 0 5.1v2.2a1.75 1.75 0 0 1-1.75 1.75h-11a1.75 1.75 0 0 1-1.75-1.75v-2.2a2.55 2.55 0 0 0 0-5.1v-2.2Z" />
+          <path d="M9.5 8.75v6.5M14.5 8.75v6.5" />
+        <% "hero-envelope" -> %>
+          <path d="M5.75 6.5h12.5A1.75 1.75 0 0 1 20 8.25v7.5a1.75 1.75 0 0 1-1.75 1.75H5.75A1.75 1.75 0 0 1 4 15.75v-7.5A1.75 1.75 0 0 1 5.75 6.5Z" />
+          <path d="m5 8 7 5 7-5" />
+        <% "hero-arrow-right-on-rectangle" -> %>
+          <path d="M9.75 8.75V6.5A1.75 1.75 0 0 1 11.5 4.75h5A1.75 1.75 0 0 1 18.25 6.5v11a1.75 1.75 0 0 1-1.75 1.75h-5a1.75 1.75 0 0 1-1.75-1.75v-2.25" />
+          <path d="M4.75 12h8.5M10.5 9.25 13.25 12 10.5 14.75" />
         <% "hero-chevron-right" -> %>
           <path d="m9 5.5 6.5 6.5L9 18.5" />
         <% "hero-exclamation-triangle" -> %>
@@ -235,4 +250,11 @@ defmodule ClaperWeb.PwaLive.App do
 
   def feature_count(%{count: count}, singular, _plural) when count == 1, do: "1 #{singular}"
   def feature_count(%{count: count}, _singular, plural), do: "#{count} #{plural}"
+
+  def signed_in?(%{authenticated: true}), do: true
+  def signed_in?(_attendee), do: false
+
+  def attendee_display_name(%{name: name}) when is_binary(name) and name != "", do: name
+  def attendee_display_name(%{email: email}) when is_binary(email), do: email
+  def attendee_display_name(_attendee), do: gettext("Attendee")
 end

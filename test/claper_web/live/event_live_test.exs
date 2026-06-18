@@ -6,7 +6,9 @@ defmodule ClaperWeb.EventLiveTest do
 
   alias Claper.Agendas
   alias Claper.Bingos
+  alias Claper.EventApp
   alias Claper.HiEvents
+  alias Claper.HiEvents.EventTicket
   alias Claper.Repo
 
   @update_attrs %{name: "some updated name"}
@@ -143,6 +145,41 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert html =~ "Event not found"
       assert html =~ "Enter another code"
+    end
+
+    test "prompts signed-out attendees to use ticket email login", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/profile")
+
+      assert html =~ "Sign in to create your profile"
+      assert html =~ ~p"/app/#{event.code}/login"
+    end
+
+    test "shows a verified ticket profile for signed-in attendees", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      ticket_fixture(event, %{attendee_email: "avery@example.com", attendee_name: "Avery Singh"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      conn = init_test_session(conn, %{event_app_session_token: token})
+
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/profile")
+
+      assert html =~ "Verified attendee"
+      assert html =~ "Avery Singh"
+      assert html =~ "Builder Pass"
+      assert html =~ "Sign out"
     end
   end
 
@@ -569,5 +606,32 @@ defmodule ClaperWeb.EventLiveTest do
       assert {:error, {:redirect, %{to: "/events"}}} =
                live(conn, ~p"/e/#{presentation_file.event.code}/manage/app")
     end
+  end
+
+  defp ticket_fixture(event, attrs) do
+    {:ok, integration} =
+      HiEvents.upsert_integration(event.id, %{
+        "external_event_id" => "hi_evt_#{event.id}"
+      })
+
+    attrs =
+      attrs
+      |> Enum.into(%{
+        event_id: event.id,
+        integration_id: integration.id,
+        external_attendee_id: "attendee_#{System.unique_integer([:positive])}",
+        external_ticket_id: "ticket_#{System.unique_integer([:positive])}",
+        ticket_name: "Builder Pass",
+        attendee_email: "avery@example.com",
+        attendee_first_name: "Avery",
+        attendee_last_name: "Singh",
+        attendee_name: "Avery Singh",
+        status: "active",
+        raw_payload: %{}
+      })
+
+    %EventTicket{}
+    |> EventTicket.changeset(attrs)
+    |> Repo.insert!()
   end
 end

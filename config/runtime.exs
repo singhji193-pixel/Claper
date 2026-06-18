@@ -164,6 +164,18 @@ allow_unlink_external_provider =
 
 logout_redirect_url = get_var_from_path_or_env(config_dir, "LOGOUT_REDIRECT_URL", nil)
 
+event_app_otp_secret =
+  get_var_from_path_or_env(
+    config_dir,
+    "EVENT_APP_OTP_SECRET",
+    secret_key_base || "event-app-local-secret"
+  )
+
+n8n_webhook_url = get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_URL", nil)
+
+n8n_webhook_secret =
+  get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_SECRET", event_app_otp_secret)
+
 languages =
   get_var_from_path_or_env(config_dir, "LANGUAGES", "en,fr,es,it,de")
   |> String.split(",")
@@ -211,6 +223,11 @@ config :claper,
   languages: languages,
   remote_ip_proxies: remote_ip_proxies,
   remote_ip_headers: remote_ip_headers
+
+config :claper, :event_app,
+  otp_secret: event_app_otp_secret,
+  n8n_webhook_url: n8n_webhook_url,
+  n8n_webhook_secret: n8n_webhook_secret
 
 config :claper, :presentations,
   max_file_size: max_file_size,
