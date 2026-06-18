@@ -121,6 +121,15 @@
                   <td>{format_agenda_time(agenda_item.starts_at)}</td>
                   <td>
                     <div class="font-medium">{agenda_item.title}</div>
+                    <%= if agenda_item.track_name || agenda_item.location_name do %>
+                      <div class="mt-1 max-w-md text-sm text-base-content/60">
+                        {Enum.reject(
+                          [agenda_item.track_name, agenda_item.location_name],
+                          &is_nil/1
+                        )
+                        |> Enum.join(" · ")}
+                      </div>
+                    <% end %>
                     <%= if agenda_item.description do %>
                       <div class="mt-1 max-w-md whitespace-pre-line text-sm text-base-content/60">
                         {agenda_item.description}

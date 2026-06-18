@@ -124,6 +124,12 @@
                   {agenda_item.speaker_name}
                 </p>
               <% end %>
+              <%= if agenda_item.track_name || agenda_item.location_name do %>
+                <p class="mt-1 text-sm text-gray-500">
+                  {Enum.reject([agenda_item.track_name, agenda_item.location_name], &is_nil/1)
+                  |> Enum.join(" · ")}
+                </p>
+              <% end %>
               <%= if agenda_item.description do %>
                 <p class="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
                   {agenda_item.description}

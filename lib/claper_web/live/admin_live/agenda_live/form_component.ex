@@ -74,6 +74,61 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
             <label class="label">{error_tag(@form, :duration_minutes)}</label>
           </div>
 
+          <div class="md:col-span-3">
+            <label class="label">
+              <span class="label-text">{gettext("Speaker title")}</span>
+            </label>
+            {text_input(@form, :speaker_title,
+              class: "input input-bordered w-full",
+              maxlength: 255
+            )}
+            <label class="label">{error_tag(@form, :speaker_title)}</label>
+          </div>
+
+          <div class="md:col-span-3">
+            <label class="label">
+              <span class="label-text">{gettext("Speaker company")}</span>
+            </label>
+            {text_input(@form, :speaker_company,
+              class: "input input-bordered w-full",
+              maxlength: 255
+            )}
+            <label class="label">{error_tag(@form, :speaker_company)}</label>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="label">
+              <span class="label-text">{gettext("Track")}</span>
+            </label>
+            {text_input(@form, :track_name,
+              class: "input input-bordered w-full",
+              maxlength: 120
+            )}
+            <label class="label">{error_tag(@form, :track_name)}</label>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="label">
+              <span class="label-text">{gettext("Type")}</span>
+            </label>
+            {text_input(@form, :session_type,
+              class: "input input-bordered w-full",
+              maxlength: 120
+            )}
+            <label class="label">{error_tag(@form, :session_type)}</label>
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="label">
+              <span class="label-text">{gettext("Location")}</span>
+            </label>
+            {text_input(@form, :location_name,
+              class: "input input-bordered w-full",
+              maxlength: 255
+            )}
+            <label class="label">{error_tag(@form, :location_name)}</label>
+          </div>
+
           <div class="md:col-span-6">
             <label class="label">
               <span class="label-text">{gettext("Description")}</span>

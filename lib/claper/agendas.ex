@@ -21,6 +21,13 @@ defmodule Claper.Agendas do
     |> Repo.all()
   end
 
+  def list_agenda_items_for_app(event_id, opts \\ []) do
+    event_id
+    |> list_agenda_items()
+    |> filter_by_day(Keyword.get(opts, :day))
+    |> filter_by_track(Keyword.get(opts, :track))
+  end
+
   @doc """
   Gets a single agenda item.
   """
@@ -33,6 +40,28 @@ defmodule Claper.Agendas do
   def get_agenda_item_for_event!(event_id, id) do
     from(a in AgendaItem, where: a.event_id == ^event_id and a.id == ^id)
     |> Repo.one!()
+  end
+
+  def get_agenda_item_for_event(event_id, id) do
+    with id when not is_nil(id) <- parse_id(id) do
+      from(a in AgendaItem, where: a.event_id == ^event_id and a.id == ^id)
+      |> Repo.one()
+    end
+  end
+
+  def agenda_days(event_id) do
+    event_id
+    |> list_agenda_items()
+    |> Enum.map(&NaiveDateTime.to_date(&1.starts_at))
+    |> Enum.uniq()
+  end
+
+  def agenda_tracks(event_id) do
+    event_id
+    |> list_agenda_items()
+    |> Enum.map(&normalize_blank(&1.track_name))
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
   end
 
   @doc """
@@ -215,4 +244,33 @@ defmodule Claper.Agendas do
       _ -> nil
     end
   end
+
+  defp filter_by_day(items, nil), do: items
+  defp filter_by_day(items, ""), do: items
+
+  defp filter_by_day(items, day) when is_binary(day) do
+    case Date.from_iso8601(day) do
+      {:ok, date} -> filter_by_day(items, date)
+      {:error, _reason} -> items
+    end
+  end
+
+  defp filter_by_day(items, %Date{} = day) do
+    Enum.filter(items, &(NaiveDateTime.to_date(&1.starts_at) == day))
+  end
+
+  defp filter_by_track(items, nil), do: items
+  defp filter_by_track(items, ""), do: items
+  defp filter_by_track(items, "all"), do: items
+
+  defp filter_by_track(items, track) when is_binary(track) do
+    Enum.filter(items, &(normalize_blank(&1.track_name) == track))
+  end
+
+  defp normalize_blank(value) when is_binary(value) do
+    value = String.trim(value)
+    if value == "", do: nil, else: value
+  end
+
+  defp normalize_blank(_value), do: nil
 end
