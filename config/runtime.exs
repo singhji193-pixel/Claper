@@ -187,6 +187,28 @@ event_app_public_event_code =
 event_app_public_base_url =
   get_var_from_path_or_env(config_dir, "EVENT_APP_PUBLIC_BASE_URL", nil)
 
+origin_from_uri = fn
+  %URI{scheme: scheme, host: host, port: port}
+  when is_binary(scheme) and is_binary(host) ->
+    default_port = if scheme == "https", do: 443, else: 80
+    port_part = if is_nil(port) or port == default_port, do: "", else: ":#{port}"
+
+    "#{scheme}://#{host}#{port_part}"
+
+  _url ->
+    nil
+end
+
+endpoint_check_origin =
+  if config_env() == :prod or Application.get_env(:claper, :server, false) do
+    [base_url, event_app_public_base_url && URI.parse(event_app_public_base_url)]
+    |> Enum.map(&origin_from_uri.(&1))
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  else
+    false
+  end
+
 languages =
   get_var_from_path_or_env(config_dir, "LANGUAGES", "en,fr,es,it,de")
   |> String.split(",")
@@ -222,6 +244,7 @@ config :claper, ClaperWeb.Endpoint,
     transport_options: [max_connections: :infinity],
     protocol_options: [max_request_line_length: 8192, max_header_value_length: 8192]
   ],
+  check_origin: endpoint_check_origin,
   secret_key_base: secret_key_base,
   same_site_cookie: same_site_cookie,
   secure_cookie: secure_cookie
