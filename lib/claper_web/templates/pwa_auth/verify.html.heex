@@ -2,7 +2,7 @@
   <main class="ngs-auth-shell">
     <section class="ngs-auth-panel auth" aria-labelledby="ngs-verify-title">
       <.link
-        href={~p"/app/#{@event_code}/login?email=#{@email}"}
+        href={app_path(assigns, "/login?#{URI.encode_query(email: @email || "")}")}
         class="ngs-auth-back appbar__btn ngs-focus"
         aria-label={gettext("Back to email")}
       >
@@ -20,7 +20,7 @@
       <.form
         :let={f}
         for={@conn}
-        action={~p"/app/#{@event_code}/verify"}
+        action={app_path(assigns, "/verify")}
         as={:attendee}
         class="ngs-auth-form ngs-auth-form-v2"
       >
@@ -58,7 +58,7 @@
       </.form>
 
       <.link
-        href={~p"/app/#{@event_code}/login?email=#{@email}"}
+        href={app_path(assigns, "/login?#{URI.encode_query(email: @email || "")}")}
         class="ngs-auth-resend linkbtn ngs-focus"
       >
         {gettext("Didn't get it?")} <span>{gettext("Resend code")}</span>

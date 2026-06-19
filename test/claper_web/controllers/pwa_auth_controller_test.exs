@@ -18,6 +18,23 @@ defmodule ClaperWeb.PwaAuthControllerTest do
       assert html_response(conn, 200) =~ event.name
     end
 
+    test "renders the vanity host login screen without the event code path", %{conn: conn} do
+      event = event_fixture()
+      put_public_event_code(event.code)
+
+      conn =
+        conn
+        |> Map.put(:host, "app.nextgensummit.co")
+        |> get("/login")
+
+      html = html_response(conn, 200)
+
+      assert html =~ "Enter the email on your ticket"
+      assert html =~ event.name
+      assert html =~ ~s(action="/login")
+      refute html =~ "/app/#{event.code}/login"
+    end
+
     test "requests a code for a synced ticket and redirects to verify", %{conn: conn} do
       event = event_fixture()
       ticket_fixture(event, %{attendee_email: "avery@example.com"})
@@ -28,6 +45,21 @@ defmodule ClaperWeb.PwaAuthControllerTest do
         })
 
       assert redirected_to(conn) == ~p"/app/#{event.code}/verify?#{[email: "avery@example.com"]}"
+    end
+
+    test "requests a code from the vanity host and redirects to vanity verify", %{conn: conn} do
+      event = event_fixture()
+      put_public_event_code(event.code)
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      conn =
+        conn
+        |> Map.put(:host, "app.nextgensummit.co")
+        |> post("/login", %{
+          "attendee" => %{"email" => "avery@example.com"}
+        })
+
+      assert redirected_to(conn) == "/verify?email=avery%40example.com"
     end
 
     test "sets attendee session after code verification", %{conn: conn} do
@@ -83,5 +115,19 @@ defmodule ClaperWeb.PwaAuthControllerTest do
     %EventTicket{}
     |> EventTicket.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  defp put_public_event_code(code) do
+    original_config = Application.get_env(:claper, :event_app, [])
+
+    Application.put_env(
+      :claper,
+      :event_app,
+      Keyword.put(original_config, :public_event_code, code)
+    )
+
+    on_exit(fn ->
+      Application.put_env(:claper, :event_app, original_config)
+    end)
   end
 end

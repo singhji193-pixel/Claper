@@ -2,42 +2,57 @@ defmodule ClaperWeb.PwaAuthController do
   use ClaperWeb, :controller
 
   alias Claper.{EventApp, Events}
+  alias ClaperWeb.PwaLive.App, as: PwaApp
 
-  def new(conn, %{"code" => code} = params) do
-    render_login(conn, code, params["email"], nil)
+  def new(conn, params) do
+    render_login(conn, event_code(params), vanity?(params), params["email"], nil)
   end
 
-  def create(conn, %{"code" => code, "attendee" => %{"email" => email}}) do
+  def create(conn, %{"attendee" => %{"email" => email}} = params) do
+    code = event_code(params)
+    vanity = vanity?(params)
+
     case EventApp.request_login_code(code, email, request_metadata(conn)) do
       {:ok, %{event: event, delivery_status: delivery_status}} ->
         conn
         |> put_flash(:info, delivery_message(delivery_status))
-        |> redirect(to: ~p"/app/#{event.code}/verify?email=#{email}")
+        |> redirect(
+          to:
+            PwaApp.app_path(
+              route_source(event.code, vanity),
+              "/verify?#{URI.encode_query(email: email)}"
+            )
+        )
 
       {:error, reason} ->
-        render_login(conn, code, email, error_message(reason))
+        render_login(conn, code, vanity, email, error_message(reason))
     end
   end
 
-  def verify(conn, %{"code" => code} = params) do
-    render_verify(conn, code, params["email"], nil)
+  def verify(conn, params) do
+    render_verify(conn, event_code(params), vanity?(params), params["email"], nil)
   end
 
-  def verify_code(conn, %{"code" => code, "attendee" => %{"email" => email, "code" => otp}}) do
+  def verify_code(conn, %{"attendee" => %{"email" => email, "code" => otp}} = params) do
+    code = event_code(params)
+    vanity = vanity?(params)
+
     case EventApp.verify_login_code(code, email, otp, request_metadata(conn)) do
       {:ok, %{event: event, token: token}} ->
         conn
         |> put_session(:event_app_session_token, token)
         |> put_session(:attendee_identifier, token)
         |> put_flash(:info, gettext("You are signed in."))
-        |> redirect(to: ~p"/app/#{event.code}/profile")
+        |> redirect(to: PwaApp.app_path(route_source(event.code, vanity), "/profile"))
 
       {:error, reason} ->
-        render_verify(conn, code, email, error_message(reason))
+        render_verify(conn, code, vanity, email, error_message(reason))
     end
   end
 
-  def delete(conn, %{"code" => code}) do
+  def delete(conn, params) do
+    code = event_code(params)
+
     conn
     |> get_session(:event_app_session_token)
     |> EventApp.sign_out_attendee_session()
@@ -45,23 +60,24 @@ defmodule ClaperWeb.PwaAuthController do
     conn
     |> delete_session(:event_app_session_token)
     |> put_flash(:info, gettext("You are signed out."))
-    |> redirect(to: ~p"/app/#{code}")
+    |> redirect(to: PwaApp.app_path(route_source(code, vanity?(params))))
   end
 
-  defp render_login(conn, code, email, error_message) do
-    render_auth(conn, "new.html", code, email, error_message)
+  defp render_login(conn, code, vanity, email, error_message) do
+    render_auth(conn, "new.html", code, vanity, email, error_message)
   end
 
-  defp render_verify(conn, code, email, error_message) do
-    render_auth(conn, "verify.html", code, email, error_message)
+  defp render_verify(conn, code, vanity, email, error_message) do
+    render_auth(conn, "verify.html", code, vanity, email, error_message)
   end
 
-  defp render_auth(conn, template, code, email, error_message) do
-    event = Events.get_event_with_code(code)
+  defp render_auth(conn, template, code, vanity, email, error_message) do
+    event = code && Events.get_event_with_code(code)
 
     conn
     |> assign(:event, event)
-    |> assign(:event_code, code)
+    |> assign(:event_code, code || "")
+    |> assign(:vanity, vanity)
     |> assign(:email, email)
     |> assign(:error_message, error_message)
     |> assign(:page_title, page_title(template))
@@ -117,4 +133,24 @@ defmodule ClaperWeb.PwaAuthController do
   end
 
   defp error_message(_reason), do: gettext("Something went wrong. Try again.")
+
+  defp event_code(params), do: Map.get(params, "code") || public_event_code()
+
+  defp vanity?(params), do: !Map.has_key?(params, "code")
+
+  defp route_source(code, vanity), do: %{event_code: code, vanity: vanity}
+
+  defp public_event_code do
+    :claper
+    |> Application.get_env(:event_app, [])
+    |> Keyword.get(:public_event_code)
+    |> case do
+      code when is_binary(code) -> String.trim(code)
+      _ -> nil
+    end
+    |> case do
+      "" -> nil
+      code -> code
+    end
+  end
 end

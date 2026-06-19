@@ -53,6 +53,31 @@ defmodule ClaperWeb.Router do
     plug(:attendee_identifier)
   end
 
+  scope "/", ClaperWeb, host: "app.nextgensummit.co" do
+    pipe_through([:browser, :attendee_registration])
+
+    get("/login", PwaAuthController, :new)
+    post("/login", PwaAuthController, :create)
+    get("/verify", PwaAuthController, :verify)
+    post("/verify", PwaAuthController, :verify_code)
+    delete("/session", PwaAuthController, :delete)
+  end
+
+  live_session :pwa_attendee_vanity do
+    scope "/", ClaperWeb, host: "app.nextgensummit.co" do
+      pipe_through([:browser, :attendee_registration])
+
+      live("/", PwaLive.App, :home)
+      live("/agenda", PwaLive.App, :agenda)
+      live("/agenda/:agenda_item_id", PwaLive.App, :session)
+      live("/people", PwaLive.App, :people)
+      live("/scan", PwaLive.App, :scan)
+      live("/bingo", PwaLive.App, :bingo)
+      live("/ticket", PwaLive.App, :ticket)
+      live("/profile", PwaLive.App, :profile)
+    end
+  end
+
   live_session :attendee do
     scope "/", ClaperWeb do
       pipe_through([:browser, :attendee_registration, ClaperWeb.Plugs.Iframe])

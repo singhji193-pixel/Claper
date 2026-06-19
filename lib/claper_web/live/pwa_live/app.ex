@@ -7,7 +7,10 @@ defmodule ClaperWeb.PwaLive.App do
   on_mount(ClaperWeb.AttendeeLiveAuth)
 
   @impl true
-  def mount(%{"code" => code}, session, socket) do
+  def mount(params, session, socket) do
+    vanity = !Map.has_key?(params, "code")
+    code = Map.get(params, "code") || public_event_code()
+
     with %{"locale" => locale} <- session do
       Gettext.put_locale(ClaperWeb.Gettext, locale)
     end
@@ -18,7 +21,7 @@ defmodule ClaperWeb.PwaLive.App do
         socket.assigns[:attendee_identifier] ||
         Map.get(session, "attendee_identifier")
 
-    case Events.get_event_with_code(code) do
+    case code && Events.get_event_with_code(code) do
       %Event{} = event ->
         settings = EventApp.settings_for_event(event.id)
         bootstrap = EventApp.bootstrap_for_event(event, attendee_session_token)
@@ -29,6 +32,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:page_title, ngs_page_title(socket.assigns.live_action))
          |> assign(:event, event)
          |> assign(:event_code, event.code)
+         |> assign(:vanity, vanity)
          |> assign(:settings, settings)
          |> assign(:bootstrap, bootstrap)
          |> assign(:attendee, bootstrap.attendee)
@@ -54,7 +58,8 @@ defmodule ClaperWeb.PwaLive.App do
          socket
          |> assign(:page_title, gettext("Event app unavailable"))
          |> assign(:event, nil)
-         |> assign(:event_code, code)
+         |> assign(:event_code, code || "")
+         |> assign(:vanity, vanity)
          |> assign(:settings, nil)
          |> assign(:bootstrap, nil)
          |> assign(:attendee, nil)
@@ -105,7 +110,7 @@ defmodule ClaperWeb.PwaLive.App do
           {:noreply, put_flash(socket, :error, gettext("Could not update this session."))}
       end
     else
-      {:noreply, redirect(socket, to: ~p"/app/#{socket.assigns.event.code}/login")}
+      {:noreply, redirect(socket, to: app_path(socket.assigns, "/login"))}
     end
   end
 
@@ -222,7 +227,7 @@ defmodule ClaperWeb.PwaLive.App do
 
   def saved_agenda_count(bookmarked_ids), do: MapSet.size(bookmarked_ids)
 
-  def agenda_filter_path(event, day, track, query, saved_only) do
+  def agenda_filter_path(route_source, day, track, query, saved_only) do
     params =
       %{}
       |> maybe_put_param(:day, day)
@@ -230,8 +235,50 @@ defmodule ClaperWeb.PwaLive.App do
       |> maybe_put_param(:q, normalize_agenda_query(query))
       |> maybe_put_param(:saved, if(saved_only, do: "1", else: nil))
 
-    ~p"/app/#{event.code}/agenda?#{params}"
+    path = app_path(route_source, "/agenda")
+
+    if params == %{} do
+      path
+    else
+      path <> "?" <> URI.encode_query(params)
+    end
   end
+
+  def app_path(route_source, suffix \\ "")
+
+  def app_path(%{vanity: true}, suffix), do: public_app_path(suffix)
+
+  def app_path(%{event: %Event{code: code}}, suffix), do: coded_app_path(code, suffix)
+
+  def app_path(%{event_code: code}, suffix), do: coded_app_path(code, suffix)
+
+  def app_path(%Event{code: code}, suffix), do: coded_app_path(code, suffix)
+
+  def app_path(code, suffix) when is_binary(code), do: coded_app_path(code, suffix)
+
+  def app_path(_route_source, suffix), do: public_app_path(suffix)
+
+  defp public_event_code do
+    :claper
+    |> Application.get_env(:event_app, [])
+    |> Keyword.get(:public_event_code)
+    |> case do
+      code when is_binary(code) -> String.trim(code)
+      _ -> nil
+    end
+    |> case do
+      "" -> nil
+      code -> code
+    end
+  end
+
+  defp public_app_path(""), do: "/"
+  defp public_app_path("/"), do: "/"
+  defp public_app_path(suffix) when is_binary(suffix), do: suffix
+
+  defp coded_app_path(code, ""), do: "/app/#{code}"
+  defp coded_app_path(code, "/"), do: "/app/#{code}"
+  defp coded_app_path(code, suffix), do: "/app/#{code}#{suffix}"
 
   defp maybe_put_param(params, _key, nil), do: params
   defp maybe_put_param(params, _key, ""), do: params
@@ -412,6 +459,7 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   attr :event, :map, required: true
+  attr :vanity, :boolean, default: false
   attr :day, :any, required: true
   attr :selected_day, :string, default: nil
   attr :agenda_query, :string, default: ""
@@ -422,7 +470,7 @@ defmodule ClaperWeb.PwaLive.App do
 
     ~H"""
     <.link
-      patch={agenda_filter_path(@event, @day_value, "all", @agenda_query, @agenda_saved_only)}
+      patch={agenda_filter_path(assigns, @day_value, "all", @agenda_query, @agenda_saved_only)}
       class={[
         "ngs-day day ngs-focus",
         @selected_day == @day_value && "is-active"
@@ -435,6 +483,7 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   attr :event, :map, required: true
+  attr :vanity, :boolean, default: false
   attr :track, :string, required: true
   attr :selected_day, :string, default: nil
   attr :selected_track, :string, default: "all"
@@ -444,7 +493,7 @@ defmodule ClaperWeb.PwaLive.App do
   def ngs_track_chip(assigns) do
     ~H"""
     <.link
-      patch={agenda_filter_path(@event, @selected_day, @track, @agenda_query, @agenda_saved_only)}
+      patch={agenda_filter_path(assigns, @selected_day, @track, @agenda_query, @agenda_saved_only)}
       class={[
         "ngs-chip chip chip--brand ngs-focus",
         @selected_track == @track && "is-active"
@@ -456,6 +505,7 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   attr :event, :map, required: true
+  attr :vanity, :boolean, default: false
   attr :item, :map, required: true
   attr :saved, :boolean, default: false
   attr :signed_in, :boolean, default: false
@@ -497,7 +547,7 @@ defmodule ClaperWeb.PwaLive.App do
         </div>
 
         <.link
-          navigate={~p"/app/#{@event.code}/agenda/#{@item.id}"}
+          navigate={app_path(assigns, "/agenda/#{@item.id}")}
           class="ngs-session-title session__title ngs-focus"
         >
           {@item.title}

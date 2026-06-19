@@ -181,6 +181,9 @@ n8n_webhook_url =
 n8n_webhook_secret =
   get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_SECRET", event_app_otp_secret)
 
+event_app_public_event_code =
+  get_var_from_path_or_env(config_dir, "EVENT_APP_PUBLIC_EVENT_CODE", nil)
+
 languages =
   get_var_from_path_or_env(config_dir, "LANGUAGES", "en,fr,es,it,de")
   |> String.split(",")
@@ -232,7 +235,8 @@ config :claper,
 config :claper, :event_app,
   otp_secret: event_app_otp_secret,
   n8n_webhook_url: n8n_webhook_url,
-  n8n_webhook_secret: n8n_webhook_secret
+  n8n_webhook_secret: n8n_webhook_secret,
+  public_event_code: event_app_public_event_code
 
 config :claper, :presentations,
   max_file_size: max_file_size,

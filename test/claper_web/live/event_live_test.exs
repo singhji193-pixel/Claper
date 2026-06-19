@@ -119,6 +119,25 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~p"/app/#{event.code}/scan"
     end
 
+    test "serves the vanity app host without exposing coded PWA links", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      put_public_event_code(event.code)
+      agenda_item_fixture(%{event: event, title: "Opening session"})
+
+      conn = Map.put(conn, :host, "app.nextgensummit.co")
+
+      {:ok, _pwa_live, html} = live(conn, "/")
+
+      assert html =~ event.name
+      assert html =~ "Event app"
+      assert html =~ ~s(href="/agenda")
+      assert html =~ ~s(href="/scan")
+      refute html =~ "/app/#{event.code}/agenda"
+    end
+
     test "renders agenda items inside the PWA shell", %{
       conn: conn,
       presentation_file: presentation_file
@@ -683,5 +702,19 @@ defmodule ClaperWeb.EventLiveTest do
     %EventTicket{}
     |> EventTicket.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  defp put_public_event_code(code) do
+    original_config = Application.get_env(:claper, :event_app, [])
+
+    Application.put_env(
+      :claper,
+      :event_app,
+      Keyword.put(original_config, :public_event_code, code)
+    )
+
+    on_exit(fn ->
+      Application.put_env(:claper, :event_app, original_config)
+    end)
   end
 end

@@ -1,7 +1,7 @@
 defmodule ClaperWeb.PwaAuthView do
   use ClaperWeb, :view
 
-  import ClaperWeb.PwaLive.App, only: [ngs_icon: 1, ngs_theme_style: 1]
+  import ClaperWeb.PwaLive.App, only: [app_path: 1, app_path: 2, ngs_icon: 1, ngs_theme_style: 1]
 
   alias Claper.EventApp
   alias Claper.Events.Event
