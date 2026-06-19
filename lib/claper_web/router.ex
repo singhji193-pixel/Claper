@@ -83,6 +83,7 @@ defmodule ClaperWeb.Router do
       live("/:code/agenda", PwaLive.App, :agenda)
       live("/:code/agenda/:agenda_item_id", PwaLive.App, :session)
       live("/:code/people", PwaLive.App, :people)
+      live("/:code/scan", PwaLive.App, :scan)
       live("/:code/bingo", PwaLive.App, :bingo)
       live("/:code/ticket", PwaLive.App, :ticket)
       live("/:code/profile", PwaLive.App, :profile)

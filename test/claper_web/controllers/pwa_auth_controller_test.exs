@@ -14,7 +14,7 @@ defmodule ClaperWeb.PwaAuthControllerTest do
 
       conn = get(conn, ~p"/app/#{event.code}/login")
 
-      assert html_response(conn, 200) =~ "Sign in with your ticket email"
+      assert html_response(conn, 200) =~ "Enter the email on your ticket"
       assert html_response(conn, 200) =~ event.name
     end
 

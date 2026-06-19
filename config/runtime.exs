@@ -171,7 +171,12 @@ event_app_otp_secret =
     secret_key_base || "event-app-local-secret"
   )
 
-n8n_webhook_url = get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_URL", nil)
+n8n_webhook_url =
+  if config_env() == :test do
+    nil
+  else
+    get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_URL", nil)
+  end
 
 n8n_webhook_secret =
   get_var_from_path_or_env(config_dir, "N8N_WEBHOOK_SECRET", event_app_otp_secret)

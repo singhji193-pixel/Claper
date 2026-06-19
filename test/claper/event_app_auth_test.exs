@@ -176,6 +176,9 @@ defmodule Claper.EventAppAuthTest do
       assert payload.event_code == event.code
       assert payload.email == "avery@example.com"
       assert payload.otp_code == "4821"
+      assert payload.app_url =~ "/app/#{event.code}"
+      assert payload.verify_url =~ "/app/#{event.code}/verify"
+      assert payload.verify_url =~ "email=avery%40example.com"
       assert byte_size(signature) == 64
     end
   end

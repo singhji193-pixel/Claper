@@ -108,14 +108,15 @@ defmodule ClaperWeb.EventLiveTest do
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}")
 
-      assert html =~ "NextGen event app"
+      assert html =~ "Next up"
       assert html =~ event.name
       assert html =~ "Agenda"
       assert html =~ "Bingo"
       assert html =~ "People"
       assert html =~ "Profile"
       assert html =~ ~p"/app/#{event.code}/agenda"
-      assert html =~ ~p"/app/#{event.code}/bingo"
+      assert html =~ "Scan and Bingo"
+      assert html =~ ~p"/app/#{event.code}/scan"
     end
 
     test "renders agenda items inside the PWA shell", %{
@@ -223,7 +224,7 @@ defmodule ClaperWeb.EventLiveTest do
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/profile")
 
-      assert html =~ "Event pass"
+      assert html =~ "Ticket access"
       assert html =~ "Verified attendee"
       assert html =~ "Avery Singh"
       assert html =~ "Builder Pass"

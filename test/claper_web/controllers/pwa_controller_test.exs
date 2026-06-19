@@ -36,7 +36,7 @@ defmodule ClaperWeb.PwaControllerTest do
 
       conn = build_conn() |> get("/sw.js")
 
-      assert response(conn, 200) =~ "nextgen-pwa-shell-v1"
+      assert response(conn, 200) =~ "nextgen-summit-liveview-v2"
     end
   end
 end

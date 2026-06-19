@@ -1,25 +1,20 @@
-<div class="nextgen-pwa" style={theme_style(@event)}>
-  <main class="pwa-auth-shell">
-    <section class="pwa-auth-panel">
-      <div class="pwa-brand-row">
-        <div class="pwa-brand-mark">
-          <img src="/images/favicon.png" alt="CoreOrbit" />
-        </div>
-        <div>
-          <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
-          <p class="pwa-code">
-            <%= if @event do %>
-              #{String.upcase(@event.code)}
-            <% else %>
-              {String.upcase(@event_code)}
-            <% end %>
-          </p>
-        </div>
-      </div>
+<div class="nextgen-summit-liveview" style={theme_style(@event)}>
+  <main class="ngs-auth-shell">
+    <section class="ngs-auth-panel auth" aria-labelledby="ngs-verify-title">
+      <.link
+        href={~p"/app/#{@event_code}/login?email=#{@email}"}
+        class="ngs-auth-back appbar__btn ngs-focus"
+        aria-label={gettext("Back to email")}
+      >
+        <.ngs_icon name="hero-chevron-right" class="size-5 ngs-icon-back" />
+      </.link>
 
-      <div class="pwa-auth-copy">
-        <h1>{gettext("Enter your 4-digit code")}</h1>
-        <p>{@email}</p>
+      <div class="ngs-auth-copy ngs-auth-copy-v2">
+        <h1 id="ngs-verify-title" class="t-display">{gettext("Enter your code")}</h1>
+        <p class="t-body muted">
+          {gettext("We sent a 4-digit code to")}<br />
+          <strong>{@email}</strong>
+        </p>
       </div>
 
       <.form
@@ -27,46 +22,65 @@
         for={@conn}
         action={~p"/app/#{@event_code}/verify"}
         as={:attendee}
-        class="pwa-auth-form"
+        class="ngs-auth-form ngs-auth-form-v2"
       >
-        <div :if={@error_message} class="pwa-form-error" role="alert">
-          <.pwa_icon name="hero-exclamation-triangle" class="size-5" />
+        <div :if={@error_message} class="ngs-auth-error banner banner--error" role="alert">
+          <.ngs_icon name="hero-exclamation-triangle" class="size-5" />
           <span>{@error_message}</span>
         </div>
 
         <input type="hidden" name={f[:email].name} value={@email} />
 
-        <label for="attendee_code">{gettext("4-digit code")}</label>
-        <input
-          id="attendee_code"
-          name={f[:code].name}
-          type="text"
-          inputmode="numeric"
-          autocomplete="one-time-code"
-          pattern="[0-9]{4}"
-          maxlength="4"
-          required
-          autofocus
-          placeholder="0000"
-          class="pwa-auth-input pwa-code-input"
-        />
+        <div class="ngs-auth-field field">
+          <label class="field__label" for="attendee_code">{gettext("4-digit code")}</label>
+          <input
+            id="attendee_code"
+            name={f[:code].name}
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{4}"
+            maxlength="4"
+            required
+            autofocus
+            placeholder="0000"
+            class="ngs-auth-input input ngs-auth-code-input"
+          />
+        </div>
 
-        <button type="submit" class="pwa-primary-action pwa-focus" disabled={!@event}>
-          {gettext("Verify code")}
+        <button
+          type="submit"
+          class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus ngs-auth-submit"
+          disabled={!@event}
+        >
+          {gettext("Verify and continue")}
         </button>
       </.form>
 
-      <div class="pwa-auth-links">
-        <.link
-          href={~p"/app/#{@event_code}/login?email=#{@email}"}
-          class="pwa-secondary-link pwa-focus"
-        >
-          {gettext("Send a new code")}
-        </.link>
-        <.link href={~p"/app/#{@event_code}"} class="pwa-secondary-link pwa-focus">
-          {gettext("Back to event app")}
-        </.link>
-      </div>
+      <.link
+        href={~p"/app/#{@event_code}/login?email=#{@email}"}
+        class="ngs-auth-resend linkbtn ngs-focus"
+      >
+        {gettext("Didn't get it?")} <span>{gettext("Resend code")}</span>
+      </.link>
+
+      <div class="ngs-auth-spacer auth__spacer"></div>
+
+      <p class="ngs-auth-trustline trustline">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect
+            x="5"
+            y="11"
+            width="14"
+            height="9"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+        {gettext("Your code expires shortly for security")}
+      </p>
     </section>
   </main>
 </div>

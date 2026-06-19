@@ -1,4 +1,4 @@
-const NEXTGEN_CACHE = "nextgen-pwa-shell-v1";
+const NEXTGEN_CACHE = "nextgen-summit-liveview-v2";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/images/favicon.png",

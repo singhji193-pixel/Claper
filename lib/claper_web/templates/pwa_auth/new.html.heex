@@ -1,30 +1,29 @@
-<div class="nextgen-pwa" style={theme_style(@event)}>
-  <main class="pwa-auth-shell">
-    <section class="pwa-auth-panel">
-      <div class="pwa-brand-row">
-        <div class="pwa-brand-mark">
-          <img src="/images/favicon.png" alt="CoreOrbit" />
-        </div>
-        <div>
-          <p class="pwa-eyebrow">{gettext("NextGen event app")}</p>
-          <p class="pwa-code">
-            <%= if @event do %>
-              #{String.upcase(@event.code)}
-            <% else %>
-              {String.upcase(@event_code)}
-            <% end %>
-          </p>
-        </div>
-      </div>
+<div class="nextgen-summit-liveview" style={theme_style(@event)}>
+  <main class="ngs-auth-shell">
+    <section class="ngs-auth-panel auth" aria-labelledby="ngs-login-title">
+      <.link
+        href={~p"/app/#{@event_code}"}
+        class="ngs-auth-back appbar__btn ngs-focus"
+        aria-label={gettext("Back to event app")}
+      >
+        <.ngs_icon name="hero-chevron-right" class="size-5 ngs-icon-back" />
+      </.link>
 
-      <div class="pwa-auth-copy">
-        <h1>{gettext("Sign in with your ticket email")}</h1>
-        <p>
+      <span class="ngs-auth-logo logo">
+        <img src="/images/favicon.png" alt="CoreOrbit" />
+      </span>
+
+      <div class="ngs-auth-copy ngs-auth-copy-v2">
+        <h1 id="ngs-login-title" class="t-display">
+          {gettext("Welcome to")}<br />
           <%= if @event do %>
             {@event.name}
           <% else %>
-            {gettext("This event app is not available.")}
+            {String.upcase(@event_code)}
           <% end %>
+        </h1>
+        <p class="t-body muted">
+          {gettext("Enter the email on your ticket and we'll send you a 4-digit sign-in code.")}
         </p>
       </div>
 
@@ -33,35 +32,55 @@
         for={@conn}
         action={~p"/app/#{@event_code}/login"}
         as={:attendee}
-        class="pwa-auth-form"
+        class="ngs-auth-form ngs-auth-form-v2"
       >
-        <div :if={@error_message} class="pwa-form-error" role="alert">
-          <.pwa_icon name="hero-exclamation-triangle" class="size-5" />
+        <div :if={@error_message} class="ngs-auth-error banner banner--error" role="alert">
+          <.ngs_icon name="hero-exclamation-triangle" class="size-5" />
           <span>{@error_message}</span>
         </div>
 
-        <label for="attendee_email">{gettext("Email address")}</label>
-        <input
-          id="attendee_email"
-          name={f[:email].name}
-          value={@email}
-          type="email"
-          inputmode="email"
-          autocomplete="email"
-          required
-          autofocus
-          placeholder="you@example.com"
-          class="pwa-auth-input"
-        />
+        <div class="ngs-auth-field field">
+          <label class="field__label" for="attendee_email">{gettext("Ticket email")}</label>
+          <input
+            id="attendee_email"
+            name={f[:email].name}
+            value={@email}
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            required
+            autofocus
+            placeholder="you@company.com"
+            class="ngs-auth-input input"
+          />
+        </div>
 
-        <button type="submit" class="pwa-primary-action pwa-focus" disabled={!@event}>
+        <button
+          type="submit"
+          class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus ngs-auth-submit"
+          disabled={!@event}
+        >
           {gettext("Send code")}
         </button>
       </.form>
 
-      <.link href={~p"/app/#{@event_code}"} class="pwa-secondary-link pwa-focus">
-        {gettext("Back to event app")}
-      </.link>
+      <div class="ngs-auth-spacer auth__spacer"></div>
+
+      <p class="ngs-auth-trustline trustline">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect
+            x="5"
+            y="11"
+            width="14"
+            height="9"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="1.8"
+          />
+          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" />
+        </svg>
+        {gettext("Secure passwordless sign-in")}
+      </p>
     </section>
   </main>
 </div>

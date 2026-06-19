@@ -61,6 +61,8 @@ defmodule Claper.EventApp.Notifications do
       event_id: event.id,
       event_code: event.code,
       event_name: event.name,
+      app_url: event_app_url(event),
+      verify_url: event_verify_url(event, challenge.email),
       email: challenge.email,
       attendee_name: ticket.attendee_name,
       ticket_name: ticket.ticket_name,
@@ -80,6 +82,24 @@ defmodule Claper.EventApp.Notifications do
     |> DateTime.diff(DateTime.utc_now(), :second)
     |> max(0)
     |> div(60)
+  end
+
+  defp event_app_url(%Event{} = event), do: "#{base_url()}/app/#{event.code}"
+
+  defp event_verify_url(%Event{} = event, email) do
+    "#{event_app_url(event)}/verify?email=#{URI.encode_www_form(email)}"
+  end
+
+  defp base_url do
+    :claper
+    |> Application.get_env(ClaperWeb.Endpoint, [])
+    |> Keyword.get(:base_url)
+    |> case do
+      %URI{} = uri -> URI.to_string(uri)
+      url when is_binary(url) -> url
+      _ -> "http://localhost:4000"
+    end
+    |> String.trim_trailing("/")
   end
 
   defp n8n_webhook_url do

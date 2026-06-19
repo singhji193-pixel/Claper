@@ -26,7 +26,7 @@ defmodule ClaperWeb.PwaLive.App do
 
         {:ok,
          socket
-         |> assign(:page_title, pwa_page_title(socket.assigns.live_action))
+         |> assign(:page_title, ngs_page_title(socket.assigns.live_action))
          |> assign(:event, event)
          |> assign(:event_code, event.code)
          |> assign(:settings, settings)
@@ -37,6 +37,8 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:agenda_days, Agendas.agenda_days(event.id))
          |> assign(:agenda_tracks, Agendas.agenda_tracks(event.id))
          |> assign(:visible_agenda_items, agenda_items)
+         |> assign(:agenda_query, "")
+         |> assign(:agenda_saved_only, false)
          |> assign(:selected_day, nil)
          |> assign(:selected_track, "all")
          |> assign(:session_item, nil)
@@ -61,6 +63,8 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:agenda_days, [])
          |> assign(:agenda_tracks, [])
          |> assign(:visible_agenda_items, [])
+         |> assign(:agenda_query, "")
+         |> assign(:agenda_saved_only, false)
          |> assign(:selected_day, nil)
          |> assign(:selected_track, "all")
          |> assign(:session_item, nil)
@@ -72,7 +76,7 @@ defmodule ClaperWeb.PwaLive.App do
 
   @impl true
   def handle_params(params, _url, %{assigns: %{status: :ready}} = socket) do
-    {:noreply, apply_pwa_action(socket, socket.assigns.live_action, params)}
+    {:noreply, apply_event_app_action(socket, socket.assigns.live_action, params)}
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -105,19 +109,26 @@ defmodule ClaperWeb.PwaLive.App do
     end
   end
 
-  defp apply_pwa_action(socket, :agenda, params) do
+  defp apply_event_app_action(socket, :agenda, params) do
     selected_day = selected_day(params["day"], socket.assigns.agenda_days)
     selected_track = selected_track(params["track"], socket.assigns.agenda_tracks)
+    query = normalize_agenda_query(params["q"])
+    saved_only = truthy_param?(params["saved"])
 
     socket
     |> assign(:page_title, gettext("Agenda"))
     |> assign(:selected_day, selected_day)
     |> assign(:selected_track, selected_track)
+    |> assign(:agenda_query, query)
+    |> assign(:agenda_saved_only, saved_only)
     |> assign(:session_item, nil)
-    |> assign(:visible_agenda_items, visible_agenda_items(socket, selected_day, selected_track))
+    |> assign(
+      :visible_agenda_items,
+      visible_agenda_items(socket, selected_day, selected_track, query, saved_only)
+    )
   end
 
-  defp apply_pwa_action(socket, :session, %{"agenda_item_id" => agenda_item_id}) do
+  defp apply_event_app_action(socket, :session, %{"agenda_item_id" => agenda_item_id}) do
     session_item = Agendas.get_agenda_item_for_event(socket.assigns.event.id, agenda_item_id)
     selected_day = session_item && date_value(NaiveDateTime.to_date(session_item.starts_at))
     selected_track = session_item && (session_item.track_name || "all")
@@ -130,7 +141,7 @@ defmodule ClaperWeb.PwaLive.App do
     |> assign(:visible_agenda_items, socket.assigns.agenda_items)
   end
 
-  defp apply_pwa_action(socket, :ticket, _params) do
+  defp apply_event_app_action(socket, :ticket, _params) do
     socket
     |> assign(:page_title, gettext("Ticket"))
     |> assign(:session_item, nil)
@@ -140,17 +151,44 @@ defmodule ClaperWeb.PwaLive.App do
     )
   end
 
-  defp apply_pwa_action(socket, live_action, _params) do
+  defp apply_event_app_action(socket, live_action, _params) do
     socket
-    |> assign(:page_title, pwa_page_title(live_action))
+    |> assign(:page_title, ngs_page_title(live_action))
     |> assign(:session_item, nil)
   end
 
-  defp visible_agenda_items(socket, selected_day, selected_track) do
-    Agendas.list_agenda_items_for_app(socket.assigns.event.id,
-      day: selected_day,
-      track: selected_track
-    )
+  defp visible_agenda_items(socket, selected_day, selected_track, query, saved_only) do
+    socket.assigns.event.id
+    |> Agendas.list_agenda_items_for_app(day: selected_day, track: selected_track)
+    |> filter_saved_agenda_items(socket.assigns.bookmarked_agenda_item_ids, saved_only)
+    |> filter_agenda_query(query)
+  end
+
+  defp filter_saved_agenda_items(items, bookmarked_ids, true) do
+    Enum.filter(items, &MapSet.member?(bookmarked_ids, &1.id))
+  end
+
+  defp filter_saved_agenda_items(items, _bookmarked_ids, _saved_only), do: items
+
+  defp filter_agenda_query(items, ""), do: items
+
+  defp filter_agenda_query(items, query) do
+    query = String.downcase(query)
+
+    Enum.filter(items, fn item ->
+      [
+        item.title,
+        item.description,
+        item.session_type,
+        item.track_name,
+        item.speaker_name,
+        item.speaker_title,
+        item.speaker_company,
+        item.location_name
+      ]
+      |> Enum.reject(&(is_nil(&1) or &1 == ""))
+      |> Enum.any?(&String.contains?(String.downcase(&1), query))
+    end)
   end
 
   defp refresh_bookmarked_agenda_items(socket) do
@@ -171,6 +209,60 @@ defmodule ClaperWeb.PwaLive.App do
     end
   end
 
+  defp normalize_agenda_query(nil), do: ""
+
+  defp normalize_agenda_query(query) when is_binary(query) do
+    query |> String.trim() |> String.slice(0, 80)
+  end
+
+  defp normalize_agenda_query(_query), do: ""
+
+  defp truthy_param?(value) when value in ["1", "true", "on", "yes"], do: true
+  defp truthy_param?(_value), do: false
+
+  def saved_agenda_count(bookmarked_ids), do: MapSet.size(bookmarked_ids)
+
+  def agenda_filter_path(event, day, track, query, saved_only) do
+    params =
+      %{}
+      |> maybe_put_param(:day, day)
+      |> maybe_put_param(:track, track)
+      |> maybe_put_param(:q, normalize_agenda_query(query))
+      |> maybe_put_param(:saved, if(saved_only, do: "1", else: nil))
+
+    ~p"/app/#{event.code}/agenda?#{params}"
+  end
+
+  defp maybe_put_param(params, _key, nil), do: params
+  defp maybe_put_param(params, _key, ""), do: params
+  defp maybe_put_param(params, :track, "all"), do: params
+  defp maybe_put_param(params, key, value), do: Map.put(params, key, value)
+
+  def track_tone(track) when is_binary(track) do
+    case rem(:erlang.phash2(track), 4) do
+      0 -> "ai"
+      1 -> "growth"
+      2 -> "capital"
+      _ -> "future"
+    end
+  end
+
+  def attendee_initials(attendee) do
+    attendee
+    |> attendee_display_name()
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map(&String.first/1)
+    |> Enum.join()
+    |> String.upcase()
+    |> case do
+      "" -> "NG"
+      initials -> initials
+    end
+  end
+
+  def next_agenda_item([]), do: nil
+  def next_agenda_item([item | _items]), do: item
   defp selected_day(nil, [first_day | _days]), do: date_value(first_day)
   defp selected_day("", [first_day | _days]), do: date_value(first_day)
   defp selected_day(_day, []), do: nil
@@ -192,7 +284,7 @@ defmodule ClaperWeb.PwaLive.App do
   attr :name, :string, required: true
   attr :class, :string, default: "size-5"
 
-  def pwa_icon(assigns) do
+  def ngs_icon(assigns) do
     ~H"""
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -202,7 +294,7 @@ defmodule ClaperWeb.PwaLive.App do
       stroke="currentColor"
       stroke-linecap="round"
       stroke-linejoin="round"
-      class={["pwa-svg-icon", @class]}
+      class={["ngs-svg-icon", @class]}
       aria-hidden="true"
     >
       <%= case @name do %>
@@ -271,22 +363,35 @@ defmodule ClaperWeb.PwaLive.App do
   attr :icon, :string, required: true
   attr :label, :string, required: true
   attr :navigate, :string, required: true
+  attr :variant, :string, default: "bottom"
+  attr :center, :boolean, default: false
 
-  def nav_item(assigns) do
+  def ngs_nav_item(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :classes,
+        ngs_nav_item_classes(assigns.variant, assigns.active, assigns.center)
+      )
+
     ~H"""
-    <.link
-      navigate={@navigate}
-      aria-current={@active && "page"}
-      class={[
-        "pwa-tab pwa-focus",
-        @active && "pwa-tab-active",
-        !@active && "pwa-tab-inactive"
-      ]}
-    >
-      <.pwa_icon name={@icon} class="size-5" />
+    <.link navigate={@navigate} aria-current={@active && "page"} class={@classes}>
+      <.ngs_icon name={@icon} class="size-5" />
       <span>{@label}</span>
     </.link>
     """
+  end
+
+  defp ngs_nav_item_classes("sidebar", active, _center) do
+    ["ngs-sidebar-item sb-item ngs-focus", active && "is-active"]
+  end
+
+  defp ngs_nav_item_classes(_variant, active, true) do
+    ["ngs-nav-fab nav-fab ngs-focus", active && "is-active"]
+  end
+
+  defp ngs_nav_item_classes(_variant, active, _center) do
+    ["ngs-nav-item nav-item ngs-focus", active && "is-active"]
   end
 
   attr :icon, :string, required: true
@@ -294,10 +399,10 @@ defmodule ClaperWeb.PwaLive.App do
   attr :value, :string, required: true
   attr :tone, :string, default: "primary"
 
-  def stat_pill(assigns) do
+  def ngs_stat_pill(assigns) do
     ~H"""
-    <div class={["pwa-stat-pill", "pwa-stat-pill-#{@tone}"]}>
-      <.pwa_icon name={@icon} class="size-5" />
+    <div class={["ngs-stat-pill", "ngs-stat-pill-#{@tone}"]}>
+      <.ngs_icon name={@icon} class="size-5" />
       <div>
         <p>{@value}</p>
         <span>{@label}</span>
@@ -309,19 +414,22 @@ defmodule ClaperWeb.PwaLive.App do
   attr :event, :map, required: true
   attr :day, :any, required: true
   attr :selected_day, :string, default: nil
+  attr :agenda_query, :string, default: ""
+  attr :agenda_saved_only, :boolean, default: false
 
-  def day_chip(assigns) do
+  def ngs_day_chip(assigns) do
     assigns = assign(assigns, :day_value, date_value(assigns.day))
 
     ~H"""
     <.link
-      patch={~p"/app/#{@event.code}/agenda?day=#{@day_value}&track=all"}
+      patch={agenda_filter_path(@event, @day_value, "all", @agenda_query, @agenda_saved_only)}
       class={[
-        "pwa-filter-chip pwa-focus",
-        @selected_day == @day_value && "pwa-filter-chip-active"
+        "ngs-day day ngs-focus",
+        @selected_day == @day_value && "is-active"
       ]}
     >
-      <span>{format_agenda_day(@day)}</span>
+      <span class="ngs-day-dow day__dow">{format_agenda_day_short(@day)}</span>
+      <strong class="ngs-day-num day__num">{format_agenda_day_number(@day)}</strong>
     </.link>
     """
   end
@@ -330,14 +438,16 @@ defmodule ClaperWeb.PwaLive.App do
   attr :track, :string, required: true
   attr :selected_day, :string, default: nil
   attr :selected_track, :string, default: "all"
+  attr :agenda_query, :string, default: ""
+  attr :agenda_saved_only, :boolean, default: false
 
-  def track_chip(assigns) do
+  def ngs_track_chip(assigns) do
     ~H"""
     <.link
-      patch={~p"/app/#{@event.code}/agenda?day=#{@selected_day}&track=#{@track}"}
+      patch={agenda_filter_path(@event, @selected_day, @track, @agenda_query, @agenda_saved_only)}
       class={[
-        "pwa-filter-chip pwa-focus",
-        @selected_track == @track && "pwa-filter-chip-active"
+        "ngs-chip chip chip--brand ngs-focus",
+        @selected_track == @track && "is-active"
       ]}
     >
       <span>{track_label(@track)}</span>
@@ -350,60 +460,64 @@ defmodule ClaperWeb.PwaLive.App do
   attr :saved, :boolean, default: false
   attr :signed_in, :boolean, default: false
 
-  def agenda_card(assigns) do
+  def ngs_agenda_card(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :track_tone,
+        track_tone(assigns.item.track_name || assigns.item.session_type || "all")
+      )
+
     ~H"""
-    <article class="pwa-session-card">
-      <div class="pwa-session-time">
+    <article class={["ngs-schedule-slot slot", "ngs-track-#{@track_tone}", "k-#{@track_tone}"]}>
+      <div class="ngs-slot-time slot__time" aria-hidden="true">
         <time>{format_agenda_time(@item.starts_at)}</time>
         <span>{format_duration(@item.duration_minutes)}</span>
       </div>
 
-      <div class="pwa-session-body">
-        <div class="pwa-session-heading">
-          <p :if={@item.session_type || @item.track_name} class="pwa-session-kicker">
+      <div class={["ngs-session-card session", @saved && "is-saved"]}>
+        <div class="ngs-session-topline session__top">
+          <span :if={@item.session_type || @item.track_name} class="ngs-track-tag ktag">
             {session_kicker(@item)}
-          </p>
-          <.link
-            navigate={~p"/app/#{@event.code}/agenda/#{@item.id}"}
-            class="pwa-session-title pwa-focus"
+          </span>
+          <button
+            type="button"
+            phx-click="toggle-agenda-bookmark"
+            phx-value-id={@item.id}
+            class={["ngs-save-button save ngs-focus", @saved && "is-active"]}
+            aria-pressed={@saved}
+            aria-label={save_label(@saved, @signed_in)}
           >
-            {@item.title}
-          </.link>
+            <.ngs_icon
+              name={if @saved, do: "hero-check-circle", else: "hero-bookmark"}
+              class="size-4"
+            />
+            <span class="sr-only">{save_label(@saved, @signed_in)}</span>
+          </button>
         </div>
 
-        <p :if={@item.speaker_name} class="pwa-session-speaker">
+        <.link
+          navigate={~p"/app/#{@event.code}/agenda/#{@item.id}"}
+          class="ngs-session-title session__title ngs-focus"
+        >
+          {@item.title}
+        </.link>
+
+        <p :if={@item.speaker_name} class="ngs-session-speaker session__by">
           {speaker_line(@item)}
         </p>
 
-        <div class="pwa-session-meta">
+        <div class="ngs-session-meta session__foot">
           <span :if={@item.location_name}>
-            <.pwa_icon name="hero-map-pin" class="size-4" />
+            <.ngs_icon name="hero-map-pin" class="size-4" />
             {@item.location_name}
           </span>
           <span>
-            <.pwa_icon name="hero-clock" class="size-4" />
+            <.ngs_icon name="hero-clock" class="size-4" />
             {format_session_date(@item.starts_at)}
           </span>
         </div>
-
-        <p :if={@item.description} class="pwa-session-description">
-          {String.slice(@item.description, 0, 160)}
-        </p>
       </div>
-
-      <button
-        type="button"
-        phx-click="toggle-agenda-bookmark"
-        phx-value-id={@item.id}
-        class={[
-          "pwa-save-button pwa-focus",
-          @saved && "pwa-save-button-active"
-        ]}
-        aria-pressed={@saved}
-      >
-        <.pwa_icon name={if @saved, do: "hero-check-circle", else: "hero-bookmark"} class="size-5" />
-        <span>{save_label(@saved, @signed_in)}</span>
-      </button>
     </article>
     """
   end
@@ -411,39 +525,41 @@ defmodule ClaperWeb.PwaLive.App do
   attr :event, :map, required: true
   attr :wallet, :map, required: true
 
-  def ticket_wallet_card(assigns) do
+  def ngs_ticket_wallet_card(assigns) do
     ~H"""
-    <section class="pwa-ticket-card">
-      <div class="pwa-ticket-header">
-        <span class="pwa-ticket-icon">
-          <.pwa_icon name="hero-ticket" class="size-7" />
+    <section class="ngs-pass-card pass" aria-label={gettext("Event ticket")}>
+      <div class="ngs-pass-band pass__band"></div>
+      <div class="ngs-pass-head">
+        <div>
+          <p class="ngs-eyebrow eyebrow">{gettext("NextGen Summit")}</p>
+          <h2>{@wallet.ticket_name || gettext("Verified ticket")}</h2>
+        </div>
+        <span class="ngs-badge ngs-badge-ok badge badge--ok">
+          <.ngs_icon name="hero-check-circle" class="size-4" />
+          {ticket_status_label(@wallet)}
         </span>
-        <div>
-          <p class="pwa-eyebrow">{gettext("Event pass")}</p>
-          <h3>{@wallet.ticket_name || gettext("Verified ticket")}</h3>
-        </div>
       </div>
 
-      <div class="pwa-ticket-holder">
-        <p>{@wallet.attendee_name}</p>
-        <span>{@wallet.attendee_email}</span>
+      <div class="ngs-pass-holder">
+        <span>{gettext("Attendee")}</span>
+        <strong>{@wallet.attendee_name}</strong>
+        <small>{@wallet.attendee_email}</small>
       </div>
 
-      <div class="pwa-ticket-code" aria-label={gettext("Ticket reference")}>
-        <span>{gettext("Reference")}</span>
-        <strong>{@wallet.reference}</strong>
-      </div>
+      <div class="ngs-pass-perf pass__perf" aria-hidden="true"><span></span></div>
 
-      <dl class="pwa-ticket-details">
-        <div>
-          <dt>{gettext("Event")}</dt>
-          <dd>{@event.name}</dd>
+      <div class="ngs-pass-code-row">
+        <div class="ngs-qr-mark qr" aria-label={gettext("Ticket QR placeholder")}>
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
         </div>
-        <div>
-          <dt>{gettext("Status")}</dt>
-          <dd>{ticket_status_label(@wallet)}</dd>
+        <div class="ngs-pass-reference">
+          <span>{gettext("Reference")}</span>
+          <strong>{@wallet.reference}</strong>
+          <div class="ngs-barcode barcode" aria-hidden="true">
+            <i></i><i class="s"></i><i></i><i></i><i class="s"></i><i></i><i class="w"></i><i></i><i class="s"></i><i></i>
+          </div>
         </div>
-      </dl>
+      </div>
     </section>
     """
   end
@@ -456,32 +572,47 @@ defmodule ClaperWeb.PwaLive.App do
   attr :disabled, :boolean, default: false
   attr :meta, :string, default: nil
 
-  def feature_action(assigns) do
+  def ngs_feature_action(assigns) do
     assigns =
       assign(assigns, :class, [
-        "pwa-feature-action pwa-focus",
-        assigns.disabled && "pwa-feature-action-disabled"
+        "ngs-feature-action ngs-focus",
+        assigns.disabled && "ngs-feature-action-disabled"
       ])
 
     cond do
       assigns.disabled ->
         ~H"""
         <div class={@class} aria-disabled="true">
-          <.feature_action_content icon={@icon} title={@title} description={@description} meta={@meta} />
+          <.ngs_feature_action_content
+            icon={@icon}
+            title={@title}
+            description={@description}
+            meta={@meta}
+          />
         </div>
         """
 
       assigns.navigate ->
         ~H"""
         <.link navigate={@navigate} class={@class}>
-          <.feature_action_content icon={@icon} title={@title} description={@description} meta={@meta} />
+          <.ngs_feature_action_content
+            icon={@icon}
+            title={@title}
+            description={@description}
+            meta={@meta}
+          />
         </.link>
         """
 
       true ->
         ~H"""
         <a href={@href} class={@class}>
-          <.feature_action_content icon={@icon} title={@title} description={@description} meta={@meta} />
+          <.ngs_feature_action_content
+            icon={@icon}
+            title={@title}
+            description={@description}
+            meta={@meta}
+          />
         </a>
         """
     end
@@ -492,28 +623,28 @@ defmodule ClaperWeb.PwaLive.App do
   attr :icon, :string, required: true
   attr :meta, :string, default: nil
 
-  defp feature_action_content(assigns) do
+  defp ngs_feature_action_content(assigns) do
     ~H"""
-    <span class="pwa-feature-icon">
-      <.pwa_icon name={@icon} class="size-5" />
+    <span class="ngs-feature-icon">
+      <.ngs_icon name={@icon} class="size-5" />
     </span>
     <span class="min-w-0">
       <strong>{@title}</strong>
       <small>{@description}</small>
       <em :if={@meta}>{@meta}</em>
     </span>
-    <.pwa_icon name="hero-chevron-right" class="size-5 shrink-0 text-slate-400" />
+    <.ngs_icon name="hero-chevron-right" class="size-5 shrink-0 text-slate-400" />
     """
   end
 
-  def pwa_theme_style(%{primary_color: primary, accent_color: accent}) do
+  def ngs_theme_style(%{primary_color: primary, accent_color: accent}) do
     primary = safe_hex_color(primary, "#f15a24")
     accent = safe_hex_color(accent, "#365a91")
 
-    "--pwa-primary: #{primary}; --pwa-accent: #{accent};"
+    "--ngs-primary: #{primary}; --ngs-accent: #{accent};"
   end
 
-  def pwa_theme_style(_settings), do: ""
+  def ngs_theme_style(_settings), do: ""
 
   defp safe_hex_color(value, fallback) when is_binary(value) do
     if Regex.match?(~r/^#[0-9a-fA-F]{6}$/, value), do: value, else: fallback
@@ -521,13 +652,14 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp safe_hex_color(_value, fallback), do: fallback
 
-  def pwa_page_title(:agenda), do: gettext("Agenda")
-  def pwa_page_title(:session), do: gettext("Session")
-  def pwa_page_title(:people), do: gettext("People")
-  def pwa_page_title(:bingo), do: gettext("Bingo")
-  def pwa_page_title(:ticket), do: gettext("Ticket")
-  def pwa_page_title(:profile), do: gettext("Profile")
-  def pwa_page_title(_), do: gettext("Event app")
+  def ngs_page_title(:agenda), do: gettext("Agenda")
+  def ngs_page_title(:session), do: gettext("Session")
+  def ngs_page_title(:people), do: gettext("People")
+  def ngs_page_title(:scan), do: gettext("Scan")
+  def ngs_page_title(:bingo), do: gettext("Bingo")
+  def ngs_page_title(:ticket), do: gettext("Ticket")
+  def ngs_page_title(:profile), do: gettext("Profile")
+  def ngs_page_title(_), do: gettext("Event app")
 
   def format_event_time(nil), do: gettext("Time to be announced")
 
@@ -545,6 +677,14 @@ defmodule ClaperWeb.PwaLive.App do
 
   def format_agenda_day(%Date{} = day) do
     Calendar.strftime(day, "%b %d")
+  end
+
+  def format_agenda_day_short(%Date{} = day) do
+    Calendar.strftime(day, "%a")
+  end
+
+  def format_agenda_day_number(%Date{} = day) do
+    Calendar.strftime(day, "%d")
   end
 
   def date_value(%Date{} = day), do: Date.to_iso8601(day)
