@@ -803,3 +803,197 @@
 .nextgen-summit-liveview .ngs-auth-copy-v2 h1{white-space:normal!important;overflow-wrap:anywhere!important}
 .nextgen-summit-liveview .ngs-auth-form-v2,.nextgen-summit-liveview .ngs-auth-input,.nextgen-summit-liveview .ngs-auth-submit{inline-size:100%!important}
 @media (min-width:760px){.nextgen-summit-liveview .ngs-auth-panel.auth{width:440px!important;max-width:440px!important}}
+
+/* Mandatory OTP entry: visually mirrors the Claper/CoreOrbit join screen. */
+.nextgen-summit-liveview .ngs-auth-shell-reference{
+  min-height:100dvh!important;
+  display:block!important;
+  padding:0!important;
+  overflow:hidden;
+  background:linear-gradient(-45deg,#2c033a,#21033a,#053138,#053138)!important;
+  background-size:400% 400%!important;
+  animation:gradient 15s ease infinite;
+  color:#fff;
+}
+.nextgen-summit-liveview .ngs-auth-ref-nav{
+  position:relative;
+  z-index:2;
+  min-height:96px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:14px;
+  padding:calc(14px + env(safe-area-inset-top,0px)) 20px 14px;
+}
+.nextgen-summit-liveview .ngs-auth-ref-link{
+  min-height:40px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+}
+.nextgen-summit-liveview .ngs-auth-ref-pill{
+  min-height:34px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 14px;
+  border-radius:7px;
+  background:linear-gradient(135deg,#ff7a45,#f2541c);
+  color:#fff;
+  font-size:14px;
+  font-weight:700;
+  box-shadow:0 14px 28px -18px rgba(0,0,0,.65);
+}
+.nextgen-summit-liveview .ngs-auth-ref-panel{
+  width:min(100% - 40px,440px);
+  margin:0 auto;
+  padding-top:34px;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+.nextgen-summit-liveview .ngs-auth-ref-logo{
+  width:auto;
+  height:144px;
+  object-fit:contain;
+  align-self:center;
+  margin:0 auto 58px;
+}
+.nextgen-summit-liveview .ngs-auth-ref-copy{
+  display:grid;
+  gap:8px;
+  margin-bottom:26px;
+  text-align:left;
+}
+.nextgen-summit-liveview .ngs-auth-ref-copy p,
+.nextgen-summit-liveview .ngs-auth-ref-copy span{
+  margin:0;
+  color:rgba(255,255,255,.72);
+  font-size:14px;
+  font-weight:700;
+  overflow-wrap:anywhere;
+}
+.nextgen-summit-liveview .ngs-auth-ref-copy h1{
+  margin:0;
+  color:#fff;
+  font-family:"Plus Jakarta Sans","Inter",ui-sans-serif,system-ui,sans-serif;
+  font-size:28px;
+  font-weight:800;
+  line-height:1.14;
+  letter-spacing:0;
+}
+.nextgen-summit-liveview .ngs-auth-ref-form{
+  display:grid;
+  gap:30px;
+}
+.nextgen-summit-liveview .ngs-auth-ref-field{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:66px;
+  border-bottom:1px solid rgba(255,255,255,.72);
+  color:#fff;
+}
+.nextgen-summit-liveview .ngs-auth-ref-field .ngs-svg-icon{
+  position:absolute;
+  left:8px;
+  color:rgba(255,255,255,.86);
+}
+.nextgen-summit-liveview .ngs-auth-ref-input{
+  width:100%;
+  min-width:0;
+  height:66px;
+  padding:17px 10px 12px 48px;
+  border:0;
+  border-radius:0;
+  outline:0;
+  background:transparent;
+  color:#fff;
+  font-size:24px;
+  font-weight:700;
+  line-height:1;
+  box-shadow:none;
+}
+.nextgen-summit-liveview .ngs-auth-ref-input::placeholder{
+  color:rgba(255,255,255,.6);
+  font-weight:700;
+}
+.nextgen-summit-liveview .ngs-auth-ref-input:focus{
+  outline:none;
+  box-shadow:none;
+}
+.nextgen-summit-liveview .ngs-auth-ref-field:focus-within{
+  border-bottom-width:2px;
+  border-bottom-color:#fff;
+}
+.nextgen-summit-liveview .ngs-auth-ref-code{
+  font-family:"Plus Jakarta Sans","Inter",ui-sans-serif,system-ui,sans-serif;
+  letter-spacing:.2em;
+}
+.nextgen-summit-liveview .ngs-auth-ref-submit{
+  width:100%;
+  min-height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:0;
+  border-radius:999px;
+  padding:0 18px;
+  background:linear-gradient(135deg,#ff7a45,#f2541c);
+  color:#fff;
+  font-size:15px;
+  font-weight:900;
+  letter-spacing:.02em;
+  box-shadow:0 18px 32px -18px rgba(0,0,0,.75);
+  transition:transform .16s ease,background-position .5s ease,opacity .16s ease;
+}
+.nextgen-summit-liveview .ngs-auth-ref-submit:active{
+  transform:scale(.98);
+}
+.nextgen-summit-liveview .ngs-auth-ref-submit[disabled]{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.nextgen-summit-liveview .ngs-auth-ref-error{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:12px 14px;
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:12px;
+  background:rgba(255,255,255,.12);
+  color:#fff;
+  font-size:13px;
+  font-weight:700;
+  backdrop-filter:blur(10px);
+}
+.nextgen-summit-liveview .ngs-auth-ref-note,
+.nextgen-summit-liveview .ngs-auth-ref-resend{
+  margin:24px 0 0;
+  color:rgba(255,255,255,.78);
+  text-align:center;
+  font-size:13.5px;
+  font-weight:650;
+}
+.nextgen-summit-liveview .ngs-auth-ref-resend{
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+}
+.nextgen-summit-liveview .ngs-auth-ref-resend span{
+  color:#fff;
+  font-weight:850;
+}
+@media (min-width:760px){
+  .nextgen-summit-liveview .ngs-auth-ref-nav{padding-inline:32px}
+  .nextgen-summit-liveview .ngs-auth-ref-panel{padding-top:18px}
+}
+@media (max-width:420px){
+  .nextgen-summit-liveview .ngs-auth-ref-panel{width:calc(100% - 40px);padding-top:22px}
+  .nextgen-summit-liveview .ngs-auth-ref-logo{height:132px;margin-bottom:48px}
+  .nextgen-summit-liveview .ngs-auth-ref-input{font-size:22px}
+}

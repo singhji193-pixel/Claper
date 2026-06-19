@@ -84,7 +84,12 @@ defmodule Claper.EventApp.Notifications do
     |> div(60)
   end
 
-  defp event_app_url(%Event{} = event), do: "#{base_url()}/app/#{event.code}"
+  defp event_app_url(%Event{} = event) do
+    case public_base_url(event) do
+      nil -> "#{base_url()}/app/#{event.code}"
+      url -> url
+    end
+  end
 
   defp event_verify_url(%Event{} = event, email) do
     "#{event_app_url(event)}/verify?email=#{URI.encode_www_form(email)}"
@@ -100,6 +105,23 @@ defmodule Claper.EventApp.Notifications do
       _ -> "http://localhost:4000"
     end
     |> String.trim_trailing("/")
+  end
+
+  defp public_base_url(%Event{} = event) do
+    config = Application.get_env(:claper, :event_app, [])
+    public_event_code = Keyword.get(config, :public_event_code)
+    public_base_url = Keyword.get(config, :public_base_url)
+
+    cond do
+      !is_binary(public_base_url) or String.trim(public_base_url) == "" ->
+        nil
+
+      is_binary(public_event_code) and String.trim(public_event_code) not in ["", event.code] ->
+        nil
+
+      true ->
+        public_base_url |> String.trim() |> String.trim_trailing("/")
+    end
   end
 
   defp n8n_webhook_url do

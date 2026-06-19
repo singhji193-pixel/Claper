@@ -80,8 +80,12 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   @impl true
-  def handle_params(params, _url, %{assigns: %{status: :ready}} = socket) do
-    {:noreply, apply_event_app_action(socket, socket.assigns.live_action, params)}
+  def handle_params(params, url, %{assigns: %{status: :ready}} = socket) do
+    if signed_in?(socket.assigns.attendee) do
+      {:noreply, apply_event_app_action(socket, socket.assigns.live_action, params)}
+    else
+      {:noreply, redirect(socket, to: login_redirect_path(socket.assigns, url))}
+    end
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
@@ -226,6 +230,28 @@ defmodule ClaperWeb.PwaLive.App do
   defp truthy_param?(_value), do: false
 
   def saved_agenda_count(bookmarked_ids), do: MapSet.size(bookmarked_ids)
+
+  defp login_redirect_path(route_source, url) do
+    route_source
+    |> app_path("/login")
+    |> append_next_param(next_path(url))
+  end
+
+  defp next_path(url) do
+    case URI.parse(url) do
+      %URI{path: path, query: nil} when is_binary(path) -> path
+      %URI{path: path, query: query} when is_binary(path) -> "#{path}?#{query}"
+      _ -> nil
+    end
+  end
+
+  defp append_next_param(path, nil), do: path
+  defp append_next_param(path, ""), do: path
+
+  defp append_next_param(path, next) do
+    separator = if String.contains?(path, "?"), do: "&", else: "?"
+    path <> separator <> URI.encode_query(next: next)
+  end
 
   def agenda_filter_path(route_source, day, track, query, saved_only) do
     params =

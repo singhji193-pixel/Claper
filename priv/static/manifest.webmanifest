@@ -2,11 +2,11 @@
   "name": "NextGen Summit",
   "short_name": "NextGen",
   "description": "Event companion app for schedule, networking, live interaction, and attendee tools.",
-  "start_url": "/join",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#eef1f5",
-  "theme_color": "#0b1b33",
+  "background_color": "#21033a",
+  "theme_color": "#21033a",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -181,6 +181,32 @@ defmodule Claper.EventAppAuthTest do
       assert payload.verify_url =~ "email=avery%40example.com"
       assert byte_size(signature) == 64
     end
+
+    test "uses the public app base URL for the configured vanity event" do
+      event = event_fixture()
+      ticket = ticket_fixture(event, %{attendee_email: "avery@example.com"})
+      original_config = Application.get_env(:claper, :event_app, [])
+
+      Application.put_env(
+        :claper,
+        :event_app,
+        original_config
+        |> Keyword.put(:public_event_code, event.code)
+        |> Keyword.put(:public_base_url, "https://app.nextgensummit.co")
+      )
+
+      on_exit(fn ->
+        Application.put_env(:claper, :event_app, original_config)
+      end)
+
+      assert {:ok, %{challenge: challenge}} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      payload = Notifications.attendee_otp_payload(event, ticket, challenge, "4821")
+
+      assert payload.app_url == "https://app.nextgensummit.co"
+      assert payload.verify_url == "https://app.nextgensummit.co/verify?email=avery%40example.com"
+    end
   end
 
   defp ticket_fixture(event, attrs) do

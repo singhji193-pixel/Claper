@@ -1,20 +1,27 @@
 <div class="nextgen-summit-liveview" style={theme_style(@event)}>
-  <main class="ngs-auth-shell">
-    <section class="ngs-auth-panel auth" aria-labelledby="ngs-verify-title">
+  <main class="ngs-auth-shell ngs-auth-shell-reference">
+    <nav class="ngs-auth-ref-nav" aria-label={gettext("Event app")}>
       <.link
-        href={app_path(assigns, "/login?#{URI.encode_query(email: @email || "")}")}
-        class="ngs-auth-back appbar__btn ngs-focus"
-        aria-label={gettext("Back to email")}
+        href={
+          app_path(
+            assigns,
+            "/login?#{URI.encode_query(compact_params(email: @email, next: @next_path))}"
+          )
+        }
+        class="ngs-auth-ref-link ngs-focus"
       >
-        <.ngs_icon name="hero-chevron-right" class="size-5 ngs-icon-back" />
+        {gettext("Back")}
       </.link>
+      <span class="ngs-auth-ref-pill">{gettext("OTP")}</span>
+    </nav>
 
-      <div class="ngs-auth-copy ngs-auth-copy-v2">
-        <h1 id="ngs-verify-title" class="t-display">{gettext("Enter your code")}</h1>
-        <p class="t-body muted">
-          {gettext("We sent a 4-digit code to")}<br />
-          <strong>{@email}</strong>
-        </p>
+    <section class="ngs-auth-ref-panel" aria-labelledby="ngs-verify-title">
+      <img src="/images/logo-large.png" class="ngs-auth-ref-logo" alt="CoreOrbit Ask" />
+
+      <div class="ngs-auth-ref-copy">
+        <p>{gettext("Check your email")}</p>
+        <h1 id="ngs-verify-title">{gettext("Enter your code")}</h1>
+        <span>{@email}</span>
       </div>
 
       <.form
@@ -22,17 +29,19 @@
         for={@conn}
         action={app_path(assigns, "/verify")}
         as={:attendee}
-        class="ngs-auth-form ngs-auth-form-v2"
+        class="ngs-auth-ref-form"
       >
-        <div :if={@error_message} class="ngs-auth-error banner banner--error" role="alert">
+        <input type="hidden" name={f[:email].name} value={@email} />
+        <input :if={@next_path} type="hidden" name={f[:next].name} value={@next_path} />
+
+        <div :if={@error_message} class="ngs-auth-ref-error" role="alert">
           <.ngs_icon name="hero-exclamation-triangle" class="size-5" />
           <span>{@error_message}</span>
         </div>
 
-        <input type="hidden" name={f[:email].name} value={@email} />
-
-        <div class="ngs-auth-field field">
-          <label class="field__label" for="attendee_code">{gettext("4-digit code")}</label>
+        <label class="sr-only" for="attendee_code">{gettext("4-digit code")}</label>
+        <div class="ngs-auth-ref-field">
+          <.ngs_icon name="hero-identification" class="size-6" />
           <input
             id="attendee_code"
             name={f[:code].name}
@@ -44,13 +53,13 @@
             required
             autofocus
             placeholder="0000"
-            class="ngs-auth-input input ngs-auth-code-input"
+            class="ngs-auth-ref-input ngs-auth-ref-code"
           />
         </div>
 
         <button
           type="submit"
-          class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus ngs-auth-submit"
+          class="ngs-auth-ref-submit ngs-focus"
           disabled={!@event}
         >
           {gettext("Verify and continue")}
@@ -58,29 +67,16 @@
       </.form>
 
       <.link
-        href={app_path(assigns, "/login?#{URI.encode_query(email: @email || "")}")}
-        class="ngs-auth-resend linkbtn ngs-focus"
+        href={
+          app_path(
+            assigns,
+            "/login?#{URI.encode_query(compact_params(email: @email, next: @next_path))}"
+          )
+        }
+        class="ngs-auth-ref-resend ngs-focus"
       >
         {gettext("Didn't get it?")} <span>{gettext("Resend code")}</span>
       </.link>
-
-      <div class="ngs-auth-spacer auth__spacer"></div>
-
-      <p class="ngs-auth-trustline trustline">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect
-            x="5"
-            y="11"
-            width="14"
-            height="9"
-            rx="2"
-            stroke="currentColor"
-            stroke-width="1.8"
-          />
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" />
-        </svg>
-        {gettext("Your code expires shortly for security")}
-      </p>
     </section>
   </main>
 </div>

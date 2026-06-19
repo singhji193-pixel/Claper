@@ -105,6 +105,7 @@ defmodule ClaperWeb.EventLiveTest do
       event = presentation_file.event
       agenda_item_fixture(%{event: event, title: "Opening session"})
       bingo_prompt_fixture(%{event: event, prompt: "Find another founder"})
+      conn = sign_in_attendee(conn, event)
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}")
 
@@ -119,7 +120,19 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~p"/app/#{event.code}/scan"
     end
 
-    test "serves the vanity app host without exposing coded PWA links", %{
+    test "redirects the vanity app host home to OTP login when signed out", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      put_public_event_code(event.code)
+
+      conn = Map.put(conn, :host, "app.nextgensummit.co")
+
+      assert {:error, {:redirect, %{to: "/login?next=%2F"}}} = live(conn, "/")
+    end
+
+    test "serves the vanity app host without exposing coded PWA links after OTP", %{
       conn: conn,
       presentation_file: presentation_file
     } do
@@ -127,7 +140,10 @@ defmodule ClaperWeb.EventLiveTest do
       put_public_event_code(event.code)
       agenda_item_fixture(%{event: event, title: "Opening session"})
 
-      conn = Map.put(conn, :host, "app.nextgensummit.co")
+      conn =
+        conn
+        |> sign_in_attendee(event)
+        |> Map.put(:host, "app.nextgensummit.co")
 
       {:ok, _pwa_live, html} = live(conn, "/")
 
@@ -157,6 +173,8 @@ defmodule ClaperWeb.EventLiveTest do
         duration_minutes: 30
       })
 
+      conn = sign_in_attendee(conn, event)
+
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/agenda")
 
       assert html =~ "Opening keynote"
@@ -164,7 +182,7 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "Main Stage"
       assert html =~ "Growth"
       assert html =~ "09:00"
-      assert html =~ "Sign in to save"
+      assert html =~ "Save"
       assert html =~ ~p"/app/#{event.code}/agenda"
     end
 
@@ -214,16 +232,15 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "Enter another code"
     end
 
-    test "prompts signed-out attendees to use ticket email login", %{
+    test "redirects signed-out attendees to OTP login", %{
       conn: conn,
       presentation_file: presentation_file
     } do
       event = presentation_file.event
 
-      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/profile")
+      assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/app/#{event.code}/profile")
 
-      assert html =~ "Sign in to create your profile"
-      assert html =~ ~p"/app/#{event.code}/login"
+      assert to == ~p"/app/#{event.code}/login?#{[next: ~p"/app/#{event.code}/profile"]}"
     end
 
     test "shows a verified ticket profile for signed-in attendees", %{
@@ -702,6 +719,16 @@ defmodule ClaperWeb.EventLiveTest do
     %EventTicket{}
     |> EventTicket.changeset(attrs)
     |> Repo.insert!()
+  end
+
+  defp sign_in_attendee(conn, event, attrs \\ %{}) do
+    email = Map.get(attrs, :attendee_email, "avery@example.com")
+    ticket_fixture(event, Map.put_new(attrs, :attendee_email, email))
+
+    assert {:ok, _result} = EventApp.request_login_code(event.code, email, code: "4821")
+    assert {:ok, %{token: token}} = EventApp.verify_login_code(event.code, email, "4821")
+
+    init_test_session(conn, %{event_app_session_token: token})
   end
 
   defp put_public_event_code(code) do

@@ -1,4 +1,4 @@
-const NEXTGEN_CACHE = "nextgen-summit-liveview-v2";
+const NEXTGEN_CACHE = "nextgen-summit-liveview-v3-auth";
 const STATIC_ASSETS = [
   "/manifest.webmanifest",
   "/images/favicon.png",

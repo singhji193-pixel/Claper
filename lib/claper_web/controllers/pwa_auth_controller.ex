@@ -5,12 +5,13 @@ defmodule ClaperWeb.PwaAuthController do
   alias ClaperWeb.PwaLive.App, as: PwaApp
 
   def new(conn, params) do
-    render_login(conn, event_code(params), vanity?(params), params["email"], nil)
+    render_login(conn, event_code(params), vanity?(params), params["email"], params["next"], nil)
   end
 
   def create(conn, %{"attendee" => %{"email" => email}} = params) do
     code = event_code(params)
     vanity = vanity?(params)
+    next_path = next_path(params)
 
     case EventApp.request_login_code(code, email, request_metadata(conn)) do
       {:ok, %{event: event, delivery_status: delivery_status}} ->
@@ -20,22 +21,23 @@ defmodule ClaperWeb.PwaAuthController do
           to:
             PwaApp.app_path(
               route_source(event.code, vanity),
-              "/verify?#{URI.encode_query(email: email)}"
+              "/verify?#{URI.encode_query(compact_params(email: email, next: next_path))}"
             )
         )
 
       {:error, reason} ->
-        render_login(conn, code, vanity, email, error_message(reason))
+        render_login(conn, code, vanity, email, next_path, error_message(reason))
     end
   end
 
   def verify(conn, params) do
-    render_verify(conn, event_code(params), vanity?(params), params["email"], nil)
+    render_verify(conn, event_code(params), vanity?(params), params["email"], params["next"], nil)
   end
 
   def verify_code(conn, %{"attendee" => %{"email" => email, "code" => otp}} = params) do
     code = event_code(params)
     vanity = vanity?(params)
+    next_path = next_path(params)
 
     case EventApp.verify_login_code(code, email, otp, request_metadata(conn)) do
       {:ok, %{event: event, token: token}} ->
@@ -43,10 +45,10 @@ defmodule ClaperWeb.PwaAuthController do
         |> put_session(:event_app_session_token, token)
         |> put_session(:attendee_identifier, token)
         |> put_flash(:info, gettext("You are signed in."))
-        |> redirect(to: PwaApp.app_path(route_source(event.code, vanity), "/profile"))
+        |> redirect(to: safe_next_path(next_path, route_source(event.code, vanity)))
 
       {:error, reason} ->
-        render_verify(conn, code, vanity, email, error_message(reason))
+        render_verify(conn, code, vanity, email, next_path, error_message(reason))
     end
   end
 
@@ -63,15 +65,15 @@ defmodule ClaperWeb.PwaAuthController do
     |> redirect(to: PwaApp.app_path(route_source(code, vanity?(params))))
   end
 
-  defp render_login(conn, code, vanity, email, error_message) do
-    render_auth(conn, "new.html", code, vanity, email, error_message)
+  defp render_login(conn, code, vanity, email, next_path, error_message) do
+    render_auth(conn, "new.html", code, vanity, email, next_path, error_message)
   end
 
-  defp render_verify(conn, code, vanity, email, error_message) do
-    render_auth(conn, "verify.html", code, vanity, email, error_message)
+  defp render_verify(conn, code, vanity, email, next_path, error_message) do
+    render_auth(conn, "verify.html", code, vanity, email, next_path, error_message)
   end
 
-  defp render_auth(conn, template, code, vanity, email, error_message) do
+  defp render_auth(conn, template, code, vanity, email, next_path, error_message) do
     event = code && Events.get_event_with_code(code)
 
     conn
@@ -79,6 +81,7 @@ defmodule ClaperWeb.PwaAuthController do
     |> assign(:event_code, code || "")
     |> assign(:vanity, vanity)
     |> assign(:email, email)
+    |> assign(:next_path, next_path)
     |> assign(:error_message, error_message)
     |> assign(:page_title, page_title(template))
     |> render(template)
@@ -139,6 +142,64 @@ defmodule ClaperWeb.PwaAuthController do
   defp vanity?(params), do: !Map.has_key?(params, "code")
 
   defp route_source(code, vanity), do: %{event_code: code, vanity: vanity}
+
+  defp next_path(%{"attendee" => %{"next" => next}}), do: next_path(%{"next" => next})
+
+  defp next_path(%{"next" => next}) when is_binary(next), do: String.trim(next)
+
+  defp next_path(_params), do: nil
+
+  defp safe_next_path(next, route_source) do
+    default_path = PwaApp.app_path(route_source)
+
+    case sanitize_relative_next(next) do
+      nil -> default_path
+      path -> if allowed_app_path?(path, route_source), do: path, else: default_path
+    end
+  end
+
+  defp sanitize_relative_next(nil), do: nil
+  defp sanitize_relative_next(""), do: nil
+
+  defp sanitize_relative_next(next) when is_binary(next) do
+    case URI.parse(next) do
+      %URI{scheme: nil, host: nil, path: path} when is_binary(path) ->
+        path = if String.starts_with?(path, "/"), do: path, else: "/#{path}"
+        query = URI.parse(next).query
+
+        if query, do: "#{path}?#{query}", else: path
+
+      _ ->
+        nil
+    end
+  end
+
+  defp allowed_app_path?(next, %{vanity: true}) do
+    path = next |> URI.parse() |> Map.get(:path)
+
+    path == "/" or
+      Enum.any?(["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile"], fn allowed ->
+        path == allowed or String.starts_with?(path, allowed <> "/")
+      end)
+  end
+
+  defp allowed_app_path?(next, %{event_code: code}) when is_binary(code) do
+    path = next |> URI.parse() |> Map.get(:path)
+    base = "/app/#{code}"
+
+    path == base or
+      Enum.any?(["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile"], fn suffix ->
+        path == base <> suffix or String.starts_with?(path, base <> suffix <> "/")
+      end)
+  end
+
+  defp allowed_app_path?(_next, _route_source), do: false
+
+  defp compact_params(params) do
+    params
+    |> Enum.reject(fn {_key, value} -> is_nil(value) or value == "" end)
+    |> Map.new()
+  end
 
   defp public_event_code do
     :claper

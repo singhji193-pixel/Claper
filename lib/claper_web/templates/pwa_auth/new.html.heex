@@ -1,30 +1,18 @@
 <div class="nextgen-summit-liveview" style={theme_style(@event)}>
-  <main class="ngs-auth-shell">
-    <section class="ngs-auth-panel auth" aria-labelledby="ngs-login-title">
-      <.link
-        href={app_path(assigns)}
-        class="ngs-auth-back appbar__btn ngs-focus"
-        aria-label={gettext("Back to event app")}
-      >
-        <.ngs_icon name="hero-chevron-right" class="size-5 ngs-icon-back" />
-      </.link>
+  <main class="ngs-auth-shell ngs-auth-shell-reference">
+    <nav class="ngs-auth-ref-nav" aria-label={gettext("Event app")}>
+      <a href="https://nextgensummit.co" class="ngs-auth-ref-link ngs-focus">
+        {gettext("About")}
+      </a>
+      <span class="ngs-auth-ref-pill">{gettext("Event app")}</span>
+    </nav>
 
-      <span class="ngs-auth-logo logo">
-        <img src="/images/favicon.png" alt="CoreOrbit" />
-      </span>
+    <section class="ngs-auth-ref-panel" aria-labelledby="ngs-login-title">
+      <img src="/images/logo-large.png" class="ngs-auth-ref-logo" alt="CoreOrbit Ask" />
 
-      <div class="ngs-auth-copy ngs-auth-copy-v2">
-        <h1 id="ngs-login-title" class="t-display">
-          {gettext("Welcome to")}<br />
-          <%= if @event do %>
-            {@event.name}
-          <% else %>
-            {if @vanity, do: gettext("Event app"), else: String.upcase(@event_code)}
-          <% end %>
-        </h1>
-        <p class="t-body muted">
-          {gettext("Enter the email on your ticket and we'll send you a 4-digit sign-in code.")}
-        </p>
+      <div class="ngs-auth-ref-copy">
+        <p>{gettext("NextGen Summit")}</p>
+        <h1 id="ngs-login-title">{gettext("Sign in with your ticket")}</h1>
       </div>
 
       <.form
@@ -32,15 +20,18 @@
         for={@conn}
         action={app_path(assigns, "/login")}
         as={:attendee}
-        class="ngs-auth-form ngs-auth-form-v2"
+        class="ngs-auth-ref-form"
       >
-        <div :if={@error_message} class="ngs-auth-error banner banner--error" role="alert">
+        <input :if={@next_path} type="hidden" name={f[:next].name} value={@next_path} />
+
+        <div :if={@error_message} class="ngs-auth-ref-error" role="alert">
           <.ngs_icon name="hero-exclamation-triangle" class="size-5" />
           <span>{@error_message}</span>
         </div>
 
-        <div class="ngs-auth-field field">
-          <label class="field__label" for="attendee_email">{gettext("Ticket email")}</label>
+        <label class="sr-only" for="attendee_email">{gettext("Ticket email")}</label>
+        <div class="ngs-auth-ref-field">
+          <.ngs_icon name="hero-envelope" class="size-6" />
           <input
             id="attendee_email"
             name={f[:email].name}
@@ -50,36 +41,23 @@
             autocomplete="email"
             required
             autofocus
-            placeholder="you@company.com"
-            class="ngs-auth-input input"
+            placeholder={gettext("Ticket email")}
+            class="ngs-auth-ref-input"
           />
         </div>
 
         <button
           type="submit"
-          class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus ngs-auth-submit"
+          id="submit"
+          class="ngs-auth-ref-submit ngs-focus"
           disabled={!@event}
         >
-          {gettext("Send code")}
+          {gettext("Send 4-digit code")}
         </button>
       </.form>
 
-      <div class="ngs-auth-spacer auth__spacer"></div>
-
-      <p class="ngs-auth-trustline trustline">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <rect
-            x="5"
-            y="11"
-            width="14"
-            height="9"
-            rx="2"
-            stroke="currentColor"
-            stroke-width="1.8"
-          />
-          <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" />
-        </svg>
-        {gettext("Secure passwordless sign-in")}
+      <p class="ngs-auth-ref-note">
+        {gettext("Access is limited to verified ticket holders.")}
       </p>
     </section>
   </main>
