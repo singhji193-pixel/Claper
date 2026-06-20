@@ -187,6 +187,35 @@ event_app_public_event_code =
 event_app_public_base_url =
   get_var_from_path_or_env(config_dir, "EVENT_APP_PUBLIC_BASE_URL", nil)
 
+hi_events_base_url =
+  get_var_from_path_or_env(config_dir, "HI_EVENTS_BASE_URL", nil)
+
+hi_events_sync_email =
+  get_var_from_path_or_env(config_dir, "HI_EVENTS_SYNC_EMAIL", nil)
+
+hi_events_sync_password =
+  get_var_from_path_or_env(config_dir, "HI_EVENTS_SYNC_PASSWORD", nil)
+
+hi_events_sync_account_id =
+  get_var_from_path_or_env(config_dir, "HI_EVENTS_SYNC_ACCOUNT_ID", nil)
+  |> case do
+    nil ->
+      nil
+
+    value ->
+      case Integer.parse(value) do
+        {account_id, ""} -> account_id
+        _other -> nil
+      end
+  end
+
+hi_events_webhook_url =
+  get_var_from_path_or_env(
+    config_dir,
+    "HI_EVENTS_WEBHOOK_URL",
+    URI.merge(base_url, "/api/integrations/hi-events/webhook") |> URI.to_string()
+  )
+
 origin_from_uri = fn
   %URI{scheme: scheme, host: host, port: port}
   when is_binary(scheme) and is_binary(host) ->
@@ -225,15 +254,17 @@ config :claper, :oidc,
   property_mappings: oidc_property_mappings,
   auto_redirect_login: oidc_auto_redirect_login
 
-config :claper, Claper.Repo,
-  url: database_url,
-  ssl: db_ssl,
-  ssl_opts: [
-    verify: :verify_none
-  ],
-  prepare: :unnamed,
-  pool_size: pool_size,
-  queue_target: queue_target
+unless config_env() == :test do
+  config :claper, Claper.Repo,
+    url: database_url,
+    ssl: db_ssl,
+    ssl_opts: [
+      verify: :verify_none
+    ],
+    prepare: :unnamed,
+    pool_size: pool_size,
+    queue_target: queue_target
+end
 
 config :claper, ClaperWeb.Endpoint,
   url: [scheme: base_url.scheme, host: base_url.host, path: base_url.path, port: base_url.port],
@@ -264,6 +295,13 @@ config :claper, :event_app,
   n8n_webhook_secret: n8n_webhook_secret,
   public_event_code: event_app_public_event_code,
   public_base_url: event_app_public_base_url
+
+config :claper, :hi_events,
+  base_url: hi_events_base_url,
+  email: hi_events_sync_email,
+  password: hi_events_sync_password,
+  account_id: hi_events_sync_account_id,
+  webhook_url: hi_events_webhook_url
 
 config :claper, :presentations,
   max_file_size: max_file_size,

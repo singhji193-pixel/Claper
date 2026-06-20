@@ -679,9 +679,10 @@ defmodule ClaperWeb.EventLiveTest do
       assert integration.external_event_id == "hi_evt_liveview"
       assert integration.enabled
       assert html =~ "Hi.Events integration saved"
-      assert html =~ "Signing secret"
+      assert html =~ "Managed automatically"
       assert html =~ "/api/integrations/hi-events/webhook"
-      assert html =~ "X-Hi-Events-Signature"
+      assert html =~ "Signature"
+      assert html =~ "Sync existing tickets"
     end
 
     test "redirects non-owners away from event app management", %{conn: conn} do

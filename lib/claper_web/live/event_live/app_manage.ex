@@ -2,7 +2,8 @@ defmodule ClaperWeb.EventLive.AppManage do
   use ClaperWeb, :live_view
 
   alias Claper.HiEvents
-  alias Claper.HiEvents.Integration
+  alias Claper.HiEvents.{Client, Integration}
+  alias Claper.Workers.HiEventsSync
 
   @impl true
   def mount(_params, session, socket) do
@@ -18,6 +19,7 @@ defmodule ClaperWeb.EventLive.AppManage do
      |> assign(:stats, HiEvents.dashboard_stats(nil))
      |> assign(:webhook_url, nil)
      |> assign(:legacy_webhook_url, nil)
+     |> assign(:sync_available, Client.configured?())
      |> assign(:app_url, nil)
      |> assign(:page_title, gettext("Event app"))}
   end
@@ -71,6 +73,16 @@ defmodule ClaperWeb.EventLive.AppManage do
      put_flash(socket, :error, gettext("Save the integration before rotating the secret"))}
   end
 
+  def handle_event(
+        "rotate-secret",
+        _params,
+        %{assigns: %{integration: %Integration{remote_webhook_id: id}}} = socket
+      )
+      when not is_nil(id) do
+    {:noreply,
+     put_flash(socket, :error, gettext("The native webhook secret is managed automatically"))}
+  end
+
   def handle_event("rotate-secret", _params, socket) do
     case HiEvents.rotate_webhook_secret(socket.assigns.integration) do
       {:ok, _integration} ->
@@ -81,6 +93,33 @@ defmodule ClaperWeb.EventLive.AppManage do
 
       {:error, _changeset} ->
         {:noreply, put_flash(socket, :error, gettext("Could not rotate the webhook secret"))}
+    end
+  end
+
+  def handle_event(
+        "sync-tickets",
+        _params,
+        %{assigns: %{integration: %Integration{id: nil}}} = socket
+      ) do
+    {:noreply,
+     put_flash(socket, :error, gettext("Save the Hi.Events integration before syncing"))}
+  end
+
+  def handle_event("sync-tickets", _params, socket) do
+    if Client.configured?() do
+      case HiEventsSync.enqueue(socket.assigns.integration) do
+        {:ok, _job} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, gettext("Ticket synchronization queued"))
+           |> reload_integration()}
+
+        {:error, _reason} ->
+          {:noreply, put_flash(socket, :error, gettext("Could not queue ticket synchronization"))}
+      end
+    else
+      {:noreply,
+       put_flash(socket, :error, gettext("Hi.Events sync credentials are not configured"))}
     end
   end
 
@@ -110,6 +149,7 @@ defmodule ClaperWeb.EventLive.AppManage do
     |> assign(:stats, HiEvents.dashboard_stats(event.id))
     |> assign(:webhook_url, url(~p"/api/integrations/hi-events/webhook"))
     |> assign(:legacy_webhook_url, url(~p"/api/integrations/hievents/events"))
+    |> assign(:sync_available, Client.configured?())
     |> assign(:app_url, url(~p"/app/#{event.code}"))
     |> assign_form(HiEvents.change_integration(integration))
   end

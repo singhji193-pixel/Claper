@@ -30,7 +30,10 @@ defmodule Claper.EventAppAuthTest do
       assert {:error, :ticket_not_found} =
                EventApp.request_login_code(event.code, "missing@example.com", code: "4821")
 
-      assert Repo.aggregate(OtpChallenge, :count) == 0
+      assert Repo.aggregate(
+               from(challenge in OtpChallenge, where: challenge.event_id == ^event.id),
+               :count
+             ) == 0
     end
 
     test "verifies a code and creates an attendee session" do
@@ -48,8 +51,16 @@ defmodule Claper.EventAppAuthTest do
       assert is_binary(token)
 
       assert Repo.get!(OtpChallenge, challenge.id).status == "verified"
-      assert Repo.aggregate(Attendee, :count) == 1
-      assert Repo.aggregate(Session, :count) == 1
+
+      assert Repo.aggregate(
+               from(attendee in Attendee, where: attendee.event_id == ^event.id),
+               :count
+             ) == 1
+
+      assert Repo.aggregate(
+               from(session in Session, where: session.event_id == ^event.id),
+               :count
+             ) == 1
 
       assert {:ok, bootstrap} = EventApp.bootstrap_event(event.code, token)
       assert bootstrap.attendee.authenticated

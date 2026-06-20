@@ -9,6 +9,7 @@ defmodule Claper.HiEvents do
   alias Claper.Repo
 
   @signature_headers [
+    "signature",
     "x-hi-events-signature",
     "x-hievents-signature",
     "x-webhook-signature",
@@ -92,6 +93,42 @@ defmodule Claper.HiEvents do
   def rotate_webhook_secret(%Integration{} = integration) do
     integration
     |> Integration.changeset(%{webhook_secret: generate_webhook_secret()})
+    |> Repo.update()
+  end
+
+  def list_enabled_integrations do
+    Integration
+    |> where([i], i.enabled == true)
+    |> order_by([i], asc: i.id)
+    |> Repo.all()
+  end
+
+  def update_webhook_connection(%Integration{} = integration, remote_webhook_id, secret) do
+    integration
+    |> Integration.connection_changeset(%{
+      remote_webhook_id: to_string(remote_webhook_id),
+      webhook_secret: secret
+    })
+    |> Repo.update()
+  end
+
+  def record_reconcile_success(%Integration{} = integration) do
+    integration
+    |> Integration.status_changeset(%{
+      last_reconciled_at: now(),
+      last_reconcile_status: "ok",
+      last_error: nil
+    })
+    |> Repo.update()
+  end
+
+  def record_reconcile_failure(%Integration{} = integration, message) do
+    integration
+    |> Integration.status_changeset(%{
+      last_reconciled_at: now(),
+      last_reconcile_status: "error",
+      last_error: String.slice(to_string(message), 0, 1_000)
+    })
     |> Repo.update()
   end
 
@@ -196,6 +233,35 @@ defmodule Claper.HiEvents do
          event_key <- delivery_key(headers, payload, raw_body || ""),
          {:ok, sync_event, duplicate?} <-
            insert_sync_event(integration, external_event_id, event_type, event_key, payload) do
+      if duplicate? do
+        {:ok, :duplicate, sync_event}
+      else
+        process_sync_event(sync_event)
+      end
+    end
+  end
+
+  def ingest_api_snapshot(%Integration{} = integration, event_type, payload)
+      when is_binary(event_type) and is_map(payload) do
+    envelope = %{
+      "event_type" => event_type,
+      "event_sent_at" => DateTime.to_iso8601(now()),
+      "payload" => stringify_keys(payload)
+    }
+
+    encoded = Jason.encode!(envelope["payload"])
+    source_id = payload["id"] || payload[:id] || "unknown"
+    digest = :crypto.hash(:sha256, encoded) |> Base.encode16(case: :lower)
+    event_key = "api:#{event_type}:#{source_id}:#{digest}"
+
+    with {:ok, sync_event, duplicate?} <-
+           insert_sync_event(
+             integration,
+             integration.external_event_id,
+             event_type,
+             event_key,
+             envelope
+           ) do
       if duplicate? do
         {:ok, :duplicate, sync_event}
       else
@@ -424,7 +490,8 @@ defmodule Claper.HiEvents do
             ["customer_name"],
             ["buyer_name"],
             ["name"]
-          ]),
+          ]) ||
+            join_name(get_path(order_map, ["first_name"]), get_path(order_map, ["last_name"])),
         buyer_email:
           first_value(order_map, [
             ["customer", "email"],
@@ -489,8 +556,13 @@ defmodule Claper.HiEvents do
       first_value(attendee, [["id"], ["attendee_id"], ["uuid"], ["public_id"]])
 
     external_ticket_id =
-      first_value(attendee, [["ticket_id"], ["ticket", "id"], ["ticket", "uuid"]]) ||
-        first_value(ticket, [["id"], ["uuid"]])
+      first_value(attendee, [
+        ["ticket_id"],
+        ["ticket", "id"],
+        ["ticket", "uuid"],
+        ["public_id"],
+        ["short_id"]
+      ]) || first_value(ticket, [["id"], ["uuid"]])
 
     %{
       external_attendee_id: to_string_value(external_attendee_id),
@@ -530,7 +602,16 @@ defmodule Claper.HiEvents do
       ["order"],
       ["payload", "order"],
       ["data", "payload", "order"]
-    ]) || data_as_order(payload)
+    ]) || native_payload_as_order(payload) || data_as_order(payload)
+  end
+
+  defp native_payload_as_order(payload) do
+    native_payload = get_path(payload, ["payload"])
+    event_type = payload_event_type(payload) |> String.downcase()
+
+    if is_map(native_payload) and String.starts_with?(event_type, "order.") do
+      native_payload
+    end
   end
 
   defp data_as_order(payload) do
@@ -543,21 +624,32 @@ defmodule Claper.HiEvents do
   end
 
   defp attendee_payloads(payload) do
-    [
-      ["data", "order", "attendees"],
-      ["order", "attendees"],
-      ["data", "attendees"],
-      ["attendees"],
-      ["data", "attendee"],
-      ["attendee"],
-      ["payload", "attendees"],
-      ["data", "payload", "attendees"]
-    ]
-    |> Enum.flat_map(fn path ->
-      payload
-      |> get_path(path)
-      |> listify_payload()
-    end)
+    nested =
+      [
+        ["data", "order", "attendees"],
+        ["order", "attendees"],
+        ["data", "attendees"],
+        ["attendees"],
+        ["data", "attendee"],
+        ["attendee"],
+        ["payload", "attendees"],
+        ["payload", "attendee"],
+        ["data", "payload", "attendees"]
+      ]
+      |> Enum.flat_map(fn path ->
+        payload
+        |> get_path(path)
+        |> listify_payload()
+      end)
+
+    native_payload = get_path(payload, ["payload"])
+    event_type = payload_event_type(payload) |> String.downcase()
+
+    if is_map(native_payload) and String.starts_with?(event_type, "attendee.") do
+      [native_payload | nested]
+    else
+      nested
+    end
   end
 
   defp listify_payload(nil), do: []
@@ -595,12 +687,18 @@ defmodule Claper.HiEvents do
       |> to_string_value()
       |> normalize_status()
 
+    status = if present?(status), do: status
+
+    status_from_event_type(event_type) || status || "active"
+  end
+
+  defp status_from_event_type(event_type) do
     cond do
       String.contains?(event_type, "cancel") -> "cancelled"
       String.contains?(event_type, "refund") -> "cancelled"
+      String.contains?(event_type, "checkin.deleted") -> nil
       String.contains?(event_type, "check") and String.contains?(event_type, "in") -> "checked_in"
-      present?(status) -> status
-      true -> "active"
+      true -> nil
     end
   end
 
@@ -623,13 +721,29 @@ defmodule Claper.HiEvents do
         ["checkedInAt"],
         ["check_in_at"],
         ["checkin_at"]
-      ])
+      ]) || first_check_in_time(attendee)
+
+    normalized_event_type = event_type |> to_string_value() |> String.downcase()
 
     cond do
+      String.contains?(normalized_event_type, "checkin.deleted") -> nil
       present?(checked_at) -> parse_datetime(checked_at)
       status_for(event_type, attendee) == "checked_in" -> now()
       true -> nil
     end
+  end
+
+  defp first_check_in_time(attendee) do
+    attendee
+    |> Map.get("check_ins", [])
+    |> List.wrap()
+    |> Enum.find_value(fn
+      check_in when is_map(check_in) ->
+        first_value(check_in, [["created_at"], ["checked_in_at"], ["check_in_at"]])
+
+      _other ->
+        nil
+    end)
   end
 
   defp parse_datetime(%DateTime{} = datetime), do: DateTime.truncate(datetime, :second)
@@ -667,6 +781,7 @@ defmodule Claper.HiEvents do
           ["external_event_id"],
           ["event_id"],
           ["event", "id"],
+          ["payload", "event_id"],
           ["data", "external_event_id"],
           ["data", "event_id"],
           ["data", "event", "id"]

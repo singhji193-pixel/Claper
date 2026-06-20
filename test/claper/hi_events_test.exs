@@ -30,6 +30,45 @@ defmodule Claper.HiEventsTest do
   end
 
   describe "webhook ingestion" do
+    test "accepts the native Hi.Events signature header and payload envelope" do
+      event = event_fixture()
+      integration = integration_fixture(event)
+
+      body =
+        Jason.encode!(%{
+          "event_type" => "order.created",
+          "event_sent_at" => "2026-06-19T12:00:00+00:00",
+          "payload" => %{
+            "id" => 41,
+            "event_id" => integration.external_event_id,
+            "status" => "COMPLETED",
+            "email" => "buyer@example.com",
+            "attendees" => [
+              %{
+                "id" => 51,
+                "public_id" => "attendee-public-51",
+                "event_id" => integration.external_event_id,
+                "email" => "native@example.com",
+                "first_name" => "Native",
+                "last_name" => "Attendee",
+                "product_id" => 6,
+                "status" => "ACTIVE"
+              }
+            ]
+          }
+        })
+
+      headers = [
+        {"signature", HiEvents.webhook_signature(integration.webhook_secret, body)}
+      ]
+
+      assert {:ok, :processed, _sync_event} = HiEvents.ingest_webhook(headers, body)
+      assert [ticket] = HiEvents.list_tickets(event.id)
+      assert ticket.external_attendee_id == "51"
+      assert ticket.external_ticket_id == "attendee-public-51"
+      assert ticket.status == "active"
+    end
+
     test "verifies the signature and creates order, ticket, and delivery rows" do
       event = event_fixture()
       integration = integration_fixture(event)
@@ -53,7 +92,7 @@ defmodule Claper.HiEventsTest do
       assert ticket.attendee_name == "Avery Singh"
       assert ticket.status == "active"
 
-      assert [%SyncEvent{} = delivery] = Repo.all(SyncEvent)
+      assert [%SyncEvent{} = delivery] = list_sync_events(integration)
       assert delivery.payload["data"]["order"]["payment_method"] == "[FILTERED]"
       assert delivery.payload["data"]["order"]["secret_note"] == "[FILTERED]"
     end
@@ -69,7 +108,7 @@ defmodule Claper.HiEventsTest do
       assert {:ok, :duplicate, _sync_event} =
                HiEvents.ingest_webhook(signed_headers(integration, body), body)
 
-      assert Repo.aggregate(SyncEvent, :count) == 1
+      assert sync_event_count(integration) == 1
       assert length(HiEvents.list_tickets(event.id)) == 1
     end
 
@@ -84,7 +123,7 @@ defmodule Claper.HiEventsTest do
                  body
                )
 
-      assert Repo.aggregate(SyncEvent, :count) == 0
+      assert sync_event_count(integration) == 0
       assert HiEvents.ticket_count(event.id) == 0
     end
 
@@ -139,6 +178,18 @@ defmodule Claper.HiEventsTest do
       assert [cancelled] = HiEvents.list_tickets(event.id)
       assert cancelled.status == "cancelled"
     end
+  end
+
+  defp list_sync_events(integration) do
+    SyncEvent
+    |> where([event], event.integration_id == ^integration.id)
+    |> Repo.all()
+  end
+
+  defp sync_event_count(integration) do
+    SyncEvent
+    |> where([event], event.integration_id == ^integration.id)
+    |> Repo.aggregate(:count)
   end
 
   defp integration_fixture(event) do

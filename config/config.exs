@@ -25,6 +25,7 @@ config :claper, Oban,
   queues: [default: 10, mailers: 20],
   repo: Claper.Repo,
   plugins: [
+    {Oban.Plugins.Cron, crontab: [{"*/15 * * * *", Claper.Workers.HiEventsSync}]},
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 7},
     {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(30)}
   ]
