@@ -59,18 +59,26 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
             myself={@myself}
           />
         <% :qa -> %>
-          <.coming_panel
+          <.posts_panel
             enabled={@snapshot && @snapshot.qa_enabled}
+            posts={if @snapshot, do: @snapshot.questions, else: []}
+            kind="question"
             icon="hero-question-mark-circle"
             title={gettext("Session Q&A")}
             unavailable={gettext("Q&A is not enabled for this event.")}
+            snapshot={@snapshot}
+            myself={@myself}
           />
         <% :chat -> %>
-          <.coming_panel
+          <.posts_panel
             enabled={@snapshot && @snapshot.chat_enabled}
+            posts={if @snapshot, do: @snapshot.messages, else: []}
+            kind="message"
             icon="hero-chat-bubble-left-right"
             title={gettext("Session chat")}
             unavailable={gettext("Chat is not open right now.")}
+            snapshot={@snapshot}
+            myself={@myself}
           />
       <% end %>
     </section>
@@ -282,6 +290,40 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
     """
   end
 
+  defp active_interaction(%{interaction: %{kind: :embed}} = assigns) do
+    ~H"""
+    <article class="ngs-live-card" id={"live-embed-#{@interaction.id}"}>
+      <header>
+        <span class="ngs-live-kind">
+          <.ngs_icon name="hero-play-circle" class="size-4" /> {gettext("Live content")}
+        </span>
+      </header>
+      <h2>{@interaction.title}</h2>
+      <div :if={@interaction.inline} class="ngs-live-embed">
+        <iframe
+          src={@interaction.url}
+          title={@interaction.title}
+          loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+        >
+        </iframe>
+      </div>
+      <a
+        :if={!@interaction.inline}
+        href={@interaction.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="ngs-button ngs-button-primary ngs-focus"
+      >
+        {gettext("Open content")}
+      </a>
+    </article>
+    """
+  end
+
   defp active_interaction(assigns) do
     ~H"""
     <.live_empty
@@ -293,17 +335,129 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   end
 
   attr :enabled, :boolean, default: false
+  attr :posts, :list, default: []
+  attr :kind, :string, required: true
   attr :icon, :string, required: true
   attr :title, :string, required: true
   attr :unavailable, :string, required: true
+  attr :snapshot, :map, default: nil
+  attr :myself, :any, required: true
 
-  defp coming_panel(assigns) do
+  defp posts_panel(assigns) do
     ~H"""
-    <.live_empty
-      icon={@icon}
-      title={@title}
-      body={if @enabled, do: gettext("Ready for the current session."), else: @unavailable}
-    />
+    <%= if @enabled do %>
+      <section class="ngs-live-posts">
+        <header class="ngs-live-posts-header">
+          <span><.ngs_icon name={@icon} class="size-5" /></span>
+          <div>
+            <h2>{@title}</h2>
+            <p>{post_count_label(@posts, @kind)}</p>
+          </div>
+        </header>
+
+        <form
+          id={"pwa-live-#{@kind}-form"}
+          phx-submit="live-create-post"
+          phx-target={@myself}
+          class="ngs-live-compose"
+        >
+          <input type="hidden" name="kind" value={@kind} />
+          <label>
+            <span class="sr-only">{post_placeholder(@kind)}</span>
+            <textarea
+              name="body"
+              required
+              minlength="2"
+              maxlength="255"
+              placeholder={post_placeholder(@kind)}
+            ></textarea>
+          </label>
+          <label :if={@snapshot && @snapshot.state.anonymous_chat_enabled} class="ngs-live-anonymous">
+            <input type="checkbox" name="anonymous" value="true" />
+            <span>{gettext("Post anonymously")}</span>
+          </label>
+          <button
+            type="submit"
+            phx-disable-with={gettext("Posting...")}
+            class="ngs-button ngs-button-primary ngs-focus"
+          >
+            {if @kind == "question", do: gettext("Ask question"), else: gettext("Send message")}
+          </button>
+        </form>
+
+        <div
+          :if={@kind == "message"}
+          class="ngs-live-global-reactions"
+          aria-label={gettext("Room reactions")}
+        >
+          <button
+            :for={
+              {type, label} <- [
+                {"heart", "Heart"},
+                {"clap", "Clap"},
+                {"hundred", "100"},
+                {"raisehand", "Raise hand"}
+              ]
+            }
+            type="button"
+            phx-click="live-global-reaction"
+            phx-value-type={type}
+            phx-target={@myself}
+            class="ngs-focus"
+            aria-label={label}
+          >
+            <.ngs_icon name={global_reaction_icon(type)} class="size-5" />
+          </button>
+        </div>
+
+        <div class="ngs-live-post-list">
+          <article :for={post <- @posts} id={"pwa-live-post-#{post.uuid}"} class="ngs-live-post">
+            <header>
+              <strong>{post.name}</strong>
+              <span :if={post.pinned}>
+                <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
+              </span>
+            </header>
+            <p>{post.body}</p>
+            <div class="ngs-live-post-actions">
+              <button
+                type="button"
+                phx-click="live-toggle-reaction"
+                phx-value-post-id={post.uuid}
+                phx-value-icon="👍"
+                phx-target={@myself}
+                class={["ngs-focus", post.reacted && "is-active"]}
+                aria-pressed={post.reacted}
+              >
+                <.ngs_icon name="hero-hand-thumb-up" class="size-4" />
+                <span>{post.like_count}</span>
+              </button>
+              <span :if={@kind == "message"}>
+                <.ngs_icon name="hero-heart" class="size-4" /> {post.love_count}
+              </span>
+              <span :if={@kind == "message"}>
+                <.ngs_icon name="hero-face-smile" class="size-4" /> {post.lol_count}
+              </span>
+            </div>
+          </article>
+        </div>
+
+        <.live_empty
+          :if={Enum.empty?(@posts)}
+          icon={@icon}
+          title={
+            if @kind == "question", do: gettext("No questions yet"), else: gettext("Chat is quiet")
+          }
+          body={
+            if @kind == "question",
+              do: gettext("Ask the first question for this session."),
+              else: gettext("Start a useful conversation with the room.")
+          }
+        />
+      </section>
+    <% else %>
+      <.live_empty icon={@icon} title={@title} body={@unavailable} />
+    <% end %>
     """
   end
 
@@ -359,6 +513,44 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
     end)
   end
 
+  def handle_event("live-create-post", params, socket) do
+    anonymous = params["anonymous"] == "true"
+
+    case LiveInteractions.create_post(
+           socket.assigns.event,
+           socket.assigns.interaction_key,
+           params["kind"],
+           params["body"],
+           anonymous
+         ) do
+      {:ok, _post, _settings} -> refresh_snapshot(socket)
+      {:error, reason} -> interaction_error(socket, reason)
+    end
+  end
+
+  def handle_event("live-toggle-reaction", params, socket) do
+    case LiveInteractions.toggle_reaction(
+           socket.assigns.event,
+           socket.assigns.interaction_key,
+           params["post-id"],
+           params["icon"]
+         ) do
+      {:ok, _status, _post} -> refresh_snapshot(socket)
+      {:error, reason} -> interaction_error(socket, reason)
+    end
+  end
+
+  def handle_event("live-global-reaction", %{"type" => type}, socket) do
+    case LiveInteractions.global_reaction(
+           socket.assigns.event,
+           socket.assigns.interaction_key,
+           global_reaction_type(type)
+         ) do
+      :ok -> {:noreply, socket}
+      {:error, reason} -> interaction_error(socket, reason)
+    end
+  end
+
   defp submit_interaction(socket, callback) do
     case callback.() do
       {:ok, snapshot} ->
@@ -369,6 +561,22 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
         send(self(), {:pwa_live_error, reason})
         {:noreply, socket}
     end
+  end
+
+  defp refresh_snapshot(socket) do
+    case LiveInteractions.snapshot(socket.assigns.event, socket.assigns.interaction_key) do
+      {:ok, snapshot} ->
+        send(self(), {:pwa_live_snapshot, snapshot})
+        {:noreply, assign(socket, :snapshot, snapshot)}
+
+      {:error, reason} ->
+        interaction_error(socket, reason)
+    end
+  end
+
+  defp interaction_error(socket, reason) do
+    send(self(), {:pwa_live_error, reason})
+    {:noreply, socket}
   end
 
   defp live_tabs(snapshot) do
@@ -388,6 +596,26 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   defp tab_atom("qa"), do: :qa
   defp tab_atom("chat"), do: :chat
   defp tab_atom(_tab), do: :interact
+
+  defp post_count_label(posts, "question"),
+    do: ngettext("1 question", "%{count} questions", length(posts))
+
+  defp post_count_label(posts, _kind),
+    do: ngettext("1 message", "%{count} messages", length(posts))
+
+  defp post_placeholder("question"), do: gettext("Ask a clear question")
+  defp post_placeholder(_kind), do: gettext("Message the room")
+
+  defp global_reaction_type("heart"), do: :heart
+  defp global_reaction_type("clap"), do: :clap
+  defp global_reaction_type("hundred"), do: :hundred
+  defp global_reaction_type("raisehand"), do: :raisehand
+  defp global_reaction_type(_type), do: :invalid
+
+  defp global_reaction_icon("heart"), do: "hero-heart"
+  defp global_reaction_icon("clap"), do: "hero-sparkles"
+  defp global_reaction_icon("hundred"), do: "hero-fire"
+  defp global_reaction_icon("raisehand"), do: "hero-hand-raised"
 
   defp integer(value) when is_integer(value), do: value
 

@@ -6,7 +6,7 @@ defmodule Claper.EventApp.LiveInteractions do
   presentation state and persisted interaction records.
   """
 
-  alias Claper.{Events, Forms, Interactions, Polls, Presentations, Quizzes}
+  alias Claper.{Events, Forms, Interactions, Polls, Posts, Presentations, Quizzes, RateLimit}
   alias Claper.Embeds.Embed
   alias Claper.EventApp
   alias Claper.EventApp.Setting
@@ -45,7 +45,15 @@ defmodule Claper.EventApp.LiveInteractions do
          banned: banned?(context.state, interaction_key),
          state: public_state(context.state),
          active: public_interaction(context.active, interaction_key),
-         latest_result: latest_result(context, interaction_key)
+         latest_result: latest_result(context, interaction_key),
+         questions: public_posts(context, interaction_key, "question", settings.qa_enabled),
+         messages:
+           public_posts(
+             context,
+             interaction_key,
+             "message",
+             settings.chat_enabled and context.state.chat_enabled
+           )
        }}
     end
   end
@@ -91,6 +99,57 @@ defmodule Claper.EventApp.LiveInteractions do
       {:error, reason} -> {:error, reason}
     end
   end
+
+  def create_post(event, interaction_key, kind, body, anonymous \\ false)
+
+  def create_post(%Event{} = event, interaction_key, kind, body, anonymous)
+      when kind in ["question", "message"] do
+    with {:ok, context, settings} <- post_context(event, interaction_key, kind),
+         :ok <- rate_limit(:post, context.event.id, interaction_key, 5),
+         attendee when not is_nil(attendee) <-
+           EventApp.get_attendee_by_interaction_key(context.event.id, interaction_key),
+         {:ok, post} <-
+           Posts.create_post(context.event, %{
+             body: body,
+             attendee_identifier: interaction_key,
+             kind: kind,
+             name: post_name(attendee, anonymous, context.state),
+             position: context.state.position
+           }) do
+      {:ok, post, settings}
+    else
+      nil -> {:error, :invalid_identity}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def create_post(_event, _interaction_key, _kind, _body, _anonymous),
+    do: {:error, :invalid_post_kind}
+
+  def toggle_reaction(%Event{} = event, interaction_key, post_uuid, icon) do
+    with {:ok, context} <- participant_context(event, interaction_key),
+         :ok <- rate_limit(:reaction, context.event.id, interaction_key, 60),
+         {:ok, status, post} <-
+           Posts.toggle_attendee_reaction(context.event.id, interaction_key, post_uuid, icon) do
+      {:ok, status, post}
+    end
+  end
+
+  def global_reaction(%Event{} = event, interaction_key, type)
+      when type in [:heart, :clap, :hundred, :raisehand] do
+    with {:ok, context} <- participant_context(event, interaction_key),
+         :ok <- rate_limit(:global_reaction, context.event.id, interaction_key, 30) do
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{context.event.uuid}",
+        {:react, type}
+      )
+
+      :ok
+    end
+  end
+
+  def global_reaction(_event, _interaction_key, _type), do: {:error, :invalid_reaction}
 
   def subscribe(%Event{} = event) do
     with {:ok, context} <- current_context(event) do
@@ -145,6 +204,33 @@ defmodule Claper.EventApp.LiveInteractions do
   end
 
   defp authorized_context(_event, _interaction_key), do: {:error, :invalid_identity}
+
+  defp participant_context(%Event{} = event, interaction_key)
+       when is_binary(interaction_key) and byte_size(interaction_key) > 0 do
+    with {:ok, context} <- current_context(event),
+         false <- banned?(context.state, interaction_key) do
+      {:ok, context}
+    else
+      true -> {:error, :banned}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp participant_context(_event, _interaction_key), do: {:error, :invalid_identity}
+
+  defp post_context(event, interaction_key, kind) do
+    with {:ok, context} <- participant_context(event, interaction_key) do
+      settings = EventApp.settings_for_event(context.event.id)
+
+      enabled =
+        case kind do
+          "question" -> settings.qa_enabled
+          "message" -> settings.chat_enabled and context.state.chat_enabled
+        end
+
+      if enabled, do: {:ok, context, settings}, else: {:error, :feature_disabled}
+    end
+  end
 
   defp current_context(%Event{} = event) do
     case Events.get_event_with_code(event.code,
@@ -229,13 +315,7 @@ defmodule Claper.EventApp.LiveInteractions do
   end
 
   defp public_interaction(%Embed{attendee_visibility: true} = embed, _interaction_key) do
-    %{
-      kind: :embed,
-      id: embed.id,
-      title: embed.title,
-      provider: embed.provider,
-      content: embed.content
-    }
+    public_embed(embed)
   end
 
   defp public_interaction(%Embed{}, _interaction_key), do: nil
@@ -273,6 +353,131 @@ defmodule Claper.EventApp.LiveInteractions do
     do: interaction_key in (state.banned || [])
 
   defp banned?(_state, _interaction_key), do: false
+
+  defp public_posts(_context, _interaction_key, _kind, false), do: []
+
+  defp public_posts(context, interaction_key, kind, true) do
+    reacted = MapSet.new(Posts.reacted_posts(context.event.id, interaction_key, "👍"))
+
+    context.event.uuid
+    |> Posts.list_posts_by_kind(kind, [:reactions])
+    |> Enum.filter(&(&1.position == context.state.position))
+    |> Enum.map(fn post ->
+      %{
+        uuid: post.uuid,
+        body: post.body,
+        name: post.name || "Attendee",
+        kind: post.kind,
+        pinned: post.pinned,
+        like_count: post.like_count,
+        love_count: post.love_count,
+        lol_count: post.lol_count,
+        reacted: MapSet.member?(reacted, post.id),
+        inserted_at: post.inserted_at
+      }
+    end)
+  end
+
+  defp public_embed(embed) do
+    case safe_embed_url(embed.provider, embed.content) do
+      {:inline, url} ->
+        %{
+          kind: :embed,
+          id: embed.id,
+          title: embed.title,
+          provider: embed.provider,
+          inline: true,
+          url: url
+        }
+
+      {:external, url} ->
+        %{
+          kind: :embed,
+          id: embed.id,
+          title: embed.title,
+          provider: embed.provider,
+          inline: false,
+          url: url
+        }
+
+      :invalid ->
+        nil
+    end
+  end
+
+  defp safe_embed_url("youtube", content) do
+    with %URI{scheme: "https", host: host} = uri <- URI.parse(content),
+         true <- host in ["youtube.com", "www.youtube.com", "youtu.be"] do
+      video_id =
+        if host == "youtu.be",
+          do:
+            uri.path
+            |> to_string()
+            |> String.trim_leading("/")
+            |> String.split("/")
+            |> List.first(),
+          else: URI.decode_query(uri.query || "")["v"]
+
+      if present?(video_id),
+        do: {:inline, "https://www.youtube.com/embed/#{URI.encode(video_id)}"},
+        else: :invalid
+    else
+      _ -> :invalid
+    end
+  end
+
+  defp safe_embed_url("vimeo", content) do
+    with %URI{scheme: "https", host: host, path: path} <- URI.parse(content),
+         true <- host in ["vimeo.com", "www.vimeo.com"],
+         video_id when video_id != "" <- path |> to_string() |> String.trim("/") do
+      {:inline, "https://player.vimeo.com/video/#{URI.encode(video_id)}"}
+    else
+      _ -> :invalid
+    end
+  end
+
+  defp safe_embed_url(provider, content) when provider in ["canva", "googleslides"] do
+    allowed_hosts =
+      if provider == "canva",
+        do: ["canva.com", "www.canva.com"],
+        else: ["docs.google.com"]
+
+    case URI.parse(content) do
+      %URI{scheme: "https", host: host} ->
+        if host in allowed_hosts, do: {:inline, content}, else: :invalid
+
+      _ ->
+        :invalid
+    end
+  end
+
+  defp safe_embed_url("custom", content) do
+    with [_, src] <- Regex.run(~r/src=["'](https:\/\/[^"']+)["']/i, content),
+         %URI{host: host} <- URI.parse(src) do
+      allowlist =
+        :claper
+        |> Application.get_env(:event_app, [])
+        |> Keyword.get(:embed_domain_allowlist, [])
+
+      if host in allowlist, do: {:inline, src}, else: {:external, src}
+    else
+      _ -> :invalid
+    end
+  end
+
+  defp safe_embed_url(_provider, _content), do: :invalid
+
+  defp post_name(_attendee, true, %{anonymous_chat_enabled: true}), do: "Anonymous"
+  defp post_name(attendee, _anonymous, _state), do: attendee.name || attendee.email || "Attendee"
+
+  defp rate_limit(kind, event_id, interaction_key, limit) do
+    case RateLimit.hit("pwa-live:#{kind}:#{event_id}:#{interaction_key}", 60_000, limit) do
+      {:allow, _count} -> :ok
+      {:deny, _retry_after} -> {:error, :rate_limited}
+    end
+  end
+
+  defp present?(value), do: is_binary(value) and String.trim(value) != ""
 
   defp maybe_put_result(map, _key, _value, false), do: map
   defp maybe_put_result(map, key, value, true), do: Map.put(map, key, value)

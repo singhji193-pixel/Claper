@@ -3,12 +3,31 @@ defmodule Claper.EventApp.LiveInteractionsTest do
 
   import Claper.{PollsFixtures, PresentationsFixtures}
 
-  alias Claper.EventApp
+  alias Claper.{Embeds, EventApp, Presentations, Repo}
+  alias Claper.EventApp.Attendee
   alias Claper.EventApp.LiveInteractions
 
   setup do
     presentation_file = presentation_file_fixture(%{}, [:event])
-    presentation_state_fixture(%{presentation_file: presentation_file, position: 0})
+
+    state =
+      presentation_state_fixture(%{
+        presentation_file: presentation_file,
+        position: 0,
+        chat_enabled: true,
+        anonymous_chat_enabled: false
+      })
+
+    interaction_key = Ecto.UUID.generate()
+
+    %Attendee{interaction_key: interaction_key}
+    |> Attendee.changeset(%{
+      event_id: presentation_file.event_id,
+      email: "avery@example.com",
+      name: "Avery Singh",
+      verified_at: DateTime.utc_now() |> DateTime.truncate(:second)
+    })
+    |> Repo.insert!()
 
     poll =
       poll_fixture(%{
@@ -31,8 +50,10 @@ defmodule Claper.EventApp.LiveInteractionsTest do
     %{
       event: presentation_file.event,
       poll: poll,
+      state: state,
       settings: settings,
-      interaction_key: Ecto.UUID.generate()
+      interaction_key: interaction_key,
+      presentation_file: presentation_file
     }
   end
 
@@ -100,5 +121,130 @@ defmodule Claper.EventApp.LiveInteractionsTest do
     assert is_nil(snapshot.active)
     assert snapshot.latest_result.kind == :poll
     assert snapshot.latest_result.id == context.poll.id
+  end
+
+  test "creates named Q&A and Chat posts and toggles question votes", context do
+    assert {:ok, question, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "question",
+               "How will this affect founders?",
+               true
+             )
+
+    assert question.kind == "question"
+    assert question.name == "Avery Singh"
+
+    assert {:ok, :added, reacted} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               question.uuid,
+               "👍"
+             )
+
+    assert reacted.like_count == 1
+
+    assert {:ok, :removed, unreacted} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               question.uuid,
+               "👍"
+             )
+
+    assert unreacted.like_count == 0
+
+    assert {:ok, snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert [%{body: "How will this affect founders?", kind: "question"}] = snapshot.questions
+    assert snapshot.messages == []
+  end
+
+  test "uses Anonymous only when presenter policy permits it", context do
+    assert {:ok, _state} =
+             Presentations.update_presentation_state(context.state, %{
+               anonymous_chat_enabled: true
+             })
+
+    assert {:ok, post, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "Hello everyone",
+               true
+             )
+
+    assert post.name == "Anonymous"
+    assert post.attendee_identifier == context.interaction_key
+  end
+
+  test "rate limits attendee posts", context do
+    for index <- 1..5 do
+      assert {:ok, _post, _settings} =
+               LiveInteractions.create_post(
+                 context.event,
+                 context.interaction_key,
+                 "message",
+                 "Message #{index}",
+                 false
+               )
+    end
+
+    assert {:error, :rate_limited} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "Message 6",
+               false
+             )
+  end
+
+  test "shapes standard attendee embeds without returning raw HTML", context do
+    assert {:ok, _poll} = Claper.Polls.set_disabled(context.poll.id)
+
+    assert {:ok, embed} =
+             Embeds.create_embed(%{
+               title: "Watch the session",
+               content: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+               provider: "youtube",
+               enabled: true,
+               attendee_visibility: true,
+               position: 0,
+               presentation_file_id: context.presentation_file.id
+             })
+
+    assert {:ok, snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert snapshot.active.kind == :embed
+    assert snapshot.active.inline
+    assert snapshot.active.url == "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    refute Map.has_key?(snapshot.active, :content)
+
+    assert {:ok, _embed} = Embeds.set_disabled(embed.id)
+
+    assert {:ok, _custom_embed} =
+             Embeds.create_embed(%{
+               title: "Partner content",
+               content: ~s(<iframe src="https://partner.example.com/session"></iframe>),
+               provider: "custom",
+               enabled: true,
+               attendee_visibility: true,
+               position: 0,
+               presentation_file_id: context.presentation_file.id
+             })
+
+    assert {:ok, custom_snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert custom_snapshot.active.kind == :embed
+    refute custom_snapshot.active.inline
+    assert custom_snapshot.active.url == "https://partner.example.com/session"
+    refute Map.has_key?(custom_snapshot.active, :content)
   end
 end

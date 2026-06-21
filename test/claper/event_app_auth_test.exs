@@ -11,7 +11,7 @@ defmodule Claper.EventAppAuthTest do
     QuizzesFixtures
   }
 
-  alias Claper.{EventApp, Forms, Polls, Quizzes}
+  alias Claper.{EventApp, Forms, Polls, Posts, Quizzes}
   alias Claper.EventApp.{Attendee, Notifications, OtpChallenge, Session}
   alias Claper.HiEvents
   alias Claper.HiEvents.EventTicket
@@ -135,7 +135,7 @@ defmodule Claper.EventAppAuthTest do
       assert same_player.id == legacy_player.id
     end
 
-    test "claims legacy Poll, Quiz, and Form rows into the stable identity" do
+    test "claims legacy interaction rows into the stable identity" do
       event = event_fixture()
       ticket_fixture(event, %{attendee_email: "avery@example.com"})
       presentation_file = presentation_file_fixture(%{event: event})
@@ -166,16 +166,38 @@ defmodule Claper.EventAppAuthTest do
                  "response" => %{"Name" => "Avery"}
                })
 
+      assert {:ok, post} =
+               Posts.create_post(event, %{
+                 body: "What should founders know?",
+                 attendee_identifier: legacy_identifier,
+                 name: "Avery",
+                 position: 0
+               })
+
+      assert {:ok, :added, _post} =
+               Posts.toggle_attendee_reaction(event.id, legacy_identifier, post.uuid, "👍")
+
       assert {:ok, %{claimed: claimed}} =
                EventApp.claim_legacy_identity(event.id, attendee, legacy_identifier)
 
-      assert claimed == %{poll_votes: 1, quiz_responses: 1, form_submits: 1}
+      assert claimed == %{
+               poll_votes: 1,
+               quiz_responses: 1,
+               form_submits: 1,
+               posts: 1,
+               reactions: 1
+             }
+
       assert length(Polls.get_poll_vote(attendee.interaction_key, poll.id)) == 1
       assert length(Quizzes.get_quiz_responses(attendee.interaction_key, quiz.id)) == 1
       assert Forms.get_form_submit(attendee.interaction_key, form.id)
       assert Polls.get_poll_vote(legacy_identifier, poll.id) == []
       assert Quizzes.get_quiz_responses(legacy_identifier, quiz.id) == []
       assert is_nil(Forms.get_form_submit(legacy_identifier, form.id))
+      assert Repo.get!(Claper.Posts.Post, post.id).attendee_identifier == attendee.interaction_key
+
+      assert Repo.get_by!(Claper.Posts.Reaction, post_id: post.id).attendee_identifier ==
+               attendee.interaction_key
     end
 
     test "returns a safe ticket wallet for a signed-in attendee" do

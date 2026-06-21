@@ -32,7 +32,7 @@ defmodule Claper.Posts do
     query =
       from(p in Post,
         join: e in assoc(p, :event),
-        where: e.uuid == ^event_id and like(p.body, "%?%")
+        where: e.uuid == ^event_id and p.kind == "question"
       )
 
     query =
@@ -149,11 +149,23 @@ defmodule Claper.Posts do
 
   """
   def create_post(event, attrs) do
+    attrs = put_default_kind(attrs)
+
     %Post{}
     |> Map.put(:event, event)
     |> Post.changeset(attrs)
     |> Repo.insert(returning: [:uuid])
     |> broadcast(:post_created)
+  end
+
+  def list_posts_by_kind(event_uuid, kind, preload \\ []) when kind in ["question", "message"] do
+    from(post in Post,
+      join: event in assoc(post, :event),
+      where: event.uuid == ^event_uuid and post.kind == ^kind,
+      order_by: [desc: post.pinned, asc: post.id]
+    )
+    |> Repo.all()
+    |> Repo.preload(preload)
   end
 
   @doc """
@@ -328,10 +340,86 @@ defmodule Claper.Posts do
     end
   end
 
+  def toggle_attendee_reaction(event_id, attendee_identifier, post_uuid, icon)
+      when is_binary(attendee_identifier) and icon in ["👍", "❤️", "😂"] do
+    Repo.transaction(fn ->
+      post =
+        Post
+        |> where([post], post.uuid == ^post_uuid and post.event_id == ^event_id)
+        |> lock("FOR UPDATE")
+        |> preload(:event)
+        |> Repo.one()
+
+      if is_nil(post), do: Repo.rollback(:post_not_found)
+
+      reaction =
+        Repo.get_by(Reaction,
+          post_id: post.id,
+          attendee_identifier: attendee_identifier,
+          icon: icon
+        )
+
+      {status, delta} =
+        case reaction do
+          %Reaction{} = reaction ->
+            Repo.delete!(reaction)
+            {:removed, -1}
+
+          nil ->
+            %Reaction{}
+            |> Reaction.changeset(%{
+              post_id: post.id,
+              attendee_identifier: attendee_identifier,
+              icon: icon
+            })
+            |> Repo.insert!()
+
+            {:added, 1}
+        end
+
+      field = reaction_count_field(icon)
+
+      from(entry in Post, where: entry.id == ^post.id)
+      |> Repo.update_all(inc: [{field, delta}])
+
+      updated_post = post.uuid |> get_post!([:event, :reactions])
+      {status, updated_post}
+    end)
+    |> case do
+      {:ok, {status, post}} ->
+        event = if status == :added, do: :reaction_added, else: :reaction_removed
+        {:ok, _post} = broadcast({:ok, post}, event)
+        {:ok, status, post}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def toggle_attendee_reaction(_event_id, _attendee_identifier, _post_uuid, _icon),
+    do: {:error, :invalid_reaction}
+
   defp broadcast({:error, _reason} = error, _event), do: error
 
   defp broadcast({:ok, post}, event) do
     Phoenix.PubSub.broadcast(Claper.PubSub, "event:#{post.event.uuid}", {event, post})
     {:ok, post}
+  end
+
+  defp reaction_count_field("👍"), do: :like_count
+  defp reaction_count_field("❤️"), do: :love_count
+  defp reaction_count_field("😂"), do: :lol_count
+
+  defp put_default_kind(attrs) when is_map(attrs) do
+    if Map.has_key?(attrs, :kind) or Map.has_key?(attrs, "kind") do
+      attrs
+    else
+      body = Map.get(attrs, :body) || Map.get(attrs, "body") || ""
+      kind = if String.contains?(body, "?"), do: "question", else: "message"
+
+      if Enum.all?(Map.keys(attrs), &is_atom/1),
+        do: Map.put(attrs, :kind, kind),
+        else: Map.put(attrs, "kind", kind)
+    end
   end
 end

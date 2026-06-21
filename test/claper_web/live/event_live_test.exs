@@ -400,6 +400,81 @@ defmodule ClaperWeb.EventLiveTest do
       assert Claper.Forms.get_form_submit(identity.interaction_key, form.id)
     end
 
+    test "keeps native Q&A and Chat separate while using Claper posts", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+
+      {:ok, _settings} =
+        EventApp.update_settings(settings, %{
+          live_interactions_enabled: true,
+          qa_enabled: true,
+          chat_enabled: true
+        })
+
+      presentation_file =
+        Claper.Presentations.get_presentation_file!(presentation_file.id, [:presentation_state])
+
+      assert {:ok, _state} =
+               Claper.Presentations.update_presentation_state(
+                 presentation_file.presentation_state,
+                 %{chat_enabled: true, anonymous_chat_enabled: false}
+               )
+
+      conn = sign_in_attendee(conn, event)
+      {:ok, live_view, _html} = live(conn, ~p"/app/#{event.code}/live")
+
+      html =
+        live_view
+        |> element("button[phx-value-tab='qa']")
+        |> render_click()
+
+      assert html =~ "Session Q&amp;A"
+      assert html =~ "Ask question"
+
+      html =
+        live_view
+        |> form("#pwa-live-question-form", %{
+          "kind" => "question",
+          "body" => "How can founders participate?"
+        })
+        |> render_submit()
+
+      assert html =~ "How can founders participate?"
+      question = Claper.Posts.list_questions(event.uuid) |> List.first()
+      assert question.kind == "question"
+      assert question.name == "Avery Singh"
+
+      html =
+        live_view
+        |> element("#pwa-live-post-#{question.uuid} button[phx-click='live-toggle-reaction']")
+        |> render_click()
+
+      assert html =~ ">1<"
+
+      html =
+        live_view
+        |> element("button[phx-value-tab='chat']")
+        |> render_click()
+
+      assert html =~ "Session chat"
+      assert html =~ "Send message"
+      refute html =~ "Post anonymously"
+
+      html =
+        live_view
+        |> form("#pwa-live-message-form", %{
+          "kind" => "message",
+          "body" => "Great session"
+        })
+        |> render_submit()
+
+      assert html =~ "Great session"
+      assert [%{kind: "message"}] = Claper.Posts.list_posts_by_kind(event.uuid, "message")
+    end
+
     test "serves native Live through the vanity app route", %{
       conn: conn,
       presentation_file: presentation_file

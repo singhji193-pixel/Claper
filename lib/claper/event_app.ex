@@ -136,6 +136,13 @@ defmodule Claper.EventApp do
     end
   end
 
+  def get_attendee_by_interaction_key(event_id, interaction_key)
+      when is_binary(interaction_key) do
+    Repo.get_by(Attendee, event_id: event_id, interaction_key: interaction_key)
+  end
+
+  def get_attendee_by_interaction_key(_event_id, _interaction_key), do: nil
+
   def interaction_identity(event_id, token) do
     case attendee_session(event_id, token) do
       {:ok, %Session{attendee: %Attendee{} = attendee}} ->
@@ -161,7 +168,13 @@ defmodule Claper.EventApp do
         {:ok,
          %{
            bingo_player: Bingos.get_player(event_id, attendee.interaction_key),
-           claimed: %{poll_votes: 0, quiz_responses: 0, form_submits: 0}
+           claimed: %{
+             poll_votes: 0,
+             quiz_responses: 0,
+             form_submits: 0,
+             posts: 0,
+             reactions: 0
+           }
          }}
     end
   end
@@ -258,6 +271,46 @@ defmodule Claper.EventApp do
 
     form_submits = claim_rows("form_submits", "forms", "form_id", "form_id", params)
 
+    posts =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        "UPDATE posts SET attendee_identifier = $3 WHERE event_id = $1 AND attendee_identifier = $2",
+        params
+      ).num_rows
+
+    reaction_deletes =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        """
+        DELETE FROM reactions legacy
+        USING posts post
+        WHERE legacy.post_id = post.id
+          AND post.event_id = $1
+          AND legacy.attendee_identifier = $2
+          AND EXISTS (
+            SELECT 1 FROM reactions stable
+            WHERE stable.post_id = legacy.post_id
+              AND stable.icon = legacy.icon
+              AND stable.attendee_identifier = $3
+          )
+        """,
+        params
+      ).num_rows
+
+    reaction_updates =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        """
+        UPDATE reactions reaction
+        SET attendee_identifier = $3
+        FROM posts post
+        WHERE reaction.post_id = post.id
+          AND post.event_id = $1
+          AND reaction.attendee_identifier = $2
+        """,
+        params
+      ).num_rows
+
     Ecto.Adapters.SQL.query!(
       Repo,
       """
@@ -267,6 +320,18 @@ defmodule Claper.EventApp do
       WHERE option.poll_id = poll.id
         AND poll.presentation_file_id = presentation.id
         AND presentation.event_id = $1
+      """,
+      [event_id]
+    )
+
+    Ecto.Adapters.SQL.query!(
+      Repo,
+      """
+      UPDATE posts post
+      SET like_count = (SELECT COUNT(*) FROM reactions reaction WHERE reaction.post_id = post.id AND reaction.icon = '👍'),
+          love_count = (SELECT COUNT(*) FROM reactions reaction WHERE reaction.post_id = post.id AND reaction.icon = '❤️'),
+          lol_count = (SELECT COUNT(*) FROM reactions reaction WHERE reaction.post_id = post.id AND reaction.icon = '😂')
+      WHERE post.event_id = $1
       """,
       [event_id]
     )
@@ -290,7 +355,9 @@ defmodule Claper.EventApp do
     %{
       poll_votes: poll_votes,
       quiz_responses: quiz_responses,
-      form_submits: form_submits
+      form_submits: form_submits,
+      posts: posts,
+      reactions: reaction_deletes + reaction_updates
     }
   end
 

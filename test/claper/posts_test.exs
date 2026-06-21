@@ -73,6 +73,21 @@ defmodule Claper.PostsTest do
       event = event_fixture()
       assert is_nil(Posts.get_post_for_event(Ecto.UUID.generate(), event.id))
     end
+
+    test "infers and lists explicit question and message kinds" do
+      event = event_fixture()
+
+      assert {:ok, question} =
+               Posts.create_post(event, %{body: "What is next?", position: 0, name: "Avery"})
+
+      assert {:ok, message} =
+               Posts.create_post(event, %{body: "Thanks for sharing", position: 0, name: "Riley"})
+
+      assert question.kind == "question"
+      assert message.kind == "message"
+      assert Enum.map(Posts.list_questions(event.uuid), & &1.id) == [question.id]
+      assert Enum.map(Posts.list_posts_by_kind(event.uuid, "message"), & &1.id) == [message.id]
+    end
   end
 
   describe "reactions" do
@@ -109,6 +124,25 @@ defmodule Claper.PostsTest do
                Posts.delete_reaction(%{user_id: post.user_id, post: post, icon: "some icon"})
 
       assert_raise Ecto.NoResultsError, fn -> Posts.get_reaction!(reaction.id) end
+    end
+
+    test "toggles attendee reactions atomically and scopes the post to the event" do
+      event = Claper.EventsFixtures.event_fixture()
+      other_event = Claper.EventsFixtures.event_fixture()
+      post = post_fixture(%{event: event}, [:event])
+
+      assert {:ok, :added, updated_post} =
+               Posts.toggle_attendee_reaction(event.id, "attendee-1", post.uuid, "👍")
+
+      assert updated_post.like_count == post.like_count + 1
+
+      assert {:ok, :removed, restored_post} =
+               Posts.toggle_attendee_reaction(event.id, "attendee-1", post.uuid, "👍")
+
+      assert restored_post.like_count == post.like_count
+
+      assert {:error, :post_not_found} =
+               Posts.toggle_attendee_reaction(other_event.id, "attendee-1", post.uuid, "👍")
     end
   end
 end

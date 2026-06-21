@@ -13,6 +13,7 @@ defmodule Claper.Posts.Post do
           attendee_identifier: String.t() | nil,
           position: integer() | nil,
           pinned: boolean() | nil,
+          kind: String.t(),
           event_id: integer() | nil,
           user_id: integer() | nil,
           reactions: [Claper.Posts.Reaction.t()] | nil,
@@ -30,6 +31,7 @@ defmodule Claper.Posts.Post do
     field :attendee_identifier, :string
     field :position, :integer, default: 0
     field :pinned, :boolean, default: false
+    field :kind, :string, default: "message"
 
     belongs_to :event, Claper.Events.Event
     belongs_to :user, Claper.Accounts.User
@@ -50,10 +52,13 @@ defmodule Claper.Posts.Post do
       :lol_count,
       :name,
       :position,
-      :pinned
+      :pinned,
+      :kind
     ])
     |> validate_required([:body, :position])
     |> validate_length(:body, min: 2, max: 255)
+    |> validate_inclusion(:kind, ["question", "message"])
+    |> check_constraint(:kind, name: :posts_kind_check)
   end
 
   def nickname_changeset(post, attrs) do
