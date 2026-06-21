@@ -54,6 +54,120 @@
 .alert:empty {
   display: none;
 }
+
+/* Shared flash notification: explicit colors keep it legible across themes. */
+.claper-flash {
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  margin: 0 0 12px;
+  padding: 10px 8px 10px 14px;
+  overflow: hidden;
+  color: #0b1b33;
+  background: #ffffff;
+  border: 1px solid #d7deea;
+  border-left-width: 4px;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(7, 20, 40, 0.2), 0 2px 8px rgba(7, 20, 40, 0.1);
+}
+
+.claper-flash--info {
+  border-left-color: #246bfd;
+}
+
+.claper-flash--error {
+  border-left-color: #d92d20;
+}
+
+.claper-flash__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.claper-flash--info .claper-flash__icon {
+  color: #155eef;
+  background: #eaf1ff;
+}
+
+.claper-flash--error .claper-flash__icon {
+  color: #b42318;
+  background: #feeceb;
+}
+
+.claper-flash__icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.claper-flash__message {
+  min-width: 0;
+  margin: 0;
+  color: #14213d;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.claper-flash__dismiss {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  color: #526079;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+.claper-flash__dismiss:hover {
+  color: #0b1b33;
+  background: #eef2f7;
+}
+
+.claper-flash__dismiss:focus-visible {
+  outline: 3px solid rgba(36, 107, 253, 0.36);
+  outline-offset: 1px;
+}
+
+.claper-flash__dismiss svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 479px) {
+  .claper-flash {
+    grid-template-columns: 36px minmax(0, 1fr) 44px;
+    gap: 10px;
+    min-height: 64px;
+    padding-left: 12px;
+  }
+
+  .claper-flash__icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .claper-flash,
+  .claper-flash__dismiss {
+    transition: none;
+  }
+}
+
 .invalid-feedback {
   color: var(--color-supporting-red-700);
   display: block;

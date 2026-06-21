@@ -5,77 +5,73 @@ defmodule ClaperWeb.Component.Alert do
     assigns =
       assigns
       |> assign_new(:stick, fn -> false end)
+      |> assign(:tone, :info)
+      |> assign(:role, "status")
+      |> assign(:live, "polite")
 
-    ~H"""
-    <div
-      class="bg-supporting-green-50 border-t-4 rounded-b-md shadow-md border-supporting-green-400 p-4 mb-3"
-      x-data="{ open: true }"
-      x-show={if @stick, do: "true", else: "open"}
-      x-init="setTimeout(() => {open = false},  4000)"
-      x-transition
-    >
-      <div class="flex">
-        <div class="shrink-0">
-          <svg
-            class="h-5 w-5 text-green-400"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm text-supporting-green-700">
-            {@message}
-          </p>
-        </div>
-      </div>
-    </div>
-    """
+    notification(assigns)
   end
 
   def error(assigns) do
     assigns =
       assigns
       |> assign_new(:stick, fn -> false end)
+      |> assign(:tone, :error)
+      |> assign(:role, "alert")
+      |> assign(:live, "assertive")
 
+    notification(assigns)
+  end
+
+  defp notification(assigns) do
     ~H"""
     <div
-      class="bg-supporting-red-50 border-t-4 rounded-b-md shadow-md border-supporting-red-400 p-4 mb-3"
+      class={"claper-flash claper-flash--#{@tone}"}
+      role={@role}
+      aria-live={@live}
+      aria-atomic="true"
       x-data="{ open: true }"
       x-show={if @stick, do: "true", else: "open"}
-      x-init="setTimeout(() => {open = false},  4000)"
+      x-init="setTimeout(() => {open = false}, 7000)"
       x-transition
     >
-      <div class="flex">
-        <div class="shrink-0">
-          <!-- Heroicon name: solid/exclamation -->
-          <svg
-            class="h-5 w-5 text-supporting-red-400"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-              clip-rule="evenodd"
-            />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm text-supporting-red-700">
-            {@message}
-          </p>
-        </div>
+      <div class="claper-flash__icon" aria-hidden="true">
+        <svg :if={@tone == :info} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M20 6 9 17l-5-5"
+            stroke="currentColor"
+            stroke-width="2.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <svg :if={@tone == :error} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 8v5m0 3.5v.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+          />
+        </svg>
       </div>
+
+      <p class="claper-flash__message">{@message}</p>
+
+      <button
+        type="button"
+        class="claper-flash__dismiss"
+        aria-label="Dismiss notification"
+        x-on:click="open = false"
+      >
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="m7 7 10 10M17 7 7 17"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
     </div>
     """
   end
