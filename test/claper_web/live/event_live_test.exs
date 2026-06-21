@@ -267,6 +267,89 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "Open ticket"
       assert html =~ "Sign out"
     end
+
+    test "renders a real ticket QR without unavailable wallet controls", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      ticket =
+        ticket_fixture(event, %{
+          attendee_email: "avery@example.com",
+          attendee_name: "Avery Singh"
+        })
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      conn = init_test_session(conn, %{event_app_session_token: token})
+
+      {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/ticket")
+
+      assert html =~ ~s(id="pwa-ticket-qr")
+      assert html =~ ~s(phx-hook="QRCode")
+      assert html =~ ticket.external_ticket_id
+      refute html =~ "Apple Wallet"
+      refute html =~ "Brighten"
+    end
+
+    test "creates a Bingo profile in the PWA without exposing the attendee session token", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      bingo_prompt_fixture(%{event: event, prompt: "Meet someone building with AI"})
+      conn = sign_in_attendee(conn, event)
+      token = get_session(conn, :event_app_session_token)
+
+      {:ok, scan_live, html} = live(conn, ~p"/app/#{event.code}/scan")
+
+      assert html =~ "Create your networking card"
+      refute html =~ String.upcase(String.slice(token, 0, 6))
+
+      html =
+        scan_live
+        |> form("#pwa-bingo-profile-form", bingo_player: %{name: "Avery Singh"})
+        |> render_submit()
+
+      player = Bingos.get_player(event.id, token)
+
+      assert player.name == "Avery Singh"
+      assert html =~ player.code
+      assert html =~ ~s(id="pwa-bingo-player-qr")
+      assert html =~ ~s(phx-hook="QRCode")
+      refute html =~ String.upcase(String.slice(token, 0, 6))
+    end
+
+    test "shows opted-in Bingo introductions in the PWA people directory", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      bingo_player_fixture(%{
+        event: event,
+        attendee_identifier: "riley-session",
+        name: "Riley Chen",
+        title: "Founder",
+        company: "Northstar Labs",
+        intro: "Building climate intelligence for cities"
+      })
+
+      conn = sign_in_attendee(conn, event)
+
+      {:ok, _people_live, html} = live(conn, ~p"/app/#{event.code}/people")
+
+      assert html =~ "Riley Chen"
+      assert html =~ "Founder"
+      assert html =~ "Northstar Labs"
+      assert html =~ "Building climate intelligence for cities"
+      refute html =~ "People discovery is queued"
+    end
   end
 
   describe "Bingo" do

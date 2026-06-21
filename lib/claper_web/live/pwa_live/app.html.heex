@@ -2,20 +2,17 @@
   <div class="nextgen-summit-liveview" style="--ngs-primary: #ff6b35; --ngs-accent: #2d7ff9;">
     <main class="ngs-unavailable-shell">
       <section class="ngs-empty-state ngs-empty-state-large">
-        <span class="ngs-empty-icon empty__ic">
+        <span class="ngs-empty-icon">
           <.ngs_icon name="hero-exclamation-triangle" class="size-7" />
         </span>
-        <p class="ngs-eyebrow eyebrow">{gettext("NextGen event app")}</p>
+        <p class="ngs-eyebrow">{gettext("NextGen event app")}</p>
         <h1>{gettext("Event not found")}</h1>
         <p>
           {gettext(
             "Check the event code and try again. If you were invited, use the link from your ticket email."
           )}
         </p>
-        <.link
-          navigate={~p"/join"}
-          class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
-        >
+        <.link navigate={~p"/join"} class="ngs-button ngs-button-primary ngs-focus">
           {gettext("Enter another code")}
         </.link>
       </section>
@@ -23,13 +20,15 @@
   </div>
 <% else %>
   <div class="nextgen-summit-liveview" style={ngs_theme_style(@settings)}>
-    <div class="ngs-app app">
-      <aside class="ngs-sidebar app__sidebar" aria-label={gettext("Event app navigation")}>
-        <div class="ngs-sidebar-brand sb-brand">
+    <div class="ngs-app">
+      <aside class="ngs-sidebar" aria-label={gettext("Event app navigation")}>
+        <div class="ngs-sidebar-brand">
           <span class="ngs-logo"><img src="/images/favicon.png" alt="CoreOrbit" /></span>
           <span>
             <strong>{@event.name}</strong>
-            <small>{if @vanity, do: gettext("Event app"), else: String.upcase(@event.code)}</small>
+            <small>
+              {if @vanity, do: gettext("Event app"), else: String.upcase(@event.code)}
+            </small>
           </span>
         </div>
 
@@ -68,7 +67,7 @@
           label={gettext("My Ticket")}
           navigate={app_path(assigns, "/ticket")}
         />
-        <span class="ngs-sidebar-spacer sb-spacer"></span>
+        <span class="ngs-sidebar-spacer"></span>
         <.ngs_nav_item
           variant="sidebar"
           active={@live_action == :profile}
@@ -78,44 +77,43 @@
         />
       </aside>
 
-      <div class={["ngs-app-body app__body", @live_action == :home && "is-home"]}>
-        <header :if={@live_action != :home} class="ngs-appbar appbar">
+      <div class={["ngs-app-body", @live_action == :home && "is-home"]}>
+        <header :if={@live_action != :home} class="ngs-appbar">
           <%= if @live_action == :session do %>
             <.link
               navigate={agenda_filter_path(assigns, @selected_day, @selected_track, "", false)}
-              class="ngs-appbar-btn appbar__btn ngs-focus"
+              class="ngs-appbar-btn ngs-focus"
               aria-label={gettext("Back to agenda")}
             >
               <.ngs_icon name="hero-chevron-right" class="size-5 ngs-icon-back" />
             </.link>
           <% end %>
 
-          <h1 class="ngs-appbar-title appbar__title">{ngs_page_title(@live_action)}</h1>
+          <h1 class="ngs-appbar-title">{ngs_page_title(@live_action)}</h1>
 
-          <%= if signed_in?(@attendee) do %>
+          <%= if @ticket_wallet do %>
             <.link
               navigate={app_path(assigns, "/ticket")}
-              class="ngs-status-chip badge ngs-focus"
+              class={[
+                "ngs-status-chip ngs-focus",
+                @ticket_wallet.checked_in && "is-checked-in"
+              ]}
             >
-              <.ngs_icon name="hero-check-circle" class="size-4" />
-              {gettext("Checked in")}
+              <.ngs_icon name={ticket_status_icon(@ticket_wallet)} class="size-4" />
+              {ticket_status_label(@ticket_wallet)}
             </.link>
           <% else %>
-            <.link href={app_path(assigns, "/login")} class="ngs-status-chip badge ngs-focus">
+            <.link href={app_path(assigns, "/login")} class="ngs-status-chip ngs-focus">
               {gettext("Sign in")}
             </.link>
           <% end %>
         </header>
 
-        <main id="ngs-main" class="ngs-main app__main content-wrap" tabindex="-1">
+        <main id="ngs-main" class="ngs-main" tabindex="-1">
           <%= case @live_action do %>
             <% :agenda -> %>
-              <section class="ngs-filterbar filterbar" aria-label={gettext("Agenda filters")}>
-                <form
-                  method="get"
-                  action={app_path(assigns, "/agenda")}
-                  class="ngs-search-form manualrow"
-                >
+              <section class="ngs-filterbar" aria-label={gettext("Agenda filters")}>
+                <form method="get" action={app_path(assigns, "/agenda")} class="ngs-search-form">
                   <input :if={@selected_day} type="hidden" name="day" value={@selected_day} />
                   <input
                     :if={@selected_track != "all"}
@@ -125,21 +123,25 @@
                   />
                   <input :if={@agenda_saved_only} type="hidden" name="saved" value="1" />
                   <label class="sr-only" for="agenda-search">{gettext("Search agenda")}</label>
-                  <.ngs_icon name="hero-list-bullet" class="size-4" />
+                  <.ngs_icon name="hero-magnifying-glass" class="size-5" />
                   <input
                     id="agenda-search"
                     name="q"
                     value={@agenda_query}
                     placeholder={gettext("Search sessions, speakers, tracks")}
                   />
-                  <button type="submit" class="ngs-search-submit ngs-focus">
-                    {gettext("Search")}
+                  <button
+                    type="submit"
+                    class="ngs-search-submit ngs-focus"
+                    aria-label={gettext("Search agenda")}
+                  >
+                    <.ngs_icon name="hero-arrow-right" class="size-5" />
                   </button>
                 </form>
 
                 <div
                   :if={!Enum.empty?(@agenda_days)}
-                  class="ngs-day-row days"
+                  class="ngs-day-row"
                   aria-label={gettext("Agenda days")}
                 >
                   <.ngs_day_chip
@@ -153,7 +155,7 @@
                   />
                 </div>
 
-                <div class="ngs-chip-row chiprow" aria-label={gettext("Agenda tracks")}>
+                <div class="ngs-chip-row" aria-label={gettext("Agenda tracks")}>
                   <.ngs_track_chip
                     event={@event}
                     vanity={@vanity}
@@ -186,17 +188,17 @@
                     class={["ngs-chip ngs-focus", @agenda_saved_only && "is-active"]}
                   >
                     {gettext("Saved only")}
-                    <span class="ngs-chip-count chip__count">
+                    <span class="ngs-chip-count">
                       {saved_agenda_count(@bookmarked_agenda_item_ids)}
                     </span>
                   </.link>
                 </div>
               </section>
 
-              <section class="ngs-schedule-list sched">
+              <section class="ngs-schedule-list">
                 <%= if Enum.empty?(@agenda_items) do %>
-                  <section class="ngs-empty-state empty">
-                    <span class="ngs-empty-icon empty__ic">
+                  <section class="ngs-empty-state">
+                    <span class="ngs-empty-icon">
                       <.ngs_icon name="hero-calendar-days" class="size-7" />
                     </span>
                     <h2>{gettext("Agenda is being finalized")}</h2>
@@ -205,24 +207,27 @@
                     </p>
                   </section>
                 <% else %>
-                  <div class="ngs-now-line" aria-hidden="true"><span>{gettext("NOW")}</span></div>
                   <%= if Enum.empty?(@visible_agenda_items) do %>
-                    <section class="ngs-empty-state empty">
-                      <span class="ngs-empty-icon empty__ic">
+                    <section class="ngs-empty-state">
+                      <span class="ngs-empty-icon">
                         <.ngs_icon name="hero-calendar-days" class="size-7" />
                       </span>
                       <h2>{gettext("No sessions match")}</h2>
                       <p>{gettext("Try another day, track, or search term.")}</p>
                     </section>
                   <% else %>
-                    <.ngs_agenda_card
-                      :for={item <- @visible_agenda_items}
-                      event={@event}
-                      vanity={@vanity}
-                      item={item}
-                      signed_in={signed_in?(@attendee)}
-                      saved={saved_agenda_item?(@bookmarked_agenda_item_ids, item)}
-                    />
+                    <%= for item <- @visible_agenda_items do %>
+                      <div :if={agenda_item_live?(item)} class="ngs-now-line" aria-hidden="true">
+                        <span>{gettext("NOW")}</span>
+                      </div>
+                      <.ngs_agenda_card
+                        event={@event}
+                        vanity={@vanity}
+                        item={item}
+                        signed_in={signed_in?(@attendee)}
+                        saved={saved_agenda_item?(@bookmarked_agenda_item_ids, item)}
+                      />
+                    <% end %>
                   <% end %>
                 <% end %>
               </section>
@@ -254,7 +259,7 @@
                 </section>
 
                 <section class="ngs-section">
-                  <p class="ngs-eyebrow eyebrow">{gettext("About this session")}</p>
+                  <p class="ngs-eyebrow">{gettext("About this session")}</p>
                   <p class="ngs-body-copy">
                     {@session_item.description ||
                       gettext("Session details will be updated by the organizer.")}
@@ -285,181 +290,304 @@
                   </button>
                 </section>
               <% else %>
-                <section class="ngs-empty-state empty">
-                  <span class="ngs-empty-icon empty__ic">
+                <section class="ngs-empty-state">
+                  <span class="ngs-empty-icon">
                     <.ngs_icon name="hero-exclamation-triangle" class="size-7" />
                   </span>
                   <h2>{gettext("Session not found")}</h2>
                   <p>{gettext("This session may have been removed or moved.")}</p>
                   <.link
                     navigate={app_path(assigns, "/agenda")}
-                    class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                    class="ngs-button ngs-button-primary ngs-focus"
                   >
                     {gettext("Back to agenda")}
                   </.link>
                 </section>
               <% end %>
             <% :people -> %>
-              <section class="ngs-section section ngs-grid-2 grid-2">
-                <div>
-                  <div class="ngs-search-form ngs-search-form-static">
-                    <label class="sr-only" for="people-search">{gettext("Search people")}</label>
-                    <.ngs_icon name="hero-user-group" class="size-4" />
-                    <input
-                      id="people-search"
-                      placeholder={gettext("Search name, company, interest")}
-                      disabled
-                    />
-                  </div>
+              <section class="ngs-section ngs-directory-shell">
+                <form method="get" action={app_path(assigns, "/people")} class="ngs-search-form">
+                  <label class="sr-only" for="people-search">{gettext("Search people")}</label>
+                  <.ngs_icon name="hero-magnifying-glass" class="size-5" />
+                  <input
+                    id="people-search"
+                    name="q"
+                    value={@people_query}
+                    placeholder={gettext("Search people, roles, companies")}
+                  />
+                  <button
+                    type="submit"
+                    class="ngs-search-submit ngs-focus"
+                    aria-label={gettext("Search people")}
+                  >
+                    <.ngs_icon name="hero-arrow-right" class="size-5" />
+                  </button>
+                </form>
 
-                  <%= if signed_in?(@attendee) do %>
-                    <section class="ngs-card card ngs-onboarding-card">
-                      <p class="ngs-eyebrow eyebrow">{gettext("Personalize discovery")}</p>
-                      <h2>{gettext("Tell people why to meet you")}</h2>
-                      <p>
-                        {gettext(
-                          "Persona and interests will power the attendee directory in the next networking phase."
-                        )}
-                      </p>
-                      <div class="ngs-chip-row ngs-chip-row-wrap">
-                        <span class="ngs-chip is-active">{gettext("Founder")}</span>
-                        <span class="ngs-chip">{gettext("Investor")}</span>
-                        <span class="ngs-chip">{gettext("Operator")}</span>
-                        <span class="ngs-chip">{gettext("AI")}</span>
-                        <span class="ngs-chip">{gettext("Growth")}</span>
-                      </div>
-                    </section>
-                  <% else %>
-                    <section class="ngs-empty-state empty">
-                      <span class="ngs-empty-icon empty__ic">
-                        <.ngs_icon name="hero-envelope" class="size-7" />
+                <div class="ngs-section-heading">
+                  <div>
+                    <p class="ngs-eyebrow">{gettext("Community")}</p>
+                    <h2>{gettext("Meet the room")}</h2>
+                  </div>
+                  <span class="ngs-count-badge">
+                    {ngettext(
+                      "%{count} introduction",
+                      "%{count} introductions",
+                      length(@forum_players)
+                    )}
+                  </span>
+                </div>
+
+                <%= cond do %>
+                  <% !@bingo_settings.forum_enabled -> %>
+                    <section class="ngs-empty-state">
+                      <span class="ngs-empty-icon">
+                        <.ngs_icon name="hero-lock-closed" class="size-7" />
                       </span>
-                      <h2>{gettext("Sign in to view people")}</h2>
-                      <p>{gettext("Use your ticket email before networking tools open.")}</p>
+                      <h2>{gettext("People directory is private")}</h2>
+                      <p>{gettext("The organizer has not enabled attendee introductions.")}</p>
+                    </section>
+                  <% Enum.empty?(@visible_forum_players) -> %>
+                    <section class="ngs-empty-state">
+                      <span class="ngs-empty-icon">
+                        <.ngs_icon name="hero-user-group" class="size-7" />
+                      </span>
+                      <h2>
+                        {if @people_query == "",
+                          do: gettext("No introductions yet"),
+                          else: gettext("No people match your search")}
+                      </h2>
+                      <p>
+                        {if @people_query == "",
+                          do:
+                            gettext(
+                              "Create your networking card to be the first to introduce yourself."
+                            ),
+                          else: gettext("Try a different name, role, or company.")}
+                      </p>
                       <.link
-                        href={app_path(assigns, "/login")}
-                        class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                        navigate={app_path(assigns, "/bingo")}
+                        class="ngs-button ngs-button-primary ngs-focus"
                       >
-                        {gettext("Sign in")}
+                        <.ngs_icon name="hero-identification" class="size-5" />
+                        {gettext("Open networking profile")}
                       </.link>
                     </section>
-                  <% end %>
-                </div>
-
-                <section class="ngs-card card ngs-directory-preview">
-                  <p class="ngs-eyebrow eyebrow">{gettext("Directory status")}</p>
-                  <h2>{gettext("People discovery is queued")}</h2>
-                  <p>
-                    {gettext(
-                      "This screen is ready for profile search, intro cards, and opt-in contact sharing once attendee profiles are enabled."
-                    )}
-                  </p>
-                  <div class="ngs-attendee-preview">
-                    <span class="ngs-avatar avatar">{attendee_initials(@attendee)}</span>
-                    <div>
-                      <strong>{attendee_display_name(@attendee)}</strong>
-                      <small>
-                        {if signed_in?(@attendee),
-                          do: @attendee.ticket_name || gettext("Verified attendee"),
-                          else: gettext("Guest attendee")}
-                      </small>
+                  <% true -> %>
+                    <div class="ngs-people-grid">
+                      <article :for={person <- @visible_forum_players} class="ngs-person-card">
+                        <span class="ngs-avatar">{attendee_initials(person)}</span>
+                        <div class="ngs-person-copy">
+                          <h3>{person.name}</h3>
+                          <p :if={forum_player_role(person) != ""} class="ngs-person-role">
+                            {forum_player_role(person)}
+                          </p>
+                          <p :if={person.intro} class="ngs-person-intro">{person.intro}</p>
+                        </div>
+                      </article>
                     </div>
-                  </div>
-                </section>
+                <% end %>
               </section>
             <% action when action in [:scan, :bingo] -> %>
-              <section class="ngs-section section ngs-grid-2 grid-2">
-                <div class="ngs-card card ngs-code-card">
-                  <p class="ngs-eyebrow eyebrow">{gettext("Scan and connect")}</p>
-                  <h2>{gettext("Your networking code")}</h2>
-                  <div class="ngs-qr-large" aria-label={gettext("Personal QR placeholder")}>
-                    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-                  </div>
-                  <strong class="ngs-code-word">
-                    {String.upcase(
-                      String.slice(to_string(@attendee_session_token || @event.code), 0, 6)
-                    )}
-                  </strong>
-                  <p>
-                    {gettext(
-                      "Open Bingo for live QR scanning, manual code entry, prompts, and saved connections."
-                    )}
-                  </p>
-                  <%= if @bootstrap.features.bingo.count > 0 do %>
+              <section class="ngs-section ngs-networking-shell">
+                <%= cond do %>
+                  <% @bootstrap.features.bingo.count == 0 -> %>
+                    <section class="ngs-empty-state ngs-empty-state-large">
+                      <span class="ngs-empty-icon">
+                        <.ngs_icon name="hero-qr-code" class="size-7" />
+                      </span>
+                      <p class="ngs-eyebrow">{gettext("Networking Bingo")}</p>
+                      <h2>{gettext("Prompts are coming soon")}</h2>
+                      <p>{gettext("The organizer has not published networking prompts yet.")}</p>
+                    </section>
+                  <% is_nil(@bingo_player) -> %>
+                    <section class="ngs-card ngs-networking-onboarding">
+                      <span class="ngs-feature-icon ngs-feature-icon-large">
+                        <.ngs_icon name="hero-identification" class="size-7" />
+                      </span>
+                      <div>
+                        <p class="ngs-eyebrow">{gettext("Networking Bingo")}</p>
+                        <h2>{gettext("Create your networking card")}</h2>
+                        <p>
+                          {gettext(
+                            "Choose the name other attendees will see. You can add your introduction and contact-sharing choices afterward."
+                          )}
+                        </p>
+                      </div>
+                      <.form
+                        for={@bingo_profile_form}
+                        id="pwa-bingo-profile-form"
+                        phx-submit="create-bingo-player"
+                        class="ngs-stack-form"
+                      >
+                        <label for={@bingo_profile_form[:name].id}>
+                          {gettext("Display name")}
+                        </label>
+                        <input
+                          id={@bingo_profile_form[:name].id}
+                          name={@bingo_profile_form[:name].name}
+                          value={Phoenix.HTML.Form.input_value(@bingo_profile_form, :name)}
+                          autocomplete="name"
+                          maxlength="80"
+                          required
+                        />
+                        <button type="submit" class="ngs-button ngs-button-primary ngs-focus">
+                          {gettext("Create networking card")}
+                          <.ngs_icon name="hero-arrow-right" class="size-5" />
+                        </button>
+                      </.form>
+                    </section>
+                  <% true -> %>
+                    <div class="ngs-networking-grid">
+                      <section class="ngs-card ngs-player-code-card">
+                        <div class="ngs-section-heading ngs-section-heading-compact">
+                          <div>
+                            <p class="ngs-eyebrow">{gettext("Your code")}</p>
+                            <h2>{@bingo_player.name}</h2>
+                          </div>
+                          <span class="ngs-count-badge">
+                            {@bingo_progress}/{@bootstrap.features.bingo.count}
+                          </span>
+                        </div>
+                        <div
+                          id="pwa-bingo-player-qr"
+                          phx-hook="QRCode"
+                          phx-update="ignore"
+                          data-url={@bingo_player.code}
+                          data-size="192"
+                          class="ngs-real-qr"
+                          aria-label={gettext("Your Bingo QR code")}
+                        >
+                        </div>
+                        <strong class="ngs-code-word">{@bingo_player.code}</strong>
+                        <p>
+                          {gettext("Let another attendee scan this code to connect with you.")}
+                        </p>
+                      </section>
+
+                      <section class="ngs-card ngs-connect-card">
+                        <%= if @bingo_current_prompt do %>
+                          <div class="ngs-prompt-block">
+                            <span>{gettext("Current prompt")}</span>
+                            <h2>{@bingo_current_prompt.prompt}</h2>
+                          </div>
+
+                          <.form
+                            for={@bingo_connection_form}
+                            id="pwa-bingo-connection-form"
+                            phx-submit="connect-bingo"
+                            class="ngs-stack-form"
+                          >
+                            <label for={@bingo_connection_form[:code].id}>
+                              {gettext("Attendee code")}
+                            </label>
+                            <div class="ngs-code-entry">
+                              <input
+                                id={@bingo_connection_form[:code].id}
+                                name={@bingo_connection_form[:code].name}
+                                value=""
+                                placeholder={gettext("Enter code")}
+                                autocomplete="off"
+                                autocapitalize="characters"
+                                maxlength="12"
+                                required
+                              />
+                              <button
+                                type="submit"
+                                class="ngs-button ngs-button-secondary ngs-focus"
+                              >
+                                {gettext("Connect")}
+                              </button>
+                            </div>
+                          </.form>
+
+                          <button
+                            type="button"
+                            phx-click="toggle-scanner"
+                            class="ngs-button ngs-button-ghost ngs-focus"
+                            aria-expanded={@scanner_open}
+                            aria-controls="pwa-bingo-scanner-panel"
+                          >
+                            <.ngs_icon name="hero-camera" class="size-5" />
+                            {if @scanner_open,
+                              do: gettext("Close camera"),
+                              else: gettext("Scan QR code")}
+                          </button>
+
+                          <div
+                            :if={@scanner_open}
+                            id="pwa-bingo-scanner-panel"
+                            class="ngs-scanner-panel"
+                          >
+                            <div
+                              id="pwa-bingo-scanner"
+                              phx-hook="BingoScanner"
+                              phx-update="ignore"
+                            >
+                            </div>
+                          </div>
+                        <% else %>
+                          <div class="ngs-complete-state">
+                            <span class="ngs-feature-icon ngs-feature-icon-large">
+                              <.ngs_icon name="hero-check-circle" class="size-7" />
+                            </span>
+                            <h2>{gettext("Bingo complete")}</h2>
+                            <p>{gettext("You completed every networking prompt.")}</p>
+                          </div>
+                        <% end %>
+                      </section>
+                    </div>
+
+                    <section :if={!Enum.empty?(@bingo_connections)} class="ngs-card">
+                      <div class="ngs-section-heading ngs-section-heading-compact">
+                        <div>
+                          <p class="ngs-eyebrow">{gettext("Connections")}</p>
+                          <h2>{gettext("People you met")}</h2>
+                        </div>
+                        <span class="ngs-count-badge">{length(@bingo_connections)}</span>
+                      </div>
+                      <ul class="ngs-connection-list">
+                        <li :for={connection <- Enum.take(@bingo_connections, 4)}>
+                          <span class="ngs-avatar ngs-avatar-small">
+                            {attendee_initials(%{
+                              name: bingo_connection_name(connection, @bingo_player)
+                            })}
+                          </span>
+                          <strong>{bingo_connection_name(connection, @bingo_player)}</strong>
+                          <span>{format_bingo_connection_time(connection.inserted_at)}</span>
+                        </li>
+                      </ul>
+                    </section>
+
                     <.link
                       navigate={~p"/e/#{@event.code}/bingo"}
-                      class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                      class="ngs-button ngs-button-ghost ngs-focus ngs-full-bingo-link"
                     >
-                      <.ngs_icon name="hero-qr-code" class="size-5" />
-                      {gettext("Open Bingo")}
+                      <.ngs_icon name="hero-user-circle" class="size-5" />
+                      {gettext("Profile, contacts and leaderboard")}
+                      <.ngs_icon name="hero-chevron-right" class="size-5" />
                     </.link>
-                  <% else %>
-                    <button
-                      type="button"
-                      class="ngs-button ngs-button-primary btn btn--primary btn--block"
-                      disabled
-                    >
-                      {gettext("Bingo not ready")}
-                    </button>
-                  <% end %>
-                </div>
-
-                <section class="ngs-card card ngs-manual-card">
-                  <p class="ngs-eyebrow eyebrow">{gettext("Manual fallback")}</p>
-                  <h2>{gettext("Enter another code")}</h2>
-                  <div class="ngs-manual-row manualrow">
-                    <label class="sr-only" for="manual-code">{gettext("Connection code")}</label>
-                    <input id="manual-code" placeholder={gettext("CODE")} disabled />
-                    <button
-                      type="button"
-                      class="ngs-button ngs-button-secondary btn btn--secondary btn--sm"
-                      disabled
-                    >
-                      {gettext("Add")}
-                    </button>
-                  </div>
-                  <p class="ngs-muted-copy">
-                    {gettext(
-                      "Manual entry stays available when camera permissions or lighting are not ideal."
-                    )}
-                  </p>
-                </section>
+                <% end %>
               </section>
             <% :ticket -> %>
               <section class="ngs-section ngs-ticket-section">
                 <%= if signed_in?(@attendee) && @ticket_wallet do %>
                   <.ngs_ticket_wallet_card event={@event} wallet={@ticket_wallet} />
-                  <div class="ngs-wallet-actions">
-                    <button
-                      type="button"
-                      class="ngs-button ngs-button-ghost btn btn--ghost ngs-focus"
-                      disabled
-                    >
-                      {gettext("Apple Wallet")}
-                    </button>
-                    <button
-                      type="button"
-                      class="ngs-button ngs-button-ghost btn btn--ghost ngs-focus"
-                      disabled
-                    >
-                      {gettext("Brighten")}
-                    </button>
-                  </div>
                   <p class="ngs-private-note">
                     <.ngs_icon name="hero-check-circle" class="size-4" /> {gettext(
                       "Private ticket data is only shown to you and authorized check-in staff."
                     )}
                   </p>
                 <% else %>
-                  <section class="ngs-empty-state empty">
-                    <span class="ngs-empty-icon empty__ic">
+                  <section class="ngs-empty-state">
+                    <span class="ngs-empty-icon">
                       <.ngs_icon name="hero-ticket" class="size-7" />
                     </span>
                     <h2>{gettext("Sign in to view your ticket")}</h2>
                     <p>{gettext("Use your ticket email to unlock your event pass.")}</p>
                     <.link
                       href={app_path(assigns, "/login")}
-                      class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                      class="ngs-button ngs-button-primary ngs-focus"
                     >
                       {gettext("Sign in")}
                     </.link>
@@ -467,12 +595,12 @@
                 <% end %>
               </section>
             <% :profile -> %>
-              <section class="ngs-section section ngs-grid-2 grid-2">
+              <section class="ngs-section ngs-grid-2">
                 <%= if signed_in?(@attendee) do %>
-                  <section class="ngs-card card ngs-profile-card-v2">
+                  <section class="ngs-card ngs-profile-card-v2">
                     <span class="ngs-profile-avatar-v2">{attendee_initials(@attendee)}</span>
                     <div>
-                      <p class="ngs-eyebrow eyebrow">{gettext("Verified attendee")}</p>
+                      <p class="ngs-eyebrow">{gettext("Verified attendee")}</p>
                       <h2>{attendee_display_name(@attendee)}</h2>
                       <dl class="ngs-kv-list">
                         <div>
@@ -487,8 +615,44 @@
                     </div>
                   </section>
 
-                  <section class="ngs-card card">
-                    <p class="ngs-eyebrow eyebrow">{gettext("Account")}</p>
+                  <section class="ngs-card ngs-networking-profile-summary">
+                    <div class="ngs-section-heading ngs-section-heading-compact">
+                      <div>
+                        <p class="ngs-eyebrow">{gettext("Networking profile")}</p>
+                        <h2>
+                          {if @bingo_player,
+                            do: @bingo_player.name,
+                            else: gettext("Not created yet")}
+                        </h2>
+                      </div>
+                      <span :if={@bingo_player} class="ngs-count-badge">
+                        {@bingo_progress}/{@bootstrap.features.bingo.count}
+                      </span>
+                    </div>
+                    <p>
+                      {if @bingo_player,
+                        do:
+                          gettext(
+                            "Manage your introduction, shared contact fields and Bingo progress."
+                          ),
+                        else:
+                          gettext(
+                            "Create a public introduction before networking with attendees."
+                          )}
+                    </p>
+                    <.link
+                      navigate={app_path(assigns, "/bingo")}
+                      class="ngs-button ngs-button-ghost ngs-focus"
+                    >
+                      <.ngs_icon name="hero-user-group" class="size-5" />
+                      {if @bingo_player,
+                        do: gettext("Open networking profile"),
+                        else: gettext("Create networking profile")}
+                    </.link>
+                  </section>
+
+                  <section class="ngs-card">
+                    <p class="ngs-eyebrow">{gettext("Account")}</p>
                     <h2>{gettext("Ticket access")}</h2>
                     <p>
                       {gettext(
@@ -497,7 +661,7 @@
                     </p>
                     <.link
                       navigate={app_path(assigns, "/ticket")}
-                      class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                      class="ngs-button ngs-button-primary ngs-focus"
                     >
                       <.ngs_icon name="hero-identification" class="size-5" />
                       {gettext("Open ticket")}
@@ -513,25 +677,22 @@
                         name="_csrf_token"
                         value={Phoenix.Controller.get_csrf_token()}
                       />
-                      <button
-                        type="submit"
-                        class="ngs-button ngs-button-danger btn btn--danger btn--block ngs-focus"
-                      >
+                      <button type="submit" class="ngs-button ngs-button-danger ngs-focus">
                         <.ngs_icon name="hero-arrow-right-on-rectangle" class="size-5" />
                         {gettext("Sign out")}
                       </button>
                     </form>
                   </section>
                 <% else %>
-                  <section class="ngs-empty-state empty">
-                    <span class="ngs-empty-icon empty__ic">
+                  <section class="ngs-empty-state">
+                    <span class="ngs-empty-icon">
                       <.ngs_icon name="hero-envelope" class="size-7" />
                     </span>
                     <h2>{gettext("Sign in to create your profile")}</h2>
                     <p>{gettext("Enter your ticket email and 4-digit code to continue.")}</p>
                     <.link
                       href={app_path(assigns, "/login")}
-                      class="ngs-button ngs-button-primary btn btn--primary btn--block ngs-focus"
+                      class="ngs-button ngs-button-primary ngs-focus"
                     >
                       {gettext("Sign in")}
                     </.link>
@@ -549,22 +710,34 @@
                     <div>
                       <h2>{@event.name}</h2>
                       <p>
-                        {if @vanity, do: gettext("Event app"), else: String.upcase(@event.code)} |
-                        {format_event_time(@event.started_at)}
+                        {if @vanity, do: gettext("Event app"), else: String.upcase(@event.code)} | {format_event_time(
+                          @event.started_at
+                        )}
                       </p>
                     </div>
                   </div>
-                  <span class="ngs-badge ngs-badge-live badge badge--live">
-                    <span class="ngs-live-dot dot dot--live"></span>{event_status(@event)}
+                  <span class={[
+                    "ngs-badge",
+                    event_live?(@agenda_items) && "ngs-badge-live",
+                    !event_live?(@agenda_items) && "ngs-badge-neutral"
+                  ]}>
+                    <span :if={event_live?(@agenda_items)} class="ngs-live-dot dot dot--live">
+                    </span>
+                    <.ngs_icon
+                      :if={!event_live?(@agenda_items)}
+                      name={event_status_icon(@agenda_items)}
+                      class="size-4"
+                    />
+                    {event_status(@event, @agenda_items)}
                   </span>
                 </div>
 
                 <%= if signed_in?(@attendee) do %>
                   <.link
                     navigate={app_path(assigns, "/ticket")}
-                    class="ngs-identity-card identity ngs-focus"
+                    class="ngs-identity-card ngs-focus"
                   >
-                    <span class="ngs-avatar avatar">{attendee_initials(@attendee)}</span>
+                    <span class="ngs-avatar">{attendee_initials(@attendee)}</span>
                     <span>
                       <strong>{attendee_display_name(@attendee)}</strong>
                       <small>{@attendee.ticket_name || gettext("Ticket verified")}</small>
@@ -572,8 +745,8 @@
                     <.ngs_icon name="hero-chevron-right" class="size-5" />
                   </.link>
                 <% else %>
-                  <section class="ngs-identity-card identity">
-                    <span class="ngs-avatar avatar">
+                  <section class="ngs-identity-card">
+                    <span class="ngs-avatar">
                       <.ngs_icon name="hero-envelope" class="size-5" />
                     </span>
                     <span>
@@ -592,12 +765,12 @@
               <section
                 :if={next_item}
                 class={[
-                  "ngs-nextup nextup",
+                  "ngs-nextup",
                   "ngs-track-#{track_tone(next_item.track_name || next_item.session_type || "all")}"
                 ]}
               >
-                <span class="ngs-ring ngs-ring-one ring"></span>
-                <p class="ngs-eyebrow eyebrow">{gettext("Next up")}</p>
+                <span class="ngs-ring ngs-ring-one"></span>
+                <p class="ngs-eyebrow">{gettext("Next up")}</p>
                 <.link
                   navigate={app_path(assigns, "/agenda/#{next_item.id}")}
                   class="ngs-nextup-title ngs-focus"
@@ -605,7 +778,7 @@
                   {next_item.title}
                 </.link>
                 <p :if={next_item.speaker_name}>{speaker_line(next_item)}</p>
-                <div class="ngs-nextup-meta metarow">
+                <div class="ngs-nextup-meta">
                   <span>
                     <.ngs_icon name="hero-clock" class="size-4" /> {format_agenda_time(
                       next_item.starts_at
@@ -617,30 +790,43 @@
                 </div>
               </section>
 
+              <section :if={is_nil(next_item)} class="ngs-empty-state ngs-home-agenda-state">
+                <span class="ngs-empty-icon">
+                  <.ngs_icon name="hero-calendar-days" class="size-6" />
+                </span>
+                <div>
+                  <h2>{gettext("No upcoming sessions")}</h2>
+                  <p>{gettext("Open the agenda to review the complete event schedule.")}</p>
+                </div>
+                <.link navigate={app_path(assigns, "/agenda")} class="ngs-mini-link ngs-focus">
+                  {gettext("View agenda")}
+                </.link>
+              </section>
+
               <section class="ngs-quick-grid quick" aria-label={gettext("Quick actions")}>
-                <.link navigate={app_path(assigns, "/agenda")} class="ngs-tile tile ngs-focus">
+                <.link navigate={app_path(assigns, "/ticket")} class="ngs-tile ngs-focus">
+                  <span><.ngs_icon name="hero-ticket" class="size-5" /></span>{gettext("Ticket")}
+                </.link>
+                <.link navigate={app_path(assigns, "/agenda")} class="ngs-tile ngs-focus">
                   <span><.ngs_icon name="hero-calendar-days" class="size-5" /></span>{gettext(
                     "Agenda"
                   )}
                 </.link>
-                <.link navigate={app_path(assigns, "/ticket")} class="ngs-tile tile ngs-focus">
-                  <span><.ngs_icon name="hero-ticket" class="size-5" /></span>{gettext("Ticket")}
-                </.link>
-                <.link navigate={app_path(assigns, "/scan")} class="ngs-tile tile ngs-focus">
-                  <span><.ngs_icon name="hero-qr-code" class="size-5" /></span>{gettext("Scan")}
-                </.link>
-                <.link navigate={app_path(assigns, "/people")} class="ngs-tile tile ngs-focus">
+                <.link navigate={app_path(assigns, "/people")} class="ngs-tile ngs-focus">
                   <span><.ngs_icon name="hero-user-group" class="size-5" /></span>{gettext(
                     "People"
                   )}
                 </.link>
+                <.link navigate={app_path(assigns, "/scan")} class="ngs-tile ngs-focus">
+                  <span><.ngs_icon name="hero-qr-code" class="size-5" /></span>{gettext("Scan")}
+                </.link>
               </section>
 
               <section class="ngs-section ngs-grid-2 ngs-home-grid">
-                <div class="ngs-card card">
-                  <p class="ngs-eyebrow eyebrow">{gettext("Today")}</p>
+                <div class="ngs-card">
+                  <p class="ngs-eyebrow">{gettext("Today")}</p>
                   <h2>{gettext("Plan your day")}</h2>
-                  <ul class="ngs-livefeed livefeed">
+                  <ul class="ngs-livefeed">
                     <li>
                       <span><.ngs_icon name="hero-calendar-days" class="size-4" /></span><strong>{feature_count(@bootstrap.features.agenda, gettext("item"), gettext("items"))}</strong><small>{gettext("Published agenda sessions")}</small>
                     </li>
@@ -653,15 +839,14 @@
                   </ul>
                 </div>
 
-                <.link
-                  navigate={app_path(assigns, "/scan")}
-                  class="ngs-promo-card promo ngs-focus"
-                >
+                <.link navigate={app_path(assigns, "/scan")} class="ngs-promo-card ngs-focus">
                   <div>
-                    <p class="ngs-eyebrow eyebrow">{gettext("High frequency action")}</p>
-                    <h2>{gettext("Scan, connect, keep moving")}</h2>
+                    <p class="ngs-eyebrow">{gettext("Networking")}</p>
+                    <h2>{gettext("Meet someone new")}</h2>
                     <p>
-                      {gettext("Use the center action for QR networking and Bingo at the event.")}
+                      {gettext(
+                        "Continue your Bingo prompts and keep every connection in one place."
+                      )}
                     </p>
                   </div>
                   <.ngs_icon name="hero-qr-code" class="size-8" />
@@ -670,7 +855,7 @@
           <% end %>
         </main>
 
-        <nav class="ngs-bottomnav bottomnav" aria-label={gettext("Event app navigation")}>
+        <nav class="ngs-bottomnav" aria-label={gettext("Event app navigation")}>
           <.ngs_nav_item
             active={@live_action == :home}
             icon="hero-home"
