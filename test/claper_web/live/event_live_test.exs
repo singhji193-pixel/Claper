@@ -217,6 +217,29 @@ defmodule ClaperWeb.EventLiveTest do
           session_type: "Roundtable"
         })
 
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{resources_enabled: true})
+
+      assert {:ok, _published} =
+               Agendas.create_resource(%{
+                 event_id: event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Investor checklist",
+                 kind: "pdf",
+                 url: "https://cdn.example.com/investor-checklist.pdf",
+                 published: true
+               })
+
+      assert {:ok, _draft} =
+               Agendas.create_resource(%{
+                 event_id: event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Private draft",
+                 kind: "slides",
+                 url: "https://cdn.example.com/draft",
+                 published: false
+               })
+
       conn = init_test_session(conn, %{event_app_session_token: token})
 
       {:ok, session_live, html} = live(conn, ~p"/app/#{event.code}/agenda/#{agenda_item.id}")
@@ -224,6 +247,10 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "Investor breakfast"
       assert html =~ "Atrium"
       assert html =~ "Roundtable / Capital"
+      assert html =~ "Investor checklist"
+      assert html =~ "https://cdn.example.com/investor-checklist.pdf"
+      assert html =~ ~s(rel="noopener noreferrer")
+      refute html =~ "Private draft"
 
       html =
         session_live
@@ -879,6 +906,46 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert {:error, {:redirect, %{to: "/events"}}} =
                live(conn, ~p"/e/#{presentation_file.event.code}/manage/agenda")
+    end
+
+    test "manages published HTTPS resources from the Agenda editor", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      agenda_item = agenda_item_fixture(%{event: event, title: "Capital readiness"})
+
+      {:ok, edit_live, html} =
+        live(conn, ~p"/e/#{event.code}/manage/agenda/#{agenda_item}/edit")
+
+      assert html =~ "Session resources"
+
+      html =
+        edit_live
+        |> form("#agenda-resource-form",
+          agenda_resource: %{
+            title: "Capital worksheet",
+            kind: "pdf",
+            url: "https://cdn.example.com/capital.pdf",
+            published: "true"
+          }
+        )
+        |> render_submit()
+
+      assert html =~ "Session resource saved"
+      assert html =~ "Capital worksheet"
+      assert html =~ "Published"
+
+      resource = agenda_item.id |> Agendas.list_resources() |> List.first()
+      assert resource.kind == "pdf"
+      assert resource.published
+
+      html =
+        edit_live
+        |> element("#agenda-resource-#{resource.id} button[phx-click='edit-resource']")
+        |> render_click()
+
+      assert html =~ "Edit resource"
     end
   end
 

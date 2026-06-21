@@ -2,7 +2,7 @@ defmodule ClaperWeb.EventLive.AgendaManage do
   use ClaperWeb, :live_view
 
   alias Claper.Agendas
-  alias Claper.Agendas.AgendaItem
+  alias Claper.Agendas.{AgendaItem, AgendaResource}
 
   @impl true
   def mount(_params, session, socket) do
@@ -16,6 +16,9 @@ defmodule ClaperWeb.EventLive.AgendaManage do
      |> assign(:agenda_items, [])
      |> assign(:agenda_item, nil)
      |> assign(:form, nil)
+     |> assign(:resources, [])
+     |> assign(:resource, nil)
+     |> assign(:resource_form, nil)
      |> assign(:page_title, gettext("Agenda"))}
   end
 
@@ -48,6 +51,82 @@ defmodule ClaperWeb.EventLive.AgendaManage do
 
   def handle_event("save", %{"agenda_item" => agenda_item_params}, socket) do
     save_agenda_item(socket, socket.assigns.live_action, agenda_item_params)
+  end
+
+  def handle_event("validate-resource", %{"agenda_resource" => params}, socket) do
+    changeset =
+      socket.assigns.resource
+      |> Agendas.change_resource(force_resource_scope(params, socket))
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign_resource_form(socket, changeset)}
+  end
+
+  def handle_event("save-resource", %{"agenda_resource" => params}, socket) do
+    params = force_resource_scope(params, socket)
+
+    result =
+      case socket.assigns.resource do
+        %AgendaResource{id: id} when not is_nil(id) ->
+          Agendas.update_resource(socket.assigns.resource, params)
+
+        _ ->
+          Agendas.create_resource(params)
+      end
+
+    case result do
+      {:ok, _resource} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, gettext("Session resource saved"))
+         |> reload_resources()
+         |> reset_resource_form()}
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        {:noreply, assign_resource_form(socket, changeset)}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, gettext("Could not save this resource"))}
+    end
+  end
+
+  def handle_event("edit-resource", %{"id" => id}, socket) do
+    case Agendas.get_resource_for_event(socket.assigns.event.id, id) do
+      %AgendaResource{} = resource ->
+        {:noreply,
+         socket
+         |> assign(:resource, resource)
+         |> assign_resource_form(Agendas.change_resource(resource))}
+
+      nil ->
+        {:noreply, put_flash(socket, :error, gettext("Resource not found"))}
+    end
+  end
+
+  def handle_event("cancel-resource", _params, socket) do
+    {:noreply, reset_resource_form(socket)}
+  end
+
+  def handle_event("delete-resource", %{"id" => id}, socket) do
+    case Agendas.get_resource_for_event(socket.assigns.event.id, id) do
+      %AgendaResource{} = resource ->
+        {:ok, _resource} = Agendas.delete_resource(resource)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, gettext("Session resource deleted"))
+         |> reload_resources()
+         |> reset_resource_form()}
+
+      nil ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("move-resource", %{"id" => id, "direction" => direction}, socket) do
+    direction = if direction == "up", do: :up, else: :down
+    Agendas.move_resource(socket.assigns.event.id, id, direction)
+    {:noreply, reload_resources(socket)}
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
@@ -85,6 +164,9 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     |> assign(:page_title, gettext("Agenda"))
     |> assign(:agenda_item, nil)
     |> assign(:form, nil)
+    |> assign(:resources, [])
+    |> assign(:resource, nil)
+    |> assign(:resource_form, nil)
   end
 
   defp apply_action(socket, :new, _params) do
@@ -97,6 +179,9 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     socket
     |> assign(:page_title, gettext("New agenda item"))
     |> assign(:agenda_item, agenda_item)
+    |> assign(:resources, [])
+    |> assign(:resource, nil)
+    |> assign(:resource_form, nil)
     |> assign_form(Agendas.change_agenda_item(agenda_item))
   end
 
@@ -106,7 +191,9 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     socket
     |> assign(:page_title, gettext("Edit agenda item"))
     |> assign(:agenda_item, agenda_item)
+    |> assign(:resources, Agendas.list_resources(agenda_item.id))
     |> assign_form(Agendas.change_agenda_item(agenda_item))
+    |> reset_resource_form()
   end
 
   defp load_event(%{assigns: %{current_user: current_user}}, code) do
@@ -160,6 +247,37 @@ defmodule ClaperWeb.EventLive.AgendaManage do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset))
+  end
+
+  defp assign_resource_form(socket, %Ecto.Changeset{} = changeset) do
+    assign(socket, :resource_form, to_form(changeset, as: :agenda_resource))
+  end
+
+  defp reset_resource_form(%{assigns: %{agenda_item: %AgendaItem{} = agenda_item}} = socket) do
+    resource = %AgendaResource{
+      event_id: socket.assigns.event.id,
+      agenda_item_id: agenda_item.id,
+      position: length(socket.assigns.resources)
+    }
+
+    socket
+    |> assign(:resource, resource)
+    |> assign_resource_form(Agendas.change_resource(resource))
+  end
+
+  defp reset_resource_form(socket), do: socket
+
+  defp reload_resources(%{assigns: %{agenda_item: %AgendaItem{} = agenda_item}} = socket) do
+    assign(socket, :resources, Agendas.list_resources(agenda_item.id))
+  end
+
+  defp reload_resources(socket), do: socket
+
+  defp force_resource_scope(params, socket) do
+    params
+    |> Map.put("event_id", socket.assigns.event.id)
+    |> Map.put("agenda_item_id", socket.assigns.agenda_item.id)
+    |> Map.put_new("position", length(socket.assigns.resources))
   end
 
   defp force_event(params, event) do

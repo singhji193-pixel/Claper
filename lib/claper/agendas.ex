@@ -5,7 +5,7 @@ defmodule Claper.Agendas do
 
   import Ecto.Query, warn: false
 
-  alias Claper.Agendas.AgendaItem
+  alias Claper.Agendas.{AgendaItem, AgendaResource}
   alias Claper.Repo
 
   @doc """
@@ -200,6 +200,131 @@ defmodule Claper.Agendas do
     end)
 
     list_agenda_items(event_id)
+  end
+
+  def list_resources(agenda_item_id, opts \\ []) do
+    query =
+      from(resource in AgendaResource,
+        where: resource.agenda_item_id == ^agenda_item_id,
+        order_by: [asc: resource.position, asc: resource.id]
+      )
+
+    query =
+      if Keyword.get(opts, :published_only, false),
+        do: where(query, [resource], resource.published == true),
+        else: query
+
+    Repo.all(query)
+  end
+
+  def get_resource_for_event(event_id, resource_id) do
+    with id when not is_nil(id) <- parse_id(resource_id) do
+      Repo.get_by(AgendaResource, id: id, event_id: event_id)
+    end
+  end
+
+  def change_resource(%AgendaResource{} = resource, attrs \\ %{}) do
+    AgendaResource.changeset(resource, attrs)
+  end
+
+  def create_resource(attrs) do
+    with {:ok, event_id, agenda_item_id} <- resource_scope(attrs) do
+      attrs =
+        attrs
+        |> put_attr(:event_id, event_id)
+        |> put_attr(:agenda_item_id, agenda_item_id)
+        |> put_attr(:position, next_resource_position(agenda_item_id))
+
+      %AgendaResource{}
+      |> AgendaResource.changeset(attrs)
+      |> Repo.insert()
+    end
+  end
+
+  def update_resource(%AgendaResource{} = resource, attrs) do
+    attrs =
+      attrs
+      |> put_attr(:event_id, resource.event_id)
+      |> put_attr(:agenda_item_id, resource.agenda_item_id)
+
+    resource
+    |> AgendaResource.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_resource(%AgendaResource{} = resource) do
+    case Repo.delete(resource) do
+      {:ok, deleted} ->
+        normalize_resource_positions(resource.agenda_item_id)
+        {:ok, deleted}
+
+      error ->
+        error
+    end
+  end
+
+  def move_resource(event_id, resource_id, direction) when direction in [:up, :down] do
+    Repo.transaction(fn ->
+      resource = get_resource_for_event(event_id, resource_id)
+
+      if is_nil(resource) do
+        Repo.rollback(:not_found)
+      else
+        resources = normalize_resource_positions(resource.agenda_item_id)
+        index = Enum.find_index(resources, &(&1.id == resource.id))
+        target_index = target_index(index, direction)
+
+        if target_index >= 0 and target_index < length(resources) do
+          target = Enum.at(resources, target_index)
+
+          resource |> Ecto.Changeset.change(position: target.position) |> Repo.update!()
+          target |> Ecto.Changeset.change(position: resource.position) |> Repo.update!()
+        end
+
+        normalize_resource_positions(resource.agenda_item_id)
+      end
+    end)
+  end
+
+  def move_resource(_event_id, _resource_id, _direction), do: {:error, :invalid_direction}
+
+  defp next_resource_position(agenda_item_id) do
+    from(resource in AgendaResource,
+      where: resource.agenda_item_id == ^agenda_item_id,
+      select: max(resource.position)
+    )
+    |> Repo.one()
+    |> case do
+      nil -> 0
+      position -> position + 1
+    end
+  end
+
+  defp normalize_resource_positions(agenda_item_id) do
+    agenda_item_id
+    |> list_resources()
+    |> Enum.with_index()
+    |> Enum.each(fn {resource, position} ->
+      if resource.position != position do
+        resource |> Ecto.Changeset.change(position: position) |> Repo.update!()
+      end
+    end)
+
+    list_resources(agenda_item_id)
+  end
+
+  defp resource_scope(attrs) do
+    event_id = attrs |> attr(:event_id) |> parse_id()
+    agenda_item_id = attrs |> attr(:agenda_item_id) |> parse_id()
+
+    if event_id && agenda_item_id do
+      case get_agenda_item_for_event(event_id, agenda_item_id) do
+        %AgendaItem{} -> {:ok, event_id, agenda_item_id}
+        nil -> {:error, :agenda_item_not_found}
+      end
+    else
+      {:error, :agenda_item_not_found}
+    end
   end
 
   defp target_index(index, :up), do: index - 1

@@ -51,6 +51,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:people_query, "")
          |> assign(:scanner_open, false)
          |> assign(:session_item, nil)
+         |> assign(:session_resources, [])
          |> assign(:ticket_wallet, ticket_wallet(event.id, attendee_session_token))
          |> assign(
            :bookmarked_agenda_item_ids,
@@ -93,6 +94,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:bingo_progress, 0)
          |> assign(:bingo_connections, [])
          |> assign(:session_item, nil)
+         |> assign(:session_resources, [])
          |> assign(:ticket_wallet, nil)
          |> assign(:bookmarked_agenda_item_ids, MapSet.new())
          |> assign(:live_snapshot, nil)
@@ -209,6 +211,12 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp apply_event_app_action(socket, :session, %{"agenda_item_id" => agenda_item_id}) do
     session_item = Agendas.get_agenda_item_for_event(socket.assigns.event.id, agenda_item_id)
+
+    session_resources =
+      if session_item && socket.assigns.settings.resources_enabled,
+        do: Agendas.list_resources(session_item.id, published_only: true),
+        else: []
+
     selected_day = session_item && date_value(NaiveDateTime.to_date(session_item.starts_at))
     selected_track = session_item && (session_item.track_name || "all")
 
@@ -217,6 +225,7 @@ defmodule ClaperWeb.PwaLive.App do
     |> assign(:selected_day, selected_day)
     |> assign(:selected_track, selected_track || "all")
     |> assign(:session_item, session_item)
+    |> assign(:session_resources, session_resources)
     |> assign(:visible_agenda_items, socket.assigns.agenda_items)
   end
 
@@ -245,6 +254,11 @@ defmodule ClaperWeb.PwaLive.App do
     |> assign(:page_title, ngs_page_title(live_action))
     |> assign(:session_item, nil)
   end
+
+  def resource_icon("pdf"), do: "hero-document-text"
+  def resource_icon("slides"), do: "hero-presentation-chart-bar"
+  def resource_icon("recording"), do: "hero-play-circle"
+  def resource_icon(_kind), do: "hero-link"
 
   defp visible_agenda_items(socket, selected_day, selected_track, query, saved_only) do
     socket.assigns.event.id

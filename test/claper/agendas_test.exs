@@ -3,6 +3,7 @@ defmodule Claper.AgendasTest do
 
   alias Claper.Agendas
   alias Claper.Agendas.AgendaItem
+  alias Claper.Agendas.AgendaResource
   alias Claper.Repo
 
   import Claper.{AgendasFixtures, EventsFixtures}
@@ -186,6 +187,79 @@ defmodule Claper.AgendasTest do
 
       assert {:ok, _event} = Claper.Events.delete_event(event)
       refute Repo.get(AgendaItem, agenda_item.id)
+    end
+  end
+
+  describe "session resources" do
+    test "creates, publishes, reorders, and deletes event-scoped HTTPS resources" do
+      event = event_fixture()
+      agenda_item = agenda_item_fixture(%{event: event})
+
+      assert {:ok, slides} =
+               Agendas.create_resource(%{
+                 event_id: event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Session slides",
+                 kind: "slides",
+                 url: "https://cdn.example.com/slides",
+                 published: true
+               })
+
+      assert {:ok, recording} =
+               Agendas.create_resource(%{
+                 event_id: event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Recording",
+                 kind: "recording",
+                 url: "https://video.example.com/session",
+                 published: false
+               })
+
+      assert Enum.map(Agendas.list_resources(agenda_item.id), & &1.id) == [
+               slides.id,
+               recording.id
+             ]
+
+      assert Enum.map(Agendas.list_resources(agenda_item.id, published_only: true), & &1.id) == [
+               slides.id
+             ]
+
+      assert {:ok, _resources} = Agendas.move_resource(event.id, recording.id, :up)
+
+      assert Enum.map(Agendas.list_resources(agenda_item.id), & &1.id) == [
+               recording.id,
+               slides.id
+             ]
+
+      assert {:ok, deleted} = Agendas.delete_resource(recording)
+      assert deleted.id == recording.id
+      refute Repo.get(AgendaResource, recording.id)
+    end
+
+    test "rejects non-HTTPS and cross-event resources" do
+      event = event_fixture()
+      other_event = event_fixture()
+      agenda_item = agenda_item_fixture(%{event: event})
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Agendas.create_resource(%{
+                 event_id: event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Unsafe link",
+                 kind: "link",
+                 url: "http://example.com"
+               })
+
+      assert "must be a valid HTTPS URL" in errors_on(changeset).url
+
+      assert {:error, :agenda_item_not_found} =
+               Agendas.create_resource(%{
+                 event_id: other_event.id,
+                 agenda_item_id: agenda_item.id,
+                 title: "Cross event",
+                 kind: "pdf",
+                 url: "https://example.com/file.pdf"
+               })
     end
   end
 end

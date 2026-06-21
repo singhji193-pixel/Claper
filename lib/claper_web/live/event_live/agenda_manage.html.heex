@@ -211,6 +211,177 @@
       </section>
     <% end %>
 
+    <section
+      :if={@live_action == :edit && @resource_form}
+      class="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm"
+    >
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wide text-primary-600">
+            {gettext("Session resources")}
+          </p>
+          <h2 class="text-xl font-semibold text-gray-900">
+            {if @resource && @resource.id,
+              do: gettext("Edit resource"),
+              else: gettext("Add resource")}
+          </h2>
+          <p class="mt-1 text-sm leading-6 text-gray-500">
+            {gettext("Publish HTTPS links to slides, PDFs, recordings, or supporting material.")}
+          </p>
+        </div>
+        <button
+          :if={@resource && @resource.id}
+          type="button"
+          phx-click="cancel-resource"
+          class="min-h-11 rounded-md px-3 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+        >
+          {gettext("Cancel edit")}
+        </button>
+      </div>
+
+      <.form
+        for={@resource_form}
+        id="agenda-resource-form"
+        phx-change="validate-resource"
+        phx-submit="save-resource"
+        class="mt-5 grid gap-4 md:grid-cols-6"
+      >
+        {hidden_input(@resource_form, :event_id)}
+        {hidden_input(@resource_form, :agenda_item_id)}
+        {hidden_input(@resource_form, :position)}
+
+        <div class="md:col-span-3">
+          <label class="block text-sm font-semibold text-gray-700">{gettext("Title")}</label>
+          {text_input(@resource_form, :title,
+            required: true,
+            maxlength: 120,
+            class:
+              "mt-2 block min-h-11 w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          )}
+          <div class="mt-1 text-sm text-red-600">{error_tag(@resource_form, :title)}</div>
+        </div>
+
+        <div class="md:col-span-3">
+          <label class="block text-sm font-semibold text-gray-700">{gettext("Type")}</label>
+          {select(
+            @resource_form,
+            :kind,
+            [
+              {gettext("Link"), "link"},
+              {gettext("PDF"), "pdf"},
+              {gettext("Slides"), "slides"},
+              {gettext("Recording"), "recording"}
+            ],
+            class:
+              "mt-2 block min-h-11 w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          )}
+          <div class="mt-1 text-sm text-red-600">{error_tag(@resource_form, :kind)}</div>
+        </div>
+
+        <div class="md:col-span-6">
+          <label class="block text-sm font-semibold text-gray-700">{gettext("HTTPS URL")}</label>
+          {url_input(@resource_form, :url,
+            required: true,
+            maxlength: 2048,
+            placeholder: "https://",
+            class:
+              "mt-2 block min-h-11 w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          )}
+          <div class="mt-1 text-sm text-red-600">{error_tag(@resource_form, :url)}</div>
+        </div>
+
+        <label class="flex min-h-11 items-center gap-3 md:col-span-3">
+          {checkbox(@resource_form, :published,
+            class: "h-5 w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          )}
+          <span class="text-sm font-semibold text-gray-700">
+            {gettext("Published to attendees")}
+          </span>
+        </label>
+
+        <div class="flex items-center md:col-span-3 md:justify-end">
+          <button
+            type="submit"
+            phx-disable-with={gettext("Saving...")}
+            class="inline-flex min-h-11 items-center justify-center rounded-md bg-primary-500 px-5 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+          >
+            {if @resource && @resource.id,
+              do: gettext("Update resource"),
+              else: gettext("Add resource")}
+          </button>
+        </div>
+      </.form>
+
+      <div
+        :if={!Enum.empty?(@resources)}
+        class="mt-6 divide-y divide-gray-200 border-t border-gray-200"
+      >
+        <article
+          :for={{resource, index} <- Enum.with_index(@resources)}
+          id={"agenda-resource-#{resource.id}"}
+          class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <strong class="text-sm text-gray-900">{resource.title}</strong>
+              <span class="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold uppercase text-gray-600">
+                {resource.kind}
+              </span>
+              <span class={[
+                "rounded-full px-2 py-1 text-xs font-semibold",
+                resource.published && "bg-emerald-50 text-emerald-700",
+                !resource.published && "bg-amber-50 text-amber-700"
+              ]}>
+                {if resource.published, do: gettext("Published"), else: gettext("Draft")}
+              </span>
+            </div>
+            <p class="mt-1 truncate text-sm text-gray-500">{resource.url}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              phx-click="move-resource"
+              phx-value-id={resource.id}
+              phx-value-direction="up"
+              disabled={index == 0}
+              class="min-h-11 rounded-md bg-gray-100 px-3 text-sm font-semibold text-gray-600 disabled:opacity-40"
+              title={gettext("Move up")}
+            >
+              {gettext("Up")}
+            </button>
+            <button
+              type="button"
+              phx-click="move-resource"
+              phx-value-id={resource.id}
+              phx-value-direction="down"
+              disabled={index == length(@resources) - 1}
+              class="min-h-11 rounded-md bg-gray-100 px-3 text-sm font-semibold text-gray-600 disabled:opacity-40"
+              title={gettext("Move down")}
+            >
+              {gettext("Down")}
+            </button>
+            <button
+              type="button"
+              phx-click="edit-resource"
+              phx-value-id={resource.id}
+              class="min-h-11 rounded-md px-3 text-sm font-semibold text-primary-700 hover:bg-primary-50"
+            >
+              {gettext("Edit")}
+            </button>
+            <button
+              type="button"
+              phx-click="delete-resource"
+              phx-value-id={resource.id}
+              data-confirm={gettext("Delete this resource?")}
+              class="min-h-11 rounded-md px-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              {gettext("Delete")}
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="overflow-hidden rounded-xl bg-white shadow-base">
       <%= if Enum.empty?(@agenda_items) do %>
         <div class="p-8 text-center">

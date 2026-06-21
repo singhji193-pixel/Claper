@@ -297,6 +297,36 @@
                     )}
                   </button>
                 </section>
+
+                <section
+                  :if={!Enum.empty?(@session_resources)}
+                  class="ngs-section ngs-resource-section"
+                >
+                  <div class="ngs-section-heading ngs-section-heading-compact">
+                    <div>
+                      <p class="ngs-eyebrow">{gettext("Session resources")}</p>
+                      <h2>{gettext("Continue with the material")}</h2>
+                    </div>
+                  </div>
+                  <div class="ngs-resource-list">
+                    <a
+                      :for={resource <- @session_resources}
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="ngs-resource-item ngs-focus"
+                    >
+                      <span>
+                        <.ngs_icon name={resource_icon(resource.kind)} class="size-5" />
+                      </span>
+                      <span>
+                        <strong>{resource.title}</strong>
+                        <small>{String.upcase(resource.kind)}</small>
+                      </span>
+                      <.ngs_icon name="hero-arrow-top-right-on-square" class="size-5" />
+                    </a>
+                  </div>
+                </section>
               <% else %>
                 <section class="ngs-empty-state">
                   <span class="ngs-empty-icon">
