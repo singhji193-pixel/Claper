@@ -112,22 +112,13 @@
         <main id="ngs-main" class="ngs-main" tabindex="-1">
           <%= case @live_action do %>
             <% :live -> %>
-              <section id="pwa-live-interactions" class="ngs-empty-state">
-                <span class="ngs-empty-icon">
-                  <.ngs_icon name="hero-bolt" class="size-7" />
-                </span>
-                <p class="ngs-eyebrow">{gettext("Live session")}</p>
-                <h2>
-                  <%= if @live_snapshot && @live_snapshot.active do %>
-                    {@live_snapshot.active.title}
-                  <% else %>
-                    {gettext("No interaction is active")}
-                  <% end %>
-                </h2>
-                <p>
-                  {gettext("This screen updates when the presenter starts the next interaction.")}
-                </p>
-              </section>
+              <.live_component
+                module={ClaperWeb.PwaLive.LiveInteractionsComponent}
+                id="pwa-live-interactions"
+                snapshot={@live_snapshot}
+                event={@event}
+                interaction_key={@interaction_key}
+              />
             <% :agenda -> %>
               <section class="ngs-filterbar" aria-label={gettext("Agenda filters")}>
                 <form method="get" action={app_path(assigns, "/agenda")} class="ngs-search-form">
@@ -779,6 +770,21 @@
                 <% end %>
               </section>
 
+              <.link
+                :if={active_live?(@live_snapshot)}
+                navigate={app_path(assigns, "/live")}
+                class="ngs-live-home-card ngs-focus"
+              >
+                <span class="ngs-live-home-icon">
+                  <.ngs_icon name="hero-bolt" class="size-6" />
+                </span>
+                <span>
+                  <small>{gettext("Live now")}</small>
+                  <strong>{@live_snapshot.active.title}</strong>
+                </span>
+                <span class="ngs-live-home-action">{gettext("Join")}</span>
+              </.link>
+
               <section
                 :if={next_item}
                 class={[
@@ -871,6 +877,19 @@
               </section>
           <% end %>
         </main>
+
+        <.link
+          :if={@live_action != :live && active_live?(@live_snapshot)}
+          navigate={app_path(assigns, "/live")}
+          class="ngs-live-banner ngs-focus"
+          aria-label={
+            gettext("Open active interaction: %{title}", title: @live_snapshot.active.title)
+          }
+        >
+          <span><.ngs_icon name="hero-bolt" class="size-5" /></span>
+          <strong>{@live_snapshot.active.title}</strong>
+          <small>{gettext("Interact")}</small>
+        </.link>
 
         <nav class="ngs-bottomnav" aria-label={gettext("Event app navigation")}>
           <.ngs_nav_item

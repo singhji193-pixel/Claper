@@ -2,7 +2,15 @@ defmodule ClaperWeb.EventLiveTest do
   use ClaperWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Claper.{AgendasFixtures, BingosFixtures, PollsFixtures, PresentationsFixtures}
+
+  import Claper.{
+    AgendasFixtures,
+    BingosFixtures,
+    FormsFixtures,
+    PollsFixtures,
+    PresentationsFixtures,
+    QuizzesFixtures
+  }
 
   alias Claper.Agendas
   alias Claper.{Bingos, Polls}
@@ -277,14 +285,119 @@ defmodule ClaperWeb.EventLiveTest do
       {:ok, live_view, html} = live(conn, ~p"/app/#{event.code}/live")
 
       assert html =~ "Opening poll"
+      assert html =~ "Interact"
+      assert html =~ "Submit answer"
 
       assert Map.has_key?(
                ClaperWeb.Presence.list("event:#{event.uuid}"),
                identity.interaction_key
              )
 
+      selected_option = List.first(poll.poll_opts)
+
+      html =
+        live_view
+        |> form("#pwa-live-poll-form-#{poll.id}", %{
+          "poll_id" => poll.id,
+          "option_ids" => [selected_option.id]
+        })
+        |> render_submit()
+
+      assert html =~ "Submitted"
+      assert length(Polls.get_poll_vote(identity.interaction_key, poll.id)) == 1
+
       assert {:ok, _poll} = Polls.update_poll(event.uuid, poll, %{title: "Updated poll"})
       assert render(live_view) =~ "Updated poll"
+    end
+
+    test "shows the contextual Live card and banner without changing bottom navigation", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      poll_fixture(%{
+        presentation_file_id: presentation_file.id,
+        position: 0,
+        enabled: true,
+        title: "Live audience check-in"
+      })
+
+      conn = sign_in_attendee(conn, event)
+      {:ok, _home, html} = live(conn, ~p"/app/#{event.code}")
+
+      assert html =~ "ngs-live-home-card"
+      assert html =~ "ngs-live-banner"
+      assert html =~ "Live audience check-in"
+      assert html =~ "ngs-bottomnav"
+    end
+
+    test "submits native Quiz and Form interactions", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+      conn = sign_in_attendee(conn, event)
+      token = get_session(conn, :event_app_session_token)
+      {:ok, identity} = EventApp.interaction_identity(event.id, token)
+
+      quiz =
+        quiz_fixture(%{
+          presentation_file: presentation_file,
+          position: 0,
+          enabled: true,
+          title: "Session quiz"
+        })
+
+      question = List.first(quiz.quiz_questions)
+      option = List.first(question.quiz_question_opts)
+      {:ok, live_view, html} = live(conn, ~p"/app/#{event.code}/live")
+      assert html =~ "Session quiz"
+      assert html =~ "Lock answer"
+
+      html =
+        live_view
+        |> form("#pwa-live-quiz-form-#{quiz.id}-#{question.id}", %{
+          "quiz_id" => quiz.id,
+          "option_ids" => [option.id]
+        })
+        |> render_submit()
+
+      refute html =~ "Lock answer"
+      assert length(Claper.Quizzes.get_quiz_responses(identity.interaction_key, quiz.id)) == 1
+
+      assert {:ok, _quiz} = Claper.Quizzes.set_disabled(quiz.id)
+
+      form =
+        form_fixture(%{
+          presentation_file_id: presentation_file.id,
+          position: 0,
+          enabled: true,
+          title: "Session feedback"
+        })
+
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{event.uuid}",
+        {:current_interaction, form}
+      )
+
+      assert render(live_view) =~ "Session feedback"
+
+      html =
+        live_view
+        |> form("#pwa-live-form-#{form.id}", %{
+          "form_id" => form.id,
+          "response" => %{"Name" => "Avery"}
+        })
+        |> render_submit()
+
+      assert html =~ "Saved"
+      assert Claper.Forms.get_form_submit(identity.interaction_key, form.id)
     end
 
     test "serves native Live through the vanity app route", %{

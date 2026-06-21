@@ -44,7 +44,8 @@ defmodule Claper.EventApp.LiveInteractions do
          resources_enabled: settings.resources_enabled,
          banned: banned?(context.state, interaction_key),
          state: public_state(context.state),
-         active: public_interaction(context.active, interaction_key)
+         active: public_interaction(context.active, interaction_key),
+         latest_result: latest_result(context, interaction_key)
        }}
     end
   end
@@ -169,6 +170,7 @@ defmodule Claper.EventApp.LiveInteractions do
   defp public_interaction(nil, _interaction_key), do: nil
 
   defp public_interaction(%Poll{} = poll, interaction_key) do
+    poll = Polls.set_percentages(poll)
     votes = Polls.get_poll_vote(interaction_key, poll.id)
 
     %{
@@ -188,6 +190,7 @@ defmodule Claper.EventApp.LiveInteractions do
   end
 
   defp public_interaction(%Quiz{} = quiz, interaction_key) do
+    quiz = Quizzes.set_percentages(quiz)
     responses = Quizzes.get_quiz_responses(interaction_key, quiz.id)
 
     %{
@@ -245,6 +248,25 @@ defmodule Claper.EventApp.LiveInteractions do
       anonymous_chat_enabled: state.anonymous_chat_enabled,
       message_reaction_enabled: state.message_reaction_enabled
     }
+  end
+
+  defp latest_result(%{active: active}, _interaction_key) when not is_nil(active), do: nil
+
+  defp latest_result(context, interaction_key) do
+    cutoff = NaiveDateTime.utc_now() |> NaiveDateTime.add(-30, :minute)
+
+    case Interactions.get_interactions_at_position(context.event, context.state.position) do
+      {:ok, interactions} ->
+        interactions
+        |> Enum.filter(&(match?(%Poll{}, &1) or match?(%Quiz{}, &1)))
+        |> Enum.filter(&(NaiveDateTime.compare(&1.updated_at, cutoff) in [:gt, :eq]))
+        |> Enum.sort_by(& &1.updated_at, {:desc, NaiveDateTime})
+        |> List.first()
+        |> public_interaction(interaction_key)
+
+      _ ->
+        nil
+    end
   end
 
   defp banned?(state, interaction_key) when is_binary(interaction_key),

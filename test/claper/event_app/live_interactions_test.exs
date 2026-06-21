@@ -90,4 +90,15 @@ defmodule Claper.EventApp.LiveInteractionsTest do
              type: "poll"
            }
   end
+
+  test "keeps the latest closed Poll result for the current slide", context do
+    assert {:ok, _poll} = Claper.Polls.set_disabled(context.poll.id)
+
+    assert {:ok, snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert is_nil(snapshot.active)
+    assert snapshot.latest_result.kind == :poll
+    assert snapshot.latest_result.id == context.poll.id
+  end
 end

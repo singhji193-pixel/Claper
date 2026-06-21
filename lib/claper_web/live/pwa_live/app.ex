@@ -112,6 +112,14 @@ defmodule ClaperWeb.PwaLive.App do
   def handle_params(_params, _url, socket), do: {:noreply, socket}
 
   @impl true
+  def handle_info({:pwa_live_snapshot, snapshot}, socket) do
+    {:noreply, assign(socket, :live_snapshot, snapshot)}
+  end
+
+  def handle_info({:pwa_live_error, reason}, socket) do
+    {:noreply, put_flash(socket, :error, live_error_message(reason))}
+  end
+
   def handle_info(message, socket) do
     if LiveInteractions.invalidation_message?(message) do
       {:noreply, load_live_snapshot(socket)}
@@ -350,6 +358,21 @@ defmodule ClaperWeb.PwaLive.App do
 
     settings.live_interactions_enabled or settings.qa_enabled or settings.chat_enabled
   end
+
+  def active_live?(%{enabled: true, banned: false, active: active}) when not is_nil(active),
+    do: true
+
+  def active_live?(_snapshot), do: false
+
+  defp live_error_message(:feature_disabled), do: gettext("Live interactions are not open.")
+  defp live_error_message(:banned), do: gettext("Live participation is unavailable.")
+  defp live_error_message(:invalid_selection), do: gettext("Select an answer before submitting.")
+  defp live_error_message(:invalid_option), do: gettext("That answer is no longer available.")
+
+  defp live_error_message(:interaction_mismatch),
+    do: gettext("The presenter moved to a new interaction.")
+
+  defp live_error_message(_reason), do: gettext("Your response could not be saved. Try again.")
 
   defp connect_bingo(socket, code) do
     case Bingos.connect_player(
