@@ -18,14 +18,13 @@ defmodule ClaperWeb.PwaLive.App do
 
     attendee_session_token =
       socket.assigns[:event_app_session_token] ||
-        Map.get(session, "event_app_session_token") ||
-        socket.assigns[:attendee_identifier] ||
-        Map.get(session, "attendee_identifier")
+        Map.get(session, "event_app_session_token")
 
     case code && Events.get_event_with_code(code) do
       %Event{} = event ->
         settings = EventApp.settings_for_event(event.id)
         bootstrap = EventApp.bootstrap_for_event(event, attendee_session_token)
+        interaction_key = interaction_key(event.id, attendee_session_token)
         agenda_items = Agendas.list_agenda_items(event.id)
 
         {:ok,
@@ -38,6 +37,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:bootstrap, bootstrap)
          |> assign(:attendee, bootstrap.attendee)
          |> assign(:attendee_session_token, attendee_session_token)
+         |> assign(:interaction_key, interaction_key)
          |> assign(:agenda_items, agenda_items)
          |> assign(:agenda_days, Agendas.agenda_days(event.id))
          |> assign(:agenda_tracks, Agendas.agenda_tracks(event.id))
@@ -68,6 +68,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:bootstrap, nil)
          |> assign(:attendee, nil)
          |> assign(:attendee_session_token, nil)
+         |> assign(:interaction_key, nil)
          |> assign(:agenda_items, [])
          |> assign(:agenda_days, [])
          |> assign(:agenda_tracks, [])
@@ -136,7 +137,7 @@ defmodule ClaperWeb.PwaLive.App do
   def handle_event("create-bingo-player", %{"bingo_player" => player_params}, socket) do
     case Bingos.ensure_player(
            socket.assigns.event,
-           socket.assigns.attendee_session_token,
+           socket.assigns.interaction_key,
            player_params
          ) do
       {:ok, _player} ->
@@ -277,7 +278,7 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp load_bingo(%{assigns: %{event: %Event{} = event}} = socket) do
     settings = Bingos.get_or_create_settings(event.id)
-    player = Bingos.get_player(event.id, socket.assigns.attendee_session_token)
+    player = Bingos.get_player(event.id, socket.assigns.interaction_key)
     forum_players = Bingos.list_forum_players(event.id)
 
     profile_changeset =
@@ -308,7 +309,7 @@ defmodule ClaperWeb.PwaLive.App do
   defp connect_bingo(socket, code) do
     case Bingos.connect_player(
            socket.assigns.event.id,
-           socket.assigns.attendee_session_token,
+           socket.assigns.interaction_key,
            code
          ) do
       {:ok, connection} ->
@@ -335,6 +336,13 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   defp normalize_agenda_query(_query), do: ""
+
+  defp interaction_key(event_id, token) do
+    case EventApp.interaction_identity(event_id, token) do
+      {:ok, identity} -> identity.interaction_key
+      {:error, _reason} -> nil
+    end
+  end
 
   defp normalize_people_query(nil), do: ""
 

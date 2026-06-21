@@ -128,6 +128,31 @@ defmodule Claper.EventApp do
     end
   end
 
+  def interaction_identity(event_id, token) do
+    case attendee_session(event_id, token) do
+      {:ok, %Session{attendee: %Attendee{} = attendee}} ->
+        {:ok, %{attendee: attendee, interaction_key: attendee.interaction_key}}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def claim_legacy_identity(event_id, %Attendee{event_id: event_id} = attendee, legacy_identifier) do
+    with true <- present?(legacy_identifier),
+         false <- legacy_identifier == attendee.interaction_key,
+         {:ok, bingo_player} <-
+           Bingos.claim_player_identity(event_id, legacy_identifier, attendee.interaction_key) do
+      {:ok, %{bingo_player: bingo_player}}
+    else
+      false -> {:ok, %{bingo_player: Bingos.get_player(event_id, attendee.interaction_key)}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def claim_legacy_identity(_event_id, _attendee, _legacy_identifier),
+    do: {:error, :invalid_identity_claim}
+
   def ticket_wallet(event_id, token) do
     case attendee_session(event_id, token) do
       {:ok, %Session{attendee: attendee}} ->

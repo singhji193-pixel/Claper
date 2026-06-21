@@ -1,7 +1,7 @@
 defmodule Claper.EventAppAuthTest do
   use Claper.DataCase
 
-  import Claper.{AgendasFixtures, EventsFixtures}
+  import Claper.{AgendasFixtures, BingosFixtures, EventsFixtures}
 
   alias Claper.EventApp
   alias Claper.EventApp.{Attendee, Notifications, OtpChallenge, Session}
@@ -48,6 +48,7 @@ defmodule Claper.EventAppAuthTest do
 
       assert attendee.email == "avery@example.com"
       assert attendee.name == "Avery Singh"
+      assert {:ok, _uuid} = Ecto.UUID.cast(attendee.interaction_key)
       assert is_binary(token)
 
       assert Repo.get!(OtpChallenge, challenge.id).status == "verified"
@@ -65,6 +66,65 @@ defmodule Claper.EventAppAuthTest do
       assert {:ok, bootstrap} = EventApp.bootstrap_event(event.code, token)
       assert bootstrap.attendee.authenticated
       assert bootstrap.attendee.email == "avery@example.com"
+    end
+
+    test "keeps one stable interaction identity across repeated OTP sessions" do
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{attendee: first_attendee, token: first_token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      Repo.update_all(
+        from(challenge in OtpChallenge, where: challenge.event_id == ^event.id),
+        set: [inserted_at: NaiveDateTime.add(NaiveDateTime.utc_now(), -120, :second)]
+      )
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "5932")
+
+      assert {:ok, %{attendee: second_attendee, token: second_token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "5932")
+
+      refute first_token == second_token
+      assert first_attendee.id == second_attendee.id
+      assert first_attendee.interaction_key == second_attendee.interaction_key
+
+      assert {:ok, identity} = EventApp.interaction_identity(event.id, second_token)
+      assert identity.attendee.id == first_attendee.id
+      assert identity.interaction_key == first_attendee.interaction_key
+    end
+
+    test "claims a legacy Bingo identity without replacing an existing stable player" do
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{attendee: attendee}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      legacy_player =
+        bingo_player_fixture(%{
+          event: event,
+          attendee_identifier: "legacy-session-token",
+          name: "Avery"
+        })
+
+      assert {:ok, %{bingo_player: claimed}} =
+               EventApp.claim_legacy_identity(event.id, attendee, "legacy-session-token")
+
+      assert claimed.id == legacy_player.id
+      assert claimed.attendee_identifier == attendee.interaction_key
+
+      assert {:ok, %{bingo_player: same_player}} =
+               EventApp.claim_legacy_identity(event.id, attendee, "legacy-session-token")
+
+      assert same_player.id == legacy_player.id
     end
 
     test "returns a safe ticket wallet for a signed-in attendee" do

@@ -243,6 +243,17 @@ defmodule ClaperWeb.EventLiveTest do
       assert to == ~p"/app/#{event.code}/login?#{[next: ~p"/app/#{event.code}/profile"]}"
     end
 
+    test "does not authenticate with a compatibility attendee identifier alone", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      conn = init_test_session(conn, %{attendee_identifier: Ecto.UUID.generate()})
+
+      assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/app/#{event.code}/profile")
+      assert to == ~p"/app/#{event.code}/login?#{[next: ~p"/app/#{event.code}/profile"]}"
+    end
+
     test "shows a verified ticket profile for signed-in attendees", %{
       conn: conn,
       presentation_file: presentation_file
@@ -305,6 +316,7 @@ defmodule ClaperWeb.EventLiveTest do
       bingo_prompt_fixture(%{event: event, prompt: "Meet someone building with AI"})
       conn = sign_in_attendee(conn, event)
       token = get_session(conn, :event_app_session_token)
+      {:ok, identity} = EventApp.interaction_identity(event.id, token)
 
       {:ok, scan_live, html} = live(conn, ~p"/app/#{event.code}/scan")
 
@@ -316,7 +328,7 @@ defmodule ClaperWeb.EventLiveTest do
         |> form("#pwa-bingo-profile-form", bingo_player: %{name: "Avery Singh"})
         |> render_submit()
 
-      player = Bingos.get_player(event.id, token)
+      player = Bingos.get_player(event.id, identity.interaction_key)
 
       assert player.name == "Avery Singh"
       assert html =~ player.code

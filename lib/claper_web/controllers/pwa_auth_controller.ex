@@ -40,10 +40,12 @@ defmodule ClaperWeb.PwaAuthController do
     next_path = next_path(params)
 
     case EventApp.verify_login_code(code, email, otp, request_metadata(conn)) do
-      {:ok, %{event: event, token: token}} ->
+      {:ok, %{event: event, attendee: attendee, token: token}} ->
+        claim_legacy_identity(conn, event.id, attendee)
+
         conn
         |> put_session(:event_app_session_token, token)
-        |> put_session(:attendee_identifier, token)
+        |> put_session(:attendee_identifier, attendee.interaction_key)
         |> put_flash(:info, gettext("You are signed in."))
         |> redirect(to: safe_next_path(next_path, route_source(event.code, vanity)))
 
@@ -61,6 +63,7 @@ defmodule ClaperWeb.PwaAuthController do
 
     conn
     |> delete_session(:event_app_session_token)
+    |> delete_session(:attendee_identifier)
     |> put_flash(:info, gettext("You are signed out."))
     |> redirect(to: PwaApp.app_path(route_source(code, vanity?(params))))
   end
@@ -95,6 +98,16 @@ defmodule ClaperWeb.PwaAuthController do
       request_ip: remote_ip(conn),
       user_agent: conn |> get_req_header("user-agent") |> List.first()
     ]
+  end
+
+  defp claim_legacy_identity(conn, event_id, attendee) do
+    case get_session(conn, :attendee_identifier) do
+      identifier when is_binary(identifier) ->
+        EventApp.claim_legacy_identity(event_id, attendee, identifier)
+
+      _ ->
+        :ok
+    end
   end
 
   defp remote_ip(%{remote_ip: remote_ip}) when is_tuple(remote_ip) do

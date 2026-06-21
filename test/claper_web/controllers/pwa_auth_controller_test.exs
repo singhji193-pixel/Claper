@@ -4,6 +4,7 @@ defmodule ClaperWeb.PwaAuthControllerTest do
   import Claper.EventsFixtures
 
   alias Claper.EventApp
+  alias Claper.EventApp.Attendee
   alias Claper.HiEvents
   alias Claper.HiEvents.EventTicket
   alias Claper.Repo
@@ -96,6 +97,34 @@ defmodule ClaperWeb.PwaAuthControllerTest do
 
       assert redirected_to(conn) == ~p"/app/#{event.code}"
       assert get_session(conn, :event_app_session_token)
+
+      attendee = Repo.get_by!(Attendee, event_id: event.id, email: "avery@example.com")
+      assert get_session(conn, :attendee_identifier) == attendee.interaction_key
+
+      refute get_session(conn, :attendee_identifier) ==
+               get_session(conn, :event_app_session_token)
+    end
+
+    test "sign out clears authentication and compatibility identity values", %{conn: conn} do
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{attendee: attendee, token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      conn =
+        conn
+        |> init_test_session(%{
+          event_app_session_token: token,
+          attendee_identifier: attendee.interaction_key
+        })
+        |> delete(~p"/app/#{event.code}/session")
+
+      assert is_nil(get_session(conn, :event_app_session_token))
+      assert is_nil(get_session(conn, :attendee_identifier))
     end
 
     test "sets attendee session and returns to vanity next path after verification", %{conn: conn} do

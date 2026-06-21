@@ -201,9 +201,35 @@ defmodule Claper.Bingos do
     |> update_settings(attrs)
   end
 
+  def get_player(_event_id, attendee_identifier) when not is_binary(attendee_identifier), do: nil
+
   def get_player(event_id, attendee_identifier) do
     Repo.get_by(BingoPlayer, event_id: event_id, attendee_identifier: attendee_identifier)
   end
+
+  def claim_player_identity(event_id, legacy_identifier, stable_identifier)
+      when is_binary(legacy_identifier) and is_binary(stable_identifier) do
+    Repo.transaction(fn ->
+      stable_player = get_player(event_id, stable_identifier)
+      legacy_player = get_player(event_id, legacy_identifier)
+
+      cond do
+        stable_player ->
+          stable_player
+
+        legacy_player ->
+          legacy_player
+          |> Ecto.Changeset.change(attendee_identifier: stable_identifier)
+          |> Repo.update!()
+
+        true ->
+          nil
+      end
+    end)
+  end
+
+  def claim_player_identity(_event_id, _legacy_identifier, _stable_identifier),
+    do: {:error, :invalid_identity}
 
   def list_players(nil), do: []
 

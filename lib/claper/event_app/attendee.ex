@@ -8,6 +8,7 @@ defmodule Claper.EventApp.Attendee do
     field :first_name, :string
     field :last_name, :string
     field :ticket_name, :string
+    field :interaction_key, Ecto.UUID, read_after_writes: true
     field :verified_at, :utc_datetime
     field :last_seen_at, :utc_datetime
 
