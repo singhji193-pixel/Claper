@@ -175,5 +175,56 @@ defmodule Claper.PollsTest do
                  poll.id
                )
     end
+
+    test "repeating the same attendee vote is idempotent" do
+      presentation_file = presentation_file_fixture(%{}, [:event])
+      poll = poll_fixture(%{presentation_file_id: presentation_file.id})
+      [poll_opt | _] = poll.poll_opts
+
+      assert {:ok, _poll} =
+               Polls.vote("attendee-1", presentation_file.event.uuid, [poll_opt], poll.id)
+
+      assert {:ok, updated_poll} =
+               Polls.vote("attendee-1", presentation_file.event.uuid, [poll_opt], poll.id)
+
+      assert length(Polls.get_poll_vote("attendee-1", poll.id)) == 1
+      assert Enum.find(updated_poll.poll_opts, &(&1.id == poll_opt.id)).vote_count == 1
+    end
+
+    test "enforces single-choice polls and option ownership" do
+      presentation_file = presentation_file_fixture(%{}, [:event])
+      poll = poll_fixture(%{presentation_file_id: presentation_file.id, multiple: false})
+      other_poll = poll_fixture(%{presentation_file_id: presentation_file.id})
+
+      assert {:error, :invalid_selection} =
+               Polls.vote(
+                 "attendee-1",
+                 presentation_file.event.uuid,
+                 poll.poll_opts,
+                 poll.id
+               )
+
+      assert {:error, :invalid_option} =
+               Polls.vote(
+                 "attendee-1",
+                 presentation_file.event.uuid,
+                 [List.first(other_poll.poll_opts)],
+                 poll.id
+               )
+    end
+
+    test "rejects voting through a different event" do
+      presentation_file = presentation_file_fixture(%{}, [:event])
+      other_presentation_file = presentation_file_fixture(%{}, [:event])
+      poll = poll_fixture(%{presentation_file_id: presentation_file.id})
+
+      assert {:error, :event_mismatch} =
+               Polls.vote(
+                 "attendee-1",
+                 other_presentation_file.event.uuid,
+                 [List.first(poll.poll_opts)],
+                 poll.id
+               )
+    end
   end
 end

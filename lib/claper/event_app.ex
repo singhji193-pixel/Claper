@@ -140,13 +140,21 @@ defmodule Claper.EventApp do
 
   def claim_legacy_identity(event_id, %Attendee{event_id: event_id} = attendee, legacy_identifier) do
     with true <- present?(legacy_identifier),
-         false <- legacy_identifier == attendee.interaction_key,
-         {:ok, bingo_player} <-
-           Bingos.claim_player_identity(event_id, legacy_identifier, attendee.interaction_key) do
-      {:ok, %{bingo_player: bingo_player}}
+         false <- legacy_identifier == attendee.interaction_key do
+      Repo.transaction(fn ->
+        {:ok, bingo_player} =
+          Bingos.claim_player_identity(event_id, legacy_identifier, attendee.interaction_key)
+
+        claimed = claim_interaction_rows(event_id, legacy_identifier, attendee.interaction_key)
+        %{bingo_player: bingo_player, claimed: claimed}
+      end)
     else
-      false -> {:ok, %{bingo_player: Bingos.get_player(event_id, attendee.interaction_key)}}
-      {:error, reason} -> {:error, reason}
+      false ->
+        {:ok,
+         %{
+           bingo_player: Bingos.get_player(event_id, attendee.interaction_key),
+           claimed: %{poll_votes: 0, quiz_responses: 0, form_submits: 0}
+         }}
     end
   end
 
@@ -223,6 +231,98 @@ defmodule Claper.EventApp do
       count: count,
       href: href
     }
+  end
+
+  defp claim_interaction_rows(event_id, legacy_identifier, stable_identifier) do
+    params = [event_id, legacy_identifier, stable_identifier]
+
+    poll_votes =
+      claim_rows("poll_votes", "polls", "poll_id", "poll_opt_id", params)
+
+    quiz_responses =
+      claim_rows(
+        "quiz_responses",
+        "quizzes",
+        "quiz_id",
+        "quiz_question_opt_id",
+        params
+      )
+
+    form_submits = claim_rows("form_submits", "forms", "form_id", "form_id", params)
+
+    Ecto.Adapters.SQL.query!(
+      Repo,
+      """
+      UPDATE poll_opts option
+      SET vote_count = (SELECT COUNT(*) FROM poll_votes vote WHERE vote.poll_opt_id = option.id)
+      FROM polls poll, presentation_files presentation
+      WHERE option.poll_id = poll.id
+        AND poll.presentation_file_id = presentation.id
+        AND presentation.event_id = $1
+      """,
+      [event_id]
+    )
+
+    Ecto.Adapters.SQL.query!(
+      Repo,
+      """
+      UPDATE quiz_question_opts option
+      SET response_count = (
+        SELECT COUNT(*) FROM quiz_responses response WHERE response.quiz_question_opt_id = option.id
+      )
+      FROM quiz_questions question, quizzes quiz, presentation_files presentation
+      WHERE option.quiz_question_id = question.id
+        AND question.quiz_id = quiz.id
+        AND quiz.presentation_file_id = presentation.id
+        AND presentation.event_id = $1
+      """,
+      [event_id]
+    )
+
+    %{
+      poll_votes: poll_votes,
+      quiz_responses: quiz_responses,
+      form_submits: form_submits
+    }
+  end
+
+  defp claim_rows(table, parent_table, parent_key, unique_key, params) do
+    delete_result =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        """
+        DELETE FROM #{table} legacy
+        USING #{parent_table} parent, presentation_files presentation
+        WHERE legacy.#{parent_key} = parent.id
+          AND parent.presentation_file_id = presentation.id
+          AND presentation.event_id = $1
+          AND legacy.attendee_identifier = $2
+          AND EXISTS (
+            SELECT 1 FROM #{table} stable
+            WHERE stable.#{parent_key} = legacy.#{parent_key}
+              AND stable.#{unique_key} = legacy.#{unique_key}
+              AND stable.attendee_identifier = $3
+          )
+        """,
+        params
+      )
+
+    update_result =
+      Ecto.Adapters.SQL.query!(
+        Repo,
+        """
+        UPDATE #{table} row
+        SET attendee_identifier = $3
+        FROM #{parent_table} parent, presentation_files presentation
+        WHERE row.#{parent_key} = parent.id
+          AND parent.presentation_file_id = presentation.id
+          AND presentation.event_id = $1
+          AND row.attendee_identifier = $2
+        """,
+        params
+      )
+
+    delete_result.num_rows + update_result.num_rows
   end
 
   defp public_event(%Event{} = event) do

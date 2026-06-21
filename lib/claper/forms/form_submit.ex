@@ -27,6 +27,8 @@ defmodule Claper.Forms.FormSubmit do
     |> cast(attrs, [:attendee_identifier, :user_id, :form_id, :response])
     |> validate_required([:form_id, :response])
     |> validate_user_or_attendee()
+    |> unique_constraint(:attendee_identifier, name: :form_submits_attendee_unique)
+    |> unique_constraint(:user_id, name: :form_submits_user_unique)
   end
 
   defp validate_user_or_attendee(changeset) do

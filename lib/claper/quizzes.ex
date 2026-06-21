@@ -317,61 +317,24 @@ defmodule Claper.Quizzes do
   # end
 
   def submit_quiz(%User{} = user, event_uuid, quiz_opts, quiz_id) do
-    quiz_opts = quiz_opts |> Enum.uniq_by(& &1.id) |> Enum.with_index()
-
-    case Enum.reduce(quiz_opts, Ecto.Multi.new(), fn {opt, index}, multi ->
-           unique_key = "#{opt.id}_#{user.id + index}"
-
-           multi
-           |> Ecto.Multi.update(
-             "update_quiz_opt_#{unique_key}",
-             QuizQuestionOpt.changeset(opt, %{"response_count" => opt.response_count + 1})
-           )
-           |> Ecto.Multi.insert(
-             "insert_quiz_response_#{unique_key}",
-             Ecto.build_assoc(user, :quiz_responses, %{
-               quiz_question_opt_id: opt.id,
-               quiz_question_id: opt.quiz_question_id,
-               quiz_id: quiz_id
-             })
-           )
-         end)
-         |> Repo.transact() do
-      {:ok, _} ->
-        quiz = get_quiz!(quiz_id, [:quiz_questions, quiz_questions: :quiz_question_opts])
+    case submit_quiz_responses({:user, user.id}, event_uuid, quiz_opts, quiz_id) do
+      {:ok, quiz} ->
         Lti13.QuizScoreReporter.report_quiz_score(quiz, user.id)
-        broadcast({:ok, quiz, event_uuid}, :quiz_updated)
         {:ok, quiz}
+
+      error ->
+        error
     end
   end
 
   def submit_quiz(attendee_identifier, event_uuid, quiz_opts, quiz_id)
-      when is_binary(attendee_identifier) and is_list(quiz_opts) do
-    quiz_opts = Enum.uniq_by(quiz_opts, & &1.id)
-
-    case Enum.reduce(quiz_opts, Ecto.Multi.new(), fn opt, multi ->
-           multi
-           |> Ecto.Multi.update(
-             {:update_quiz_opt, opt.id},
-             QuizQuestionOpt.changeset(opt, %{"response_count" => opt.response_count + 1})
-           )
-           |> Ecto.Multi.insert(
-             {:insert_quiz_response, opt.id},
-             QuizResponse.changeset(%QuizResponse{}, %{
-               attendee_identifier: attendee_identifier,
-               quiz_question_opt_id: opt.id,
-               quiz_question_id: opt.quiz_question_id,
-               quiz_id: quiz_id
-             })
-           )
-         end)
-         |> Repo.transact() do
-      {:ok, _} ->
-        quiz = get_quiz!(quiz_id, [:quiz_questions, quiz_questions: :quiz_question_opts])
-        broadcast({:ok, quiz, event_uuid}, :quiz_updated)
-        {:ok, quiz}
-    end
+      when is_binary(attendee_identifier) and byte_size(attendee_identifier) > 0 and
+             is_list(quiz_opts) do
+    submit_quiz_responses({:attendee, attendee_identifier}, event_uuid, quiz_opts, quiz_id)
   end
+
+  def submit_quiz(_identity, _event_uuid, _quiz_opts, _quiz_id),
+    do: {:error, :invalid_identity}
 
   @doc """
   Calculates the quiz score for a given user, handling multiple correct answers per question.
@@ -648,4 +611,92 @@ defmodule Claper.Quizzes do
 
     {:ok, quiz}
   end
+
+  defp submit_quiz_responses(identity, event_ref, submitted_opts, quiz_id) do
+    option_ids = submitted_opts |> Enum.map(&option_id/1) |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    quiz =
+      Quiz
+      |> where([quiz], quiz.id == ^quiz_id)
+      |> preload([
+        :quiz_questions,
+        quiz_questions: :quiz_question_opts,
+        presentation_file: :event
+      ])
+      |> Repo.one()
+
+    with %Quiz{} <- quiz,
+         :ok <- validate_event_ref(quiz, event_ref),
+         {:ok, options} <- validate_quiz_options(quiz, option_ids),
+         {:ok, updated_quiz} <- insert_quiz_responses(quiz, options, identity) do
+      broadcast({:ok, updated_quiz, quiz.presentation_file.event.uuid}, :quiz_updated)
+    else
+      nil -> {:error, :interaction_not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp insert_quiz_responses(quiz, options, identity) do
+    Repo.transaction(fn ->
+      Enum.each(options, fn option ->
+        now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+        attrs =
+          identity
+          |> identity_attrs()
+          |> Map.merge(%{
+            quiz_id: quiz.id,
+            quiz_question_id: option.quiz_question_id,
+            quiz_question_opt_id: option.id,
+            inserted_at: now,
+            updated_at: now
+          })
+
+        case Repo.insert_all(QuizResponse, [attrs], on_conflict: :nothing) do
+          {1, _rows} ->
+            from(opt in QuizQuestionOpt, where: opt.id == ^option.id)
+            |> Repo.update_all(inc: [response_count: 1])
+
+          {0, _rows} ->
+            :ok
+        end
+      end)
+
+      get_quiz!(quiz.id, [:quiz_questions, quiz_questions: :quiz_question_opts])
+    end)
+  end
+
+  defp validate_quiz_options(_quiz, []), do: {:error, :invalid_selection}
+
+  defp validate_quiz_options(quiz, option_ids) do
+    options = Enum.flat_map(quiz.quiz_questions, & &1.quiz_question_opts)
+    options_by_id = Map.new(options, &{&1.id, &1})
+
+    if Enum.all?(option_ids, &Map.has_key?(options_by_id, &1)) do
+      {:ok, Enum.map(option_ids, &Map.fetch!(options_by_id, &1))}
+    else
+      {:error, :invalid_option}
+    end
+  end
+
+  defp validate_event_ref(%Quiz{presentation_file: %{event: event}}, event_ref) do
+    if event_ref in [event.id, event.uuid], do: :ok, else: {:error, :event_mismatch}
+  end
+
+  defp identity_attrs({:user, user_id}), do: %{user_id: user_id}
+
+  defp identity_attrs({:attendee, attendee_identifier}),
+    do: %{attendee_identifier: attendee_identifier}
+
+  defp option_id(%{id: id}) when is_integer(id), do: id
+  defp option_id(id) when is_integer(id), do: id
+
+  defp option_id(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {parsed, ""} -> parsed
+      _ -> nil
+    end
+  end
+
+  defp option_id(_option), do: nil
 end

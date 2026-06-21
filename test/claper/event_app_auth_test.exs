@@ -1,9 +1,17 @@
 defmodule Claper.EventAppAuthTest do
   use Claper.DataCase
 
-  import Claper.{AgendasFixtures, BingosFixtures, EventsFixtures}
+  import Claper.{
+    AgendasFixtures,
+    BingosFixtures,
+    EventsFixtures,
+    FormsFixtures,
+    PollsFixtures,
+    PresentationsFixtures,
+    QuizzesFixtures
+  }
 
-  alias Claper.EventApp
+  alias Claper.{EventApp, Forms, Polls, Quizzes}
   alias Claper.EventApp.{Attendee, Notifications, OtpChallenge, Session}
   alias Claper.HiEvents
   alias Claper.HiEvents.EventTicket
@@ -125,6 +133,49 @@ defmodule Claper.EventAppAuthTest do
                EventApp.claim_legacy_identity(event.id, attendee, "legacy-session-token")
 
       assert same_player.id == legacy_player.id
+    end
+
+    test "claims legacy Poll, Quiz, and Form rows into the stable identity" do
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+      presentation_file = presentation_file_fixture(%{event: event})
+      poll = poll_fixture(%{presentation_file_id: presentation_file.id})
+      quiz = quiz_fixture(%{presentation_file: presentation_file})
+      form = form_fixture(%{presentation_file_id: presentation_file.id})
+      legacy_identifier = "legacy-session-token"
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{attendee: attendee}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert {:ok, _poll} =
+               Polls.vote(legacy_identifier, event.uuid, [List.first(poll.poll_opts)], poll.id)
+
+      quiz_option =
+        quiz.quiz_questions |> List.first() |> Map.get(:quiz_question_opts) |> List.first()
+
+      assert {:ok, _quiz} =
+               Quizzes.submit_quiz(legacy_identifier, event.uuid, [quiz_option], quiz.id)
+
+      assert {:ok, _submit} =
+               Forms.create_or_update_form_submit(event.uuid, %{
+                 "attendee_identifier" => legacy_identifier,
+                 "form_id" => form.id,
+                 "response" => %{"Name" => "Avery"}
+               })
+
+      assert {:ok, %{claimed: claimed}} =
+               EventApp.claim_legacy_identity(event.id, attendee, legacy_identifier)
+
+      assert claimed == %{poll_votes: 1, quiz_responses: 1, form_submits: 1}
+      assert length(Polls.get_poll_vote(attendee.interaction_key, poll.id)) == 1
+      assert length(Quizzes.get_quiz_responses(attendee.interaction_key, quiz.id)) == 1
+      assert Forms.get_form_submit(attendee.interaction_key, form.id)
+      assert Polls.get_poll_vote(legacy_identifier, poll.id) == []
+      assert Quizzes.get_quiz_responses(legacy_identifier, quiz.id) == []
+      assert is_nil(Forms.get_form_submit(legacy_identifier, form.id))
     end
 
     test "returns a safe ticket wallet for a signed-in attendee" do

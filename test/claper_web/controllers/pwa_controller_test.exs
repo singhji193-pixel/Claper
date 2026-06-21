@@ -14,7 +14,7 @@ defmodule ClaperWeb.PwaControllerTest do
                "event" => %{"code" => code, "name" => name},
                "features" => %{"agenda" => %{"count" => 1}},
                "settings" => %{"enabled" => true},
-               "attendee" => %{"identifier_present" => true}
+               "attendee" => %{"identifier_present" => false, "authenticated" => false}
              } = json_response(conn, 200)
 
       assert code == event.code

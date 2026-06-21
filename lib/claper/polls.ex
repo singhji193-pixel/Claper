@@ -259,50 +259,16 @@ defmodule Claper.Polls do
 
   def vote(user_id, event_uuid, poll_opts, poll_id)
       when is_number(user_id) and is_list(poll_opts) do
-    case Enum.reduce(poll_opts, Ecto.Multi.new(), fn opt, multi ->
-           Ecto.Multi.update(
-             multi,
-             {:update_poll_opt, opt.id},
-             PollOpt.changeset(opt, %{"vote_count" => opt.vote_count + 1})
-           )
-           |> Ecto.Multi.insert(
-             {:insert_poll_vote, opt.id},
-             PollVote.changeset(%PollVote{}, %{
-               user_id: user_id,
-               poll_opt_id: opt.id,
-               poll_id: poll_id
-             })
-           )
-         end)
-         |> Repo.transaction() do
-      {:ok, _} ->
-        poll = get_poll!(poll_id)
-        broadcast({:ok, poll, event_uuid}, :poll_updated)
-    end
+    submit_vote({:user, user_id}, event_uuid, poll_opts, poll_id)
   end
 
-  def vote(attendee_identifier, event_uuid, poll_opts, poll_id) when is_list(poll_opts) do
-    case Enum.reduce(poll_opts, Ecto.Multi.new(), fn opt, multi ->
-           Ecto.Multi.update(
-             multi,
-             {:update_poll_opt, opt.id},
-             PollOpt.changeset(opt, %{"vote_count" => opt.vote_count + 1})
-           )
-           |> Ecto.Multi.insert(
-             {:insert_poll_vote, opt.id},
-             PollVote.changeset(%PollVote{}, %{
-               attendee_identifier: attendee_identifier,
-               poll_opt_id: opt.id,
-               poll_id: poll_id
-             })
-           )
-         end)
-         |> Repo.transaction() do
-      {:ok, _} ->
-        poll = get_poll!(poll_id)
-        broadcast({:ok, poll, event_uuid}, :poll_updated)
-    end
+  def vote(attendee_identifier, event_uuid, poll_opts, poll_id)
+      when is_binary(attendee_identifier) and byte_size(attendee_identifier) > 0 and
+             is_list(poll_opts) do
+    submit_vote({:attendee, attendee_identifier}, event_uuid, poll_opts, poll_id)
   end
+
+  def vote(_identity, _event_uuid, _poll_opts, _poll_id), do: {:error, :invalid_identity}
 
   def disable_all(presentation_file_id, position) do
     from(p in Poll,
@@ -375,5 +341,109 @@ defmodule Claper.Polls do
     %PollVote{}
     |> PollVote.changeset(attrs)
     |> Repo.insert()
+  end
+
+  defp submit_vote(identity, event_ref, submitted_opts, poll_id) do
+    option_ids = submitted_opts |> Enum.map(&option_id/1) |> Enum.reject(&is_nil/1) |> Enum.uniq()
+
+    Repo.transaction(fn ->
+      poll =
+        Poll
+        |> where([poll], poll.id == ^poll_id)
+        |> lock("FOR UPDATE")
+        |> preload([:poll_opts, presentation_file: :event])
+        |> Repo.one()
+
+      with %Poll{} <- poll,
+           :ok <- validate_event_ref(poll, event_ref),
+           :ok <- validate_poll_selection(poll, option_ids) do
+        unless single_choice_already_submitted?(poll, identity) do
+          Enum.each(option_ids, &insert_vote(poll.id, &1, identity))
+        end
+
+        get_poll!(poll.id)
+      else
+        nil -> Repo.rollback(:interaction_not_found)
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+    |> case do
+      {:ok, poll} -> broadcast({:ok, poll, event_uuid(poll_id)}, :poll_updated)
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp insert_vote(poll_id, poll_opt_id, identity) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    attrs =
+      identity
+      |> identity_attrs()
+      |> Map.merge(%{
+        poll_id: poll_id,
+        poll_opt_id: poll_opt_id,
+        inserted_at: now,
+        updated_at: now
+      })
+
+    case Repo.insert_all(PollVote, [attrs], on_conflict: :nothing) do
+      {1, _rows} ->
+        from(option in PollOpt, where: option.id == ^poll_opt_id)
+        |> Repo.update_all(inc: [vote_count: 1])
+
+      {0, _rows} ->
+        :ok
+    end
+  end
+
+  defp validate_poll_selection(%Poll{} = poll, option_ids) do
+    allowed_ids = MapSet.new(poll.poll_opts, & &1.id)
+
+    cond do
+      option_ids == [] -> {:error, :invalid_selection}
+      not poll.multiple and length(option_ids) != 1 -> {:error, :invalid_selection}
+      Enum.any?(option_ids, &(not MapSet.member?(allowed_ids, &1))) -> {:error, :invalid_option}
+      true -> :ok
+    end
+  end
+
+  defp single_choice_already_submitted?(%Poll{multiple: true}, _identity), do: false
+
+  defp single_choice_already_submitted?(%Poll{id: poll_id}, identity) do
+    query = from(vote in PollVote, where: vote.poll_id == ^poll_id)
+    Repo.exists?(identity_query(query, identity))
+  end
+
+  defp validate_event_ref(%Poll{presentation_file: %{event: event}}, event_ref) do
+    if event_ref in [event.id, event.uuid], do: :ok, else: {:error, :event_mismatch}
+  end
+
+  defp identity_attrs({:user, user_id}), do: %{user_id: user_id}
+
+  defp identity_attrs({:attendee, attendee_identifier}),
+    do: %{attendee_identifier: attendee_identifier}
+
+  defp identity_query(query, {:user, user_id}), do: where(query, [vote], vote.user_id == ^user_id)
+
+  defp identity_query(query, {:attendee, attendee_identifier}),
+    do: where(query, [vote], vote.attendee_identifier == ^attendee_identifier)
+
+  defp option_id(%{id: id}) when is_integer(id), do: id
+  defp option_id(id) when is_integer(id), do: id
+
+  defp option_id(id) when is_binary(id) do
+    case Integer.parse(id) do
+      {parsed, ""} -> parsed
+      _ -> nil
+    end
+  end
+
+  defp option_id(_option), do: nil
+
+  defp event_uuid(poll_id) do
+    Poll
+    |> Repo.get!(poll_id)
+    |> Repo.preload(presentation_file: :event)
+    |> then(& &1.presentation_file.event.uuid)
   end
 end

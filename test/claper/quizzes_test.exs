@@ -78,7 +78,7 @@ defmodule Claper.QuizzesTest do
 
     test "update_quiz/3 with valid data updates the quiz" do
       quiz = quiz_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       update_attrs = %{title: "Updated Title"}
 
       assert {:ok, %Quiz{} = updated_quiz} =
@@ -89,7 +89,7 @@ defmodule Claper.QuizzesTest do
 
     test "delete_quiz/2 deletes the quiz" do
       quiz = quiz_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       assert {:ok, %Quiz{}} = Quizzes.delete_quiz(event_uuid, quiz)
       assert_raise Ecto.NoResultsError, fn -> Quizzes.get_quiz!(quiz.id) end
     end
@@ -116,7 +116,7 @@ defmodule Claper.QuizzesTest do
     test "submit_quiz/4 with user records responses and updates counts" do
       quiz = quiz_fixture()
       user = user_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       question = List.first(quiz.quiz_questions)
       option = List.first(question.quiz_question_opts)
 
@@ -134,7 +134,7 @@ defmodule Claper.QuizzesTest do
 
     test "submit_quiz/4 with attendee_identifier records responses" do
       quiz = quiz_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       question = List.first(quiz.quiz_questions)
       option = List.first(question.quiz_question_opts)
       attendee_id = "test-attendee"
@@ -153,7 +153,7 @@ defmodule Claper.QuizzesTest do
       correct_option = Enum.find(question.quiz_question_opts, & &1.is_correct)
 
       # Submit correct answer
-      {:ok, _} = Quizzes.submit_quiz(user, Ecto.UUID.generate(), [correct_option], quiz.id)
+      {:ok, _} = Quizzes.submit_quiz(user, quiz_event_uuid(quiz), [correct_option], quiz.id)
       assert {1, 1} = Quizzes.calculate_user_score(user.id, quiz.id)
     end
 
@@ -180,7 +180,7 @@ defmodule Claper.QuizzesTest do
 
     test "submit_quiz/4 with duplicate opts deduplicates by id" do
       quiz = quiz_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       question = List.first(quiz.quiz_questions)
       option = List.first(question.quiz_question_opts)
       attendee_id = "test-attendee-dedup"
@@ -220,7 +220,7 @@ defmodule Claper.QuizzesTest do
     test "submit_quiz/4 with user and duplicate opts deduplicates by id" do
       quiz = quiz_fixture()
       user = user_fixture()
-      event_uuid = Ecto.UUID.generate()
+      event_uuid = quiz_event_uuid(quiz)
       question = List.first(quiz.quiz_questions)
       option = List.first(question.quiz_question_opts)
 
@@ -230,5 +230,62 @@ defmodule Claper.QuizzesTest do
       assert {:ok, _updated_quiz} =
                Quizzes.submit_quiz(user, event_uuid, duplicate_opts, quiz.id)
     end
+
+    test "repeating the same attendee response is idempotent" do
+      quiz = quiz_fixture()
+      question = List.first(quiz.quiz_questions)
+      option = List.first(question.quiz_question_opts)
+
+      assert {:ok, _quiz} =
+               Quizzes.submit_quiz("attendee-1", quiz_event_uuid(quiz), [option], quiz.id)
+
+      assert {:ok, updated_quiz} =
+               Quizzes.submit_quiz("attendee-1", quiz_event_uuid(quiz), [option], quiz.id)
+
+      assert length(Quizzes.get_quiz_responses("attendee-1", quiz.id)) == 1
+
+      updated_option =
+        updated_quiz.quiz_questions
+        |> List.first()
+        |> Map.get(:quiz_question_opts)
+        |> Enum.find(&(&1.id == option.id))
+
+      assert updated_option.response_count == 1
+    end
+
+    test "rejects options from another quiz and a mismatched event" do
+      quiz = quiz_fixture()
+      other_quiz = quiz_fixture()
+
+      other_option =
+        other_quiz.quiz_questions |> List.first() |> Map.get(:quiz_question_opts) |> List.first()
+
+      assert {:error, :invalid_option} =
+               Quizzes.submit_quiz(
+                 "attendee-1",
+                 quiz_event_uuid(quiz),
+                 [other_option],
+                 quiz.id
+               )
+
+      assert {:error, :event_mismatch} =
+               Quizzes.submit_quiz(
+                 "attendee-1",
+                 quiz_event_uuid(other_quiz),
+                 [
+                   quiz.quiz_questions
+                   |> List.first()
+                   |> Map.get(:quiz_question_opts)
+                   |> List.first()
+                 ],
+                 quiz.id
+               )
+    end
+  end
+
+  defp quiz_event_uuid(quiz) do
+    quiz
+    |> Claper.Repo.preload(presentation_file: :event)
+    |> then(& &1.presentation_file.event.uuid)
   end
 end

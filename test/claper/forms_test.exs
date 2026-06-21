@@ -175,7 +175,7 @@ defmodule Claper.FormsTest do
                  %{
                    "user_id" => presentation_file.event.user_id,
                    "form_id" => f.id,
-                   "response" => %{:Test => "some option 1", :"Test 2" => "some option 2"}
+                   "response" => %{:Name => "some option 1"}
                  }
                )
     end
@@ -234,6 +234,69 @@ defmodule Claper.FormsTest do
                Forms.create_form_submit(%{
                  form_id: f.id,
                  response: %{"Name" => "Daniel"}
+               })
+    end
+
+    test "validates configured field names, required values, types, and lengths" do
+      presentation_file = presentation_file_fixture(%{}, [:event])
+
+      form =
+        form_fixture(%{
+          presentation_file_id: presentation_file.id,
+          fields: [
+            %{name: "Name", type: "text", required: true},
+            %{name: "Email", type: "email", required: false}
+          ]
+        })
+
+      base = %{
+        "attendee_identifier" => "attendee-1",
+        "form_id" => form.id
+      }
+
+      assert {:error, %Ecto.Changeset{} = required_changeset} =
+               Forms.create_or_update_form_submit(
+                 presentation_file.event.uuid,
+                 Map.put(base, "response", %{"Email" => "hello@example.com"})
+               )
+
+      assert "is required" in errors_on(required_changeset).response
+
+      assert {:error, %Ecto.Changeset{} = unknown_changeset} =
+               Forms.create_or_update_form_submit(
+                 presentation_file.event.uuid,
+                 Map.put(base, "response", %{"Name" => "Avery", "Admin" => "true"})
+               )
+
+      assert "contains an unknown field" in errors_on(unknown_changeset).response
+
+      assert {:error, %Ecto.Changeset{} = email_changeset} =
+               Forms.create_or_update_form_submit(
+                 presentation_file.event.uuid,
+                 Map.put(base, "response", %{"Name" => "Avery", "Email" => "not-email"})
+               )
+
+      assert "has an invalid email" in errors_on(email_changeset).response
+
+      assert {:error, %Ecto.Changeset{} = length_changeset} =
+               Forms.create_or_update_form_submit(
+                 presentation_file.event.uuid,
+                 Map.put(base, "response", %{"Name" => String.duplicate("a", 501)})
+               )
+
+      assert "is too long" in errors_on(length_changeset).response
+    end
+
+    test "rejects a form submission through a different event" do
+      presentation_file = presentation_file_fixture(%{}, [:event])
+      other_presentation_file = presentation_file_fixture(%{}, [:event])
+      form = form_fixture(%{presentation_file_id: presentation_file.id})
+
+      assert {:error, :event_mismatch} =
+               Forms.create_or_update_form_submit(other_presentation_file.event.uuid, %{
+                 "attendee_identifier" => "attendee-1",
+                 "form_id" => form.id,
+                 "response" => %{"Name" => "Avery"}
                })
     end
   end
