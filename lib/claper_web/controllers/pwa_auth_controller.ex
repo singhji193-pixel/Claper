@@ -191,9 +191,12 @@ defmodule ClaperWeb.PwaAuthController do
     path = next |> URI.parse() |> Map.get(:path)
 
     path == "/" or
-      Enum.any?(["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile"], fn allowed ->
-        path == allowed or String.starts_with?(path, allowed <> "/")
-      end)
+      Enum.any?(
+        ["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile", "/live"],
+        fn allowed ->
+          path == allowed or String.starts_with?(path, allowed <> "/")
+        end
+      )
   end
 
   defp allowed_app_path?(next, %{event_code: code}) when is_binary(code) do
@@ -201,9 +204,12 @@ defmodule ClaperWeb.PwaAuthController do
     base = "/app/#{code}"
 
     path == base or
-      Enum.any?(["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile"], fn suffix ->
-        path == base <> suffix or String.starts_with?(path, base <> suffix <> "/")
-      end)
+      Enum.any?(
+        ["/agenda", "/people", "/scan", "/bingo", "/ticket", "/profile", "/live"],
+        fn suffix ->
+          path == base <> suffix or String.starts_with?(path, base <> suffix <> "/")
+        end
+      )
   end
 
   defp allowed_app_path?(_next, _route_source), do: false

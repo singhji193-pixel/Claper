@@ -7,6 +7,7 @@ defmodule Claper.EventApp do
 
   alias Claper.{Agendas, Bingos, Events, HiEvents, Repo}
   alias Claper.EventApp.{AgendaBookmark, Attendee, Notifications, OtpChallenge, Session, Setting}
+  alias Claper.EventApp.LiveInteractions
   alias Claper.Events.Event
   alias Claper.HiEvents.EventTicket
 
@@ -44,6 +45,12 @@ defmodule Claper.EventApp do
     Setting.changeset(setting, attrs)
   end
 
+  def update_settings(%Setting{} = setting, attrs) do
+    setting
+    |> Setting.changeset(attrs)
+    |> Repo.update()
+  end
+
   def bootstrap_event(code, attendee_session_token \\ nil) do
     case Events.get_event_with_code(code) do
       %Event{} = event -> {:ok, bootstrap_for_event(event, attendee_session_token)}
@@ -67,6 +74,7 @@ defmodule Claper.EventApp do
         people: feature("People", settings.people_enabled, 0, "/app/#{event.code}/people"),
         ticket:
           feature("Ticket", settings.ticket_enabled, ticket_count, "/app/#{event.code}/ticket"),
+        live: LiveInteractions.summary(event, settings),
         chat: feature("Chat", settings.chat_enabled, 0, "/app/#{event.code}/chat"),
         sponsors: feature("Sponsors", settings.sponsors_enabled, 0, "/app/#{event.code}/sponsors")
       },

@@ -111,6 +111,23 @@
 
         <main id="ngs-main" class="ngs-main" tabindex="-1">
           <%= case @live_action do %>
+            <% :live -> %>
+              <section id="pwa-live-interactions" class="ngs-empty-state">
+                <span class="ngs-empty-icon">
+                  <.ngs_icon name="hero-bolt" class="size-7" />
+                </span>
+                <p class="ngs-eyebrow">{gettext("Live session")}</p>
+                <h2>
+                  <%= if @live_snapshot && @live_snapshot.active do %>
+                    {@live_snapshot.active.title}
+                  <% else %>
+                    {gettext("No interaction is active")}
+                  <% end %>
+                </h2>
+                <p>
+                  {gettext("This screen updates when the presenter starts the next interaction.")}
+                </p>
+              </section>
             <% :agenda -> %>
               <section class="ngs-filterbar" aria-label={gettext("Agenda filters")}>
                 <form method="get" action={app_path(assigns, "/agenda")} class="ngs-search-form">

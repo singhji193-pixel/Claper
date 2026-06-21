@@ -1,7 +1,7 @@
 defmodule ClaperWeb.EventLive.AppManage do
   use ClaperWeb, :live_view
 
-  alias Claper.HiEvents
+  alias Claper.{EventApp, HiEvents}
   alias Claper.HiEvents.{Client, Integration}
   alias Claper.Workers.HiEventsSync
 
@@ -16,6 +16,8 @@ defmodule ClaperWeb.EventLive.AppManage do
      |> assign(:event, nil)
      |> assign(:integration, nil)
      |> assign(:form, nil)
+     |> assign(:app_settings, nil)
+     |> assign(:app_settings_form, nil)
      |> assign(:stats, HiEvents.dashboard_stats(nil))
      |> assign(:webhook_url, nil)
      |> assign(:legacy_webhook_url, nil)
@@ -61,6 +63,31 @@ defmodule ClaperWeb.EventLive.AppManage do
 
       {:error, changeset} ->
         {:noreply, assign_form(socket, changeset)}
+    end
+  end
+
+  def handle_event("validate-app-settings", %{"setting" => params}, socket) do
+    changeset =
+      socket.assigns.app_settings
+      |> EventApp.change_settings(Map.put(params, "event_id", socket.assigns.event.id))
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :app_settings_form, to_form(changeset, as: :setting))}
+  end
+
+  def handle_event("save-app-settings", %{"setting" => params}, socket) do
+    case EventApp.update_settings(
+           socket.assigns.app_settings,
+           Map.put(params, "event_id", socket.assigns.event.id)
+         ) do
+      {:ok, _settings} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, gettext("Live feature settings saved"))
+         |> reload_integration()}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :app_settings_form, to_form(changeset, as: :setting))}
     end
   end
 
@@ -143,9 +170,15 @@ defmodule ClaperWeb.EventLive.AppManage do
   defp reload_integration(socket) do
     event = socket.assigns.event
     integration = HiEvents.integration_for_event(event.id)
+    app_settings = EventApp.get_or_create_settings(event.id)
 
     socket
     |> assign(:integration, integration)
+    |> assign(:app_settings, app_settings)
+    |> assign(
+      :app_settings_form,
+      to_form(EventApp.change_settings(app_settings), as: :setting)
+    )
     |> assign(:stats, HiEvents.dashboard_stats(event.id))
     |> assign(:webhook_url, url(~p"/api/integrations/hi-events/webhook"))
     |> assign(:legacy_webhook_url, url(~p"/api/integrations/hievents/events"))

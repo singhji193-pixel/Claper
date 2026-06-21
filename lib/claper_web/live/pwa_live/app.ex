@@ -3,7 +3,9 @@ defmodule ClaperWeb.PwaLive.App do
 
   alias Claper.{Agendas, Bingos, EventApp, Events}
   alias Claper.Bingos.BingoPlayer
+  alias Claper.EventApp.LiveInteractions
   alias Claper.Events.Event
+  alias ClaperWeb.Presence
 
   on_mount(ClaperWeb.AttendeeLiveAuth)
 
@@ -55,7 +57,9 @@ defmodule ClaperWeb.PwaLive.App do
            EventApp.list_bookmarked_agenda_item_ids(event.id, attendee_session_token)
          )
          |> assign(:status, :ready)
-         |> load_bingo()}
+         |> load_bingo()
+         |> load_live_snapshot()
+         |> maybe_connect_live()}
 
       nil ->
         {:ok,
@@ -91,6 +95,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:session_item, nil)
          |> assign(:ticket_wallet, nil)
          |> assign(:bookmarked_agenda_item_ids, MapSet.new())
+         |> assign(:live_snapshot, nil)
          |> assign(:status, :not_found)}
     end
   end
@@ -105,6 +110,15 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   def handle_params(_params, _url, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_info(message, socket) do
+    if LiveInteractions.invalidation_message?(message) do
+      {:noreply, load_live_snapshot(socket)}
+    else
+      {:noreply, socket}
+    end
+  end
 
   @impl true
   def handle_event("toggle-agenda-bookmark", %{"id" => id}, socket) do
@@ -305,6 +319,37 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   defp load_bingo(socket), do: socket
+
+  defp load_live_snapshot(%{assigns: %{event: %Event{} = event}} = socket) do
+    case LiveInteractions.snapshot(event, socket.assigns.interaction_key) do
+      {:ok, snapshot} -> assign(socket, :live_snapshot, snapshot)
+      {:error, _reason} -> assign(socket, :live_snapshot, nil)
+    end
+  end
+
+  defp load_live_snapshot(socket), do: assign(socket, :live_snapshot, nil)
+
+  defp maybe_connect_live(socket) do
+    if connected?(socket) and live_socket_enabled?(socket) and
+         is_binary(socket.assigns.interaction_key) do
+      :ok = LiveInteractions.subscribe(socket.assigns.event)
+
+      Presence.track(
+        self(),
+        "event:#{socket.assigns.event.uuid}",
+        socket.assigns.interaction_key,
+        %{source: "pwa"}
+      )
+    end
+
+    socket
+  end
+
+  defp live_socket_enabled?(socket) do
+    settings = socket.assigns.settings
+
+    settings.live_interactions_enabled or settings.qa_enabled or settings.chat_enabled
+  end
 
   defp connect_bingo(socket, code) do
     case Bingos.connect_player(
@@ -817,6 +862,7 @@ defmodule ClaperWeb.PwaLive.App do
   def ngs_page_title(:bingo), do: gettext("Bingo")
   def ngs_page_title(:ticket), do: gettext("Ticket")
   def ngs_page_title(:profile), do: gettext("Profile")
+  def ngs_page_title(:live), do: gettext("Live")
   def ngs_page_title(_), do: gettext("Event app")
 
   def format_event_time(nil), do: gettext("Time to be announced")

@@ -68,6 +68,24 @@ defmodule ClaperWeb.PwaAuthControllerTest do
       })
     end
 
+    test "preserves the native Live return path through OTP", %{conn: conn} do
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      conn =
+        post(conn, ~p"/app/#{event.code}/login", %{
+          "attendee" => %{
+            "email" => "avery@example.com",
+            "next" => ~p"/app/#{event.code}/live"
+          }
+        })
+
+      assert_verify_redirect(conn, ~p"/app/#{event.code}/verify", %{
+        "email" => "avery@example.com",
+        "next" => ~p"/app/#{event.code}/live"
+      })
+    end
+
     test "requests a code from the vanity host and redirects to vanity verify", %{conn: conn} do
       event = event_fixture()
       put_public_event_code(event.code)

@@ -2,10 +2,10 @@ defmodule ClaperWeb.EventLiveTest do
   use ClaperWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import Claper.{AgendasFixtures, BingosFixtures, PresentationsFixtures}
+  import Claper.{AgendasFixtures, BingosFixtures, PollsFixtures, PresentationsFixtures}
 
   alias Claper.Agendas
-  alias Claper.Bingos
+  alias Claper.{Bingos, Polls}
   alias Claper.EventApp
   alias Claper.HiEvents
   alias Claper.HiEvents.EventTicket
@@ -252,6 +252,62 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert {:error, {:redirect, %{to: to}}} = live(conn, ~p"/app/#{event.code}/profile")
       assert to == ~p"/app/#{event.code}/login?#{[next: ~p"/app/#{event.code}/profile"]}"
+    end
+
+    test "renders native Live, tracks stable Presence, and refreshes from PubSub", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      poll =
+        poll_fixture(%{
+          presentation_file_id: presentation_file.id,
+          position: 0,
+          enabled: true,
+          title: "Opening poll"
+        })
+
+      conn = sign_in_attendee(conn, event)
+      token = get_session(conn, :event_app_session_token)
+      {:ok, identity} = EventApp.interaction_identity(event.id, token)
+
+      {:ok, live_view, html} = live(conn, ~p"/app/#{event.code}/live")
+
+      assert html =~ "Opening poll"
+
+      assert Map.has_key?(
+               ClaperWeb.Presence.list("event:#{event.uuid}"),
+               identity.interaction_key
+             )
+
+      assert {:ok, _poll} = Polls.update_poll(event.uuid, poll, %{title: "Updated poll"})
+      assert render(live_view) =~ "Updated poll"
+    end
+
+    test "serves native Live through the vanity app route", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      put_public_event_code(event.code)
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      poll_fixture(%{
+        presentation_file_id: presentation_file.id,
+        position: 0,
+        enabled: true,
+        title: "Vanity route poll"
+      })
+
+      conn = conn |> sign_in_attendee(event) |> Map.put(:host, "app.nextgensummit.co")
+
+      {:ok, _live_view, html} = live(conn, "/live")
+      assert html =~ "Vanity route poll"
+      refute html =~ "/app/#{event.code}/live"
     end
 
     test "shows a verified ticket profile for signed-in attendees", %{
@@ -787,6 +843,35 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert {:error, {:redirect, %{to: "/events"}}} =
                live(conn, ~p"/e/#{presentation_file.event.code}/manage/app")
+    end
+
+    test "updates disabled-by-default native Live controls", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      {:ok, manage_live, html} = live(conn, ~p"/e/#{event.code}/manage/app")
+
+      assert html =~ "Native attendee Live"
+
+      html =
+        manage_live
+        |> form("#event-app-feature-form",
+          setting: %{
+            live_interactions_enabled: "true",
+            qa_enabled: "true",
+            chat_enabled: "false",
+            resources_enabled: "true"
+          }
+        )
+        |> render_submit()
+
+      settings = EventApp.get_settings(event.id)
+      assert settings.live_interactions_enabled
+      assert settings.qa_enabled
+      refute settings.chat_enabled
+      assert settings.resources_enabled
+      assert html =~ "Live feature settings saved"
     end
   end
 

@@ -11,6 +11,9 @@ defmodule Claper.EventApp.Setting do
     field :ticket_enabled, :boolean, default: false
     field :people_enabled, :boolean, default: false
     field :chat_enabled, :boolean, default: false
+    field :live_interactions_enabled, :boolean, default: false
+    field :qa_enabled, :boolean, default: false
+    field :resources_enabled, :boolean, default: false
     field :sponsors_enabled, :boolean, default: false
     field :primary_color, :string, default: "#f15a24"
     field :accent_color, :string, default: "#365a91"
@@ -33,6 +36,9 @@ defmodule Claper.EventApp.Setting do
       :ticket_enabled,
       :people_enabled,
       :chat_enabled,
+      :live_interactions_enabled,
+      :qa_enabled,
+      :resources_enabled,
       :sponsors_enabled,
       :primary_color,
       :accent_color,
@@ -45,6 +51,9 @@ defmodule Claper.EventApp.Setting do
       :ticket_enabled,
       :people_enabled,
       :chat_enabled,
+      :live_interactions_enabled,
+      :qa_enabled,
+      :resources_enabled,
       :sponsors_enabled,
       :primary_color,
       :accent_color,
@@ -63,6 +72,9 @@ defmodule Claper.EventApp.Setting do
       ticket_enabled: setting.ticket_enabled,
       people_enabled: setting.people_enabled,
       chat_enabled: setting.chat_enabled,
+      live_interactions_enabled: setting.live_interactions_enabled,
+      qa_enabled: setting.qa_enabled,
+      resources_enabled: setting.resources_enabled,
       sponsors_enabled: setting.sponsors_enabled,
       theme: %{
         primary_color: setting.primary_color,

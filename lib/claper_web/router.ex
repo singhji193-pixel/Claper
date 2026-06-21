@@ -75,6 +75,7 @@ defmodule ClaperWeb.Router do
       live("/bingo", PwaLive.App, :bingo)
       live("/ticket", PwaLive.App, :ticket)
       live("/profile", PwaLive.App, :profile)
+      live("/live", PwaLive.App, :live)
     end
   end
 
@@ -112,6 +113,7 @@ defmodule ClaperWeb.Router do
       live("/:code/bingo", PwaLive.App, :bingo)
       live("/:code/ticket", PwaLive.App, :ticket)
       live("/:code/profile", PwaLive.App, :profile)
+      live("/:code/live", PwaLive.App, :live)
     end
   end
 

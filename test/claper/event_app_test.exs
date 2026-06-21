@@ -39,8 +39,22 @@ defmodule Claper.EventAppTest do
       assert setting.enabled
       assert setting.install_prompt_enabled
       refute setting.people_enabled
+      refute setting.live_interactions_enabled
+      refute setting.qa_enabled
+      refute setting.resources_enabled
       assert setting.primary_color == "#f15a24"
       assert setting.accent_color == "#365a91"
+    end
+
+    test "publishes disabled-by-default Live feature settings" do
+      event = event_fixture()
+
+      assert {:ok, bootstrap} = EventApp.bootstrap_event(event.code)
+      refute bootstrap.settings.live_interactions_enabled
+      refute bootstrap.settings.qa_enabled
+      refute bootstrap.settings.resources_enabled
+      assert bootstrap.features.live.type == nil
+      refute bootstrap.features.live.active
     end
   end
 end
