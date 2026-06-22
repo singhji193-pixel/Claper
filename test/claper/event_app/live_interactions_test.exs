@@ -69,6 +69,15 @@ defmodule Claper.EventApp.LiveInteractionsTest do
     refute Map.has_key?(List.first(snapshot.active.options), :vote_count)
   end
 
+  test "shapes an anonymous pre-auth snapshot without querying a nil identity", context do
+    assert {:ok, snapshot} = LiveInteractions.snapshot(context.event, nil)
+
+    assert snapshot.active.kind == :poll
+    assert snapshot.active.submitted_option_ids == []
+    assert snapshot.questions == []
+    assert snapshot.messages == []
+  end
+
   test "submits a scoped poll vote and restores it on refresh", context do
     option = List.first(context.poll.poll_opts)
 

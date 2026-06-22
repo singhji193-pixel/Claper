@@ -257,7 +257,7 @@ defmodule Claper.EventApp.LiveInteractions do
 
   defp public_interaction(%Poll{} = poll, interaction_key) do
     poll = Polls.set_percentages(poll)
-    votes = Polls.get_poll_vote(interaction_key, poll.id)
+    votes = poll_votes(interaction_key, poll.id)
 
     %{
       kind: :poll,
@@ -277,7 +277,7 @@ defmodule Claper.EventApp.LiveInteractions do
 
   defp public_interaction(%Quiz{} = quiz, interaction_key) do
     quiz = Quizzes.set_percentages(quiz)
-    responses = Quizzes.get_quiz_responses(interaction_key, quiz.id)
+    responses = quiz_responses(interaction_key, quiz.id)
 
     %{
       kind: :quiz,
@@ -302,7 +302,7 @@ defmodule Claper.EventApp.LiveInteractions do
   end
 
   defp public_interaction(%Form{} = form, interaction_key) do
-    submit = Forms.get_form_submit(interaction_key, form.id)
+    submit = form_submit(interaction_key, form.id)
 
     %{
       kind: :form,
@@ -357,7 +357,7 @@ defmodule Claper.EventApp.LiveInteractions do
   defp public_posts(_context, _interaction_key, _kind, false), do: []
 
   defp public_posts(context, interaction_key, kind, true) do
-    reacted = MapSet.new(Posts.reacted_posts(context.event.id, interaction_key, "👍"))
+    reacted = reacted_post_ids(context.event.id, interaction_key)
 
     context.event.uuid
     |> Posts.list_posts_by_kind(kind, [:reactions])
@@ -377,6 +377,30 @@ defmodule Claper.EventApp.LiveInteractions do
       }
     end)
   end
+
+  defp poll_votes(interaction_key, poll_id)
+       when is_binary(interaction_key) and byte_size(interaction_key) > 0,
+       do: Polls.get_poll_vote(interaction_key, poll_id)
+
+  defp poll_votes(_interaction_key, _poll_id), do: []
+
+  defp quiz_responses(interaction_key, quiz_id)
+       when is_binary(interaction_key) and byte_size(interaction_key) > 0,
+       do: Quizzes.get_quiz_responses(interaction_key, quiz_id)
+
+  defp quiz_responses(_interaction_key, _quiz_id), do: []
+
+  defp form_submit(interaction_key, form_id)
+       when is_binary(interaction_key) and byte_size(interaction_key) > 0,
+       do: Forms.get_form_submit(interaction_key, form_id)
+
+  defp form_submit(_interaction_key, _form_id), do: nil
+
+  defp reacted_post_ids(event_id, interaction_key)
+       when is_binary(interaction_key) and byte_size(interaction_key) > 0,
+       do: MapSet.new(Posts.reacted_posts(event_id, interaction_key, "👍"))
+
+  defp reacted_post_ids(_event_id, _interaction_key), do: MapSet.new()
 
   defp public_embed(embed) do
     case safe_embed_url(embed.provider, embed.content) do
