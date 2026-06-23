@@ -124,7 +124,7 @@ defmodule ClaperWeb.PwaLive.App do
 
   def handle_info(message, socket) do
     if LiveInteractions.invalidation_message?(message) do
-      {:noreply, load_live_snapshot(socket)}
+      {:noreply, refresh_live_state(socket)}
     else
       {:noreply, socket}
     end
@@ -351,9 +351,16 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp load_live_snapshot(socket), do: assign(socket, :live_snapshot, nil)
 
+  defp refresh_live_state(%{assigns: %{event: %Event{} = event}} = socket) do
+    socket
+    |> assign(:settings, EventApp.settings_for_event(event.id))
+    |> load_live_snapshot()
+  end
+
+  defp refresh_live_state(socket), do: socket
+
   defp maybe_connect_live(socket) do
-    if connected?(socket) and live_socket_enabled?(socket) and
-         is_binary(socket.assigns.interaction_key) do
+    if connected?(socket) and is_binary(socket.assigns.interaction_key) do
       :ok = LiveInteractions.subscribe(socket.assigns.event)
 
       Presence.track(
@@ -365,12 +372,6 @@ defmodule ClaperWeb.PwaLive.App do
     end
 
     socket
-  end
-
-  defp live_socket_enabled?(socket) do
-    settings = socket.assigns.settings
-
-    settings.live_interactions_enabled or settings.qa_enabled or settings.chat_enabled
   end
 
   def active_live?(%{enabled: true, banned: false, active: active}) when not is_nil(active),

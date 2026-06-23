@@ -18,6 +18,7 @@ defmodule ClaperWeb.EventLive.AppManage do
      |> assign(:form, nil)
      |> assign(:app_settings, nil)
      |> assign(:app_settings_form, nil)
+     |> assign(:app_settings_status, :idle)
      |> assign(:stats, HiEvents.dashboard_stats(nil))
      |> assign(:webhook_url, nil)
      |> assign(:legacy_webhook_url, nil)
@@ -66,28 +67,24 @@ defmodule ClaperWeb.EventLive.AppManage do
     end
   end
 
-  def handle_event("validate-app-settings", %{"setting" => params}, socket) do
-    changeset =
-      socket.assigns.app_settings
-      |> EventApp.change_settings(Map.put(params, "event_id", socket.assigns.event.id))
-      |> Map.put(:action, :validate)
-
-    {:noreply, assign(socket, :app_settings_form, to_form(changeset, as: :setting))}
-  end
-
   def handle_event("save-app-settings", %{"setting" => params}, socket) do
     case EventApp.update_settings(
            socket.assigns.app_settings,
            Map.put(params, "event_id", socket.assigns.event.id)
          ) do
       {:ok, _settings} ->
+        broadcast_app_settings(socket.assigns.event)
+
         {:noreply,
          socket
-         |> put_flash(:info, gettext("Live feature settings saved"))
+         |> assign(:app_settings_status, :saved)
          |> reload_integration()}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :app_settings_form, to_form(changeset, as: :setting))}
+        {:noreply,
+         socket
+         |> assign(:app_settings_status, :error)
+         |> assign(:app_settings_form, to_form(changeset, as: :setting))}
     end
   end
 
@@ -193,6 +190,14 @@ defmodule ClaperWeb.EventLive.AppManage do
 
   defp force_event(params, event) do
     Map.put(params, "event_id", event.id)
+  end
+
+  defp broadcast_app_settings(event) do
+    Phoenix.PubSub.broadcast(
+      Claper.PubSub,
+      "event:#{event.uuid}",
+      {:state_updated, :app_settings}
+    )
   end
 
   def integration_saved?(%Integration{id: id}) when is_integer(id), do: true

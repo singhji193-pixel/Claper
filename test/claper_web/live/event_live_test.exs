@@ -361,6 +361,45 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "ngs-bottomnav"
     end
 
+    test "shows Live to an already-connected attendee when an organizer enables it", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+
+      poll_fixture(%{
+        presentation_file_id: presentation_file.id,
+        position: 0,
+        enabled: true,
+        title: "Event-day activation poll"
+      })
+
+      conn = sign_in_attendee(conn, event)
+      token = get_session(conn, :event_app_session_token)
+      {:ok, identity} = EventApp.interaction_identity(event.id, token)
+      {:ok, home_live, html} = live(conn, ~p"/app/#{event.code}")
+
+      refute html =~ "ngs-live-home-card"
+
+      assert Map.has_key?(
+               ClaperWeb.Presence.list("event:#{event.uuid}"),
+               identity.interaction_key
+             )
+
+      assert {:ok, _settings} =
+               EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{event.uuid}",
+        {:state_updated, :app_settings}
+      )
+
+      assert render(home_live) =~ "Event-day activation poll"
+      assert render(home_live) =~ "ngs-live-home-card"
+    end
+
     test "submits native Quiz and Form interactions", %{
       conn: conn,
       presentation_file: presentation_file
@@ -1100,7 +1139,7 @@ defmodule ClaperWeb.EventLiveTest do
                live(conn, ~p"/e/#{presentation_file.event.code}/manage/app")
     end
 
-    test "updates disabled-by-default native Live controls", %{
+    test "automatically saves disabled-by-default native Live controls", %{
       conn: conn,
       presentation_file: presentation_file
     } do
@@ -1119,14 +1158,15 @@ defmodule ClaperWeb.EventLiveTest do
             resources_enabled: "true"
           }
         )
-        |> render_submit()
+        |> render_change()
 
       settings = EventApp.get_settings(event.id)
       assert settings.live_interactions_enabled
       assert settings.qa_enabled
       refute settings.chat_enabled
       assert settings.resources_enabled
-      assert html =~ "Live feature settings saved"
+      assert html =~ "Changes saved"
+      assert html =~ "Changes save automatically"
     end
   end
 
