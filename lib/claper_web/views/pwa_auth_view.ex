@@ -12,7 +12,7 @@ defmodule ClaperWeb.PwaAuthView do
     |> ngs_theme_style()
   end
 
-  def theme_style(_event), do: "--ngs-primary: #f15a24; --ngs-accent: #365a91;"
+  def theme_style(_event), do: "--ngs-primary: #C9A84C; --ngs-accent: #8B6218;"
 
   def compact_params(params) do
     params

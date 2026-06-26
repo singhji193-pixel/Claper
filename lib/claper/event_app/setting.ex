@@ -15,8 +15,8 @@ defmodule Claper.EventApp.Setting do
     field :qa_enabled, :boolean, default: false
     field :resources_enabled, :boolean, default: false
     field :sponsors_enabled, :boolean, default: false
-    field :primary_color, :string, default: "#f15a24"
-    field :accent_color, :string, default: "#365a91"
+    field :primary_color, :string, default: "#C9A84C"
+    field :accent_color, :string, default: "#8B6218"
     field :home_tagline, :string, default: @default_home_tagline
 
     belongs_to :event, Claper.Events.Event

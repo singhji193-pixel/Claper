@@ -879,8 +879,8 @@ defmodule ClaperWeb.PwaLive.App do
   end
 
   def ngs_theme_style(%{primary_color: primary, accent_color: accent}) do
-    primary = safe_hex_color(primary, "#f15a24")
-    accent = safe_hex_color(accent, "#365a91")
+    primary = safe_hex_color(primary, "#C9A84C")
+    accent = safe_hex_color(accent, "#8B6218")
 
     "--ngs-primary: #{primary}; --ngs-accent: #{accent};"
   end

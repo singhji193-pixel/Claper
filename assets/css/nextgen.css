@@ -1,19 +1,23 @@
 /* NextGen Summit attendee PWA. Keep this namespace isolated from Claper presenter/admin UI. */
 .nextgen-summit-liveview {
-  --ngs-bg: #eef1f5;
-  --ngs-surface: #ffffff;
-  --ngs-surface-2: #f7f8fa;
-  --ngs-ink: #0b1b33;
-  --ngs-ink-2: #53647a;
-  --ngs-ink-3: #7b8798;
-  --ngs-line: #dfe4eb;
-  --ngs-line-soft: #edf0f4;
-  --ngs-brand: var(--ngs-primary, #ff6b35);
-  --ngs-brand-ink: #c94314;
-  --ngs-brand-wash: #fff0e9;
-  --ngs-brand-line: #ffcbb8;
-  --ngs-blue: #2d7ff9;
-  --ngs-blue-wash: #eaf1ff;
+  --ngs-bg: #f8f4ec;
+  --ngs-surface: #faf8f5;
+  --ngs-surface-2: #f5e6be;
+  --ngs-ink: #0a0806;
+  --ngs-ink-2: #5a5049;
+  --ngs-ink-3: #7b7169;
+  --ngs-line: #cfc7be;
+  --ngs-line-soft: #e7dfd5;
+  --ngs-gold: var(--ngs-primary, #c9a84c);
+  --ngs-gold-deep: var(--ngs-accent, #8b6218);
+  --ngs-gold-bright: #e8c96a;
+  --ngs-champagne: #f5e6be;
+  --ngs-brand: var(--ngs-gold);
+  --ngs-brand-ink: var(--ngs-gold-deep);
+  --ngs-brand-wash: var(--ngs-champagne);
+  --ngs-brand-line: #e6d29a;
+  --ngs-blue: var(--ngs-gold-deep);
+  --ngs-blue-wash: var(--ngs-champagne);
   --ngs-teal: #087f74;
   --ngs-teal-wash: #e3f5f2;
   --ngs-violet: #6547df;
@@ -22,8 +26,8 @@
   --ngs-ok-wash: #e5f5eb;
   --ngs-error: #c62f36;
   --ngs-error-wash: #fdebec;
-  --ngs-focus: rgba(45, 127, 249, 0.48);
-  --ngs-grad-brand: linear-gradient(135deg, #ff7a45, #f2541c);
+  --ngs-focus: rgba(201, 168, 76, 0.48);
+  --ngs-grad-brand: linear-gradient(135deg, var(--ngs-gold-bright), var(--ngs-gold));
   --ngs-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --ngs-text: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --ngs-r-xs: 8px;
@@ -31,9 +35,9 @@
   --ngs-r-md: 14px;
   --ngs-r-lg: 18px;
   --ngs-r-xl: 24px;
-  --ngs-shadow-1: 0 1px 2px rgba(11, 27, 51, 0.05);
-  --ngs-shadow-2: 0 12px 32px -24px rgba(11, 27, 51, 0.42);
-  --ngs-shadow-3: 0 24px 54px -30px rgba(11, 27, 51, 0.7);
+  --ngs-shadow-1: 0 1px 2px rgba(10, 8, 6, 0.05);
+  --ngs-shadow-2: 0 12px 32px -24px rgba(10, 8, 6, 0.38);
+  --ngs-shadow-3: 0 24px 54px -30px rgba(10, 8, 6, 0.58);
   --ngs-bar-h: 58px;
   --ngs-nav-h: 78px;
   --ngs-safe-b: env(safe-area-inset-bottom, 0px);
@@ -141,7 +145,7 @@
   min-height: 100dvh;
   display: flex;
   background:
-    radial-gradient(120% 60% at 50% -15%, rgba(45, 127, 249, 0.1), transparent 52%),
+    radial-gradient(120% 60% at 50% -15%, rgba(232, 201, 106, 0.22), transparent 52%),
     var(--ngs-bg);
 }
 
@@ -166,8 +170,8 @@
   align-items: center;
   gap: 10px;
   padding: env(safe-area-inset-top, 0px) 18px 0;
-  background: rgba(238, 241, 245, 0.9);
-  border-bottom: 1px solid rgba(223, 228, 235, 0.82);
+  background: rgba(248, 244, 236, 0.9);
+  border-bottom: 1px solid rgba(207, 199, 190, 0.82);
   backdrop-filter: saturate(160%) blur(16px);
 }
 
@@ -207,7 +211,7 @@
   padding: 0 11px;
   border-color: transparent;
   background: var(--ngs-blue-wash);
-  color: #1e63d8;
+  color: var(--ngs-blue);
   white-space: nowrap;
 }
 
@@ -264,8 +268,8 @@
 
 .nextgen-summit-liveview .ngs-button-primary {
   background: var(--ngs-grad-brand);
-  color: #ffffff;
-  box-shadow: 0 12px 26px -16px rgba(226, 80, 24, 0.8);
+  color: var(--ngs-ink);
+  box-shadow: 0 12px 26px -16px rgba(139, 98, 24, 0.62);
 }
 
 .nextgen-summit-liveview .ngs-button-secondary {
@@ -461,8 +465,8 @@
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: linear-gradient(145deg, var(--ngs-blue), #1768dc);
-  color: #ffffff;
+  background: linear-gradient(145deg, var(--ngs-gold-bright), var(--ngs-gold));
+  color: var(--ngs-ink);
   font-family: var(--ngs-display);
   font-weight: 700;
 }
@@ -623,9 +627,9 @@
   gap: 16px;
   padding: 18px;
   border-radius: var(--ngs-r-lg);
-  background: #2d7ff9;
+  background: var(--ngs-gold-deep);
   color: #ffffff;
-  box-shadow: 0 16px 36px -24px rgba(45, 127, 249, 0.95);
+  box-shadow: 0 16px 36px -24px rgba(139, 98, 24, 0.85);
 }
 
 .nextgen-summit-liveview .ngs-promo-card .ngs-eyebrow,
@@ -696,8 +700,8 @@
   gap: 10px;
   margin: -14px -18px 2px;
   padding: 10px 18px 12px;
-  border-bottom: 1px solid rgba(223, 228, 235, 0.9);
-  background: rgba(238, 241, 245, 0.96);
+  border-bottom: 1px solid rgba(207, 199, 190, 0.9);
+  background: rgba(248, 244, 236, 0.96);
   backdrop-filter: blur(14px);
 }
 
@@ -1549,8 +1553,8 @@
   justify-content: space-around;
   padding: 8px 8px calc(8px + var(--ngs-safe-b));
   border-top: 1px solid var(--ngs-line);
-  background: rgba(255, 255, 255, 0.93);
-  box-shadow: 0 -2px 24px -14px rgba(11, 27, 51, 0.2);
+  background: rgba(250, 248, 245, 0.94);
+  box-shadow: 0 -2px 24px -14px rgba(10, 8, 6, 0.2);
   backdrop-filter: saturate(180%) blur(16px);
 }
 
@@ -1597,21 +1601,23 @@
   margin-top: -26px;
   border-radius: 20px;
   background: var(--ngs-grad-brand);
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-size: 9px;
   font-weight: 800;
-  box-shadow: 0 14px 28px -10px rgba(226, 80, 24, 0.7);
+  box-shadow: 0 14px 28px -10px rgba(139, 98, 24, 0.58);
   transition: transform 160ms ease;
 }
 
-/* OTP screens deliberately retain the CoreOrbit Ask visual language requested for login. */
+/* OTP screens use the NextGen Summit light-mode palette while preserving the same layout. */
 .nextgen-summit-liveview .ngs-auth-shell-reference {
   min-height: 100dvh;
   display: block;
   overflow: hidden;
-  background: linear-gradient(-45deg, #2c033a, #21033a, #053138, #053138);
+  background:
+    radial-gradient(110% 55% at 50% -12%, rgba(232, 201, 106, 0.3), transparent 58%),
+    var(--ngs-bg);
   background-size: 400% 400%;
-  color: #ffffff;
+  color: var(--ngs-ink);
   animation: ngs-auth-gradient 15s ease infinite;
 }
 
@@ -1629,7 +1635,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1641,7 +1647,7 @@
   padding: 0 14px;
   border-radius: 7px;
   background: var(--ngs-grad-brand);
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1669,7 +1675,7 @@
 .nextgen-summit-liveview .ngs-auth-ref-copy span {
   margin: 0;
   overflow-wrap: anywhere;
-  color: rgba(255, 255, 255, 0.74);
+  color: var(--ngs-ink-2);
   font-size: 14px;
   font-weight: 600;
 }
@@ -1677,7 +1683,7 @@
 .nextgen-summit-liveview .ngs-auth-ref-copy h1 {
   margin: 0;
   overflow-wrap: anywhere;
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-family: var(--ngs-text);
   font-size: 28px;
   font-weight: 800;
@@ -1694,14 +1700,14 @@
   position: relative;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.72);
-  color: #ffffff;
+  border-bottom: 1px solid var(--ngs-line);
+  color: var(--ngs-ink);
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-field .ngs-svg-icon {
   position: absolute;
   left: 8px;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--ngs-ink-2);
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-input {
@@ -1713,19 +1719,19 @@
   border-radius: 0;
   outline: 0;
   background: transparent;
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-size: 22px;
   font-weight: 700;
   box-shadow: none;
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-input::placeholder {
-  color: rgba(255, 255, 255, 0.58);
+  color: var(--ngs-ink-3);
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-field:focus-within {
   border-bottom-width: 2px;
-  border-bottom-color: #ffffff;
+  border-bottom-color: var(--ngs-gold-deep);
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-code {
@@ -1742,7 +1748,7 @@
   border: 0;
   border-radius: 999px;
   background: var(--ngs-grad-brand);
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-size: 15px;
   font-weight: 800;
   box-shadow: 0 18px 32px -18px rgba(0, 0, 0, 0.75);
@@ -1753,10 +1759,10 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 1px solid var(--ngs-brand-line);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  background: var(--ngs-brand-wash);
+  color: var(--ngs-brand-ink);
   font-size: 13px;
   font-weight: 700;
   backdrop-filter: blur(10px);
@@ -1765,7 +1771,7 @@
 .nextgen-summit-liveview .ngs-auth-ref-note,
 .nextgen-summit-liveview .ngs-auth-ref-resend {
   margin: 24px 0 0;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--ngs-ink-2);
   text-align: center;
   font-size: 13px;
   font-weight: 600;
@@ -1780,7 +1786,7 @@
 }
 
 .nextgen-summit-liveview .ngs-auth-ref-resend span {
-  color: #ffffff;
+  color: var(--ngs-ink);
   font-weight: 800;
 }
 

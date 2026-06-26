@@ -68,16 +68,16 @@
   margin: 0 0 12px;
   padding: 10px 8px 10px 14px;
   overflow: hidden;
-  color: #0b1b33;
-  background: #ffffff;
-  border: 1px solid #d7deea;
+  color: #0A0806;
+  background: #FAF8F5;
+  border: 1px solid #CFC7BE;
   border-left-width: 4px;
   border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(7, 20, 40, 0.2), 0 2px 8px rgba(7, 20, 40, 0.1);
+  box-shadow: 0 16px 40px rgba(10, 8, 6, 0.16), 0 2px 8px rgba(10, 8, 6, 0.08);
 }
 
 .claper-flash--info {
-  border-left-color: #246bfd;
+  border-left-color: #C9A84C;
 }
 
 .claper-flash--error {
@@ -93,8 +93,8 @@
 }
 
 .claper-flash--info .claper-flash__icon {
-  color: #155eef;
-  background: #eaf1ff;
+  color: #8B6218;
+  background: #F5E6BE;
 }
 
 .claper-flash--error .claper-flash__icon {
@@ -110,7 +110,7 @@
 .claper-flash__message {
   min-width: 0;
   margin: 0;
-  color: #14213d;
+  color: #0A0806;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.5;
@@ -124,7 +124,7 @@
   height: 44px;
   padding: 0;
   place-items: center;
-  color: #526079;
+  color: #5A5049;
   background: transparent;
   border: 0;
   border-radius: 6px;
@@ -133,12 +133,12 @@
 }
 
 .claper-flash__dismiss:hover {
-  color: #0b1b33;
-  background: #eef2f7;
+  color: #0A0806;
+  background: #F5E6BE;
 }
 
 .claper-flash__dismiss:focus-visible {
-  outline: 3px solid rgba(36, 107, 253, 0.36);
+  outline: 3px solid rgba(201, 168, 76, 0.42);
   outline-offset: 1px;
 }
 
