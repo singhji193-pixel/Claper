@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:15
+    restart: unless-stopped
     volumes:
       - "claper-db:/var/lib/postgresql/data"
     healthcheck:
@@ -22,6 +23,7 @@ services:
       - claper-net
   app:
     image: coreorbit-ask:latest # or build: .
+    restart: unless-stopped
     ports:
       - 4000:4000
     volumes:
