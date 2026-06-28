@@ -127,6 +127,46 @@ defmodule Claper.HiEventsTest do
       assert HiEvents.ticket_count(event.id) == 0
     end
 
+    test "returns a structured error when an order payload is invalid" do
+      event = event_fixture()
+      integration = integration_fixture(event)
+
+      body =
+        "delivery-invalid-order"
+        |> order_payload(integration.external_event_id)
+        |> put_in(["data", "order", "customer", "email"], "not-an-email")
+        |> Jason.encode!()
+
+      assert {:error, {:processing_failed, {:invalid_order, changeset}}} =
+               HiEvents.ingest_webhook(signed_headers(integration, body), body)
+
+      assert {"must be a valid email", _} = changeset.errors[:buyer_email]
+      assert [%SyncEvent{status: "failed", error: error}] = list_sync_events(integration)
+      assert error =~ "invalid_order"
+      assert HiEvents.list_orders(event.id) == []
+      assert HiEvents.ticket_count(event.id) == 0
+    end
+
+    test "returns a structured error when an attendee payload is invalid" do
+      event = event_fixture()
+      integration = integration_fixture(event)
+
+      body =
+        "delivery-invalid-ticket"
+        |> order_payload(integration.external_event_id)
+        |> put_in(["data", "order", "attendees", Access.at(0), "email"], "not-an-email")
+        |> Jason.encode!()
+
+      assert {:error, {:processing_failed, {:invalid_ticket, changeset}}} =
+               HiEvents.ingest_webhook(signed_headers(integration, body), body)
+
+      assert {"must be a valid email", _} = changeset.errors[:attendee_email]
+      assert [%SyncEvent{status: "failed", error: error}] = list_sync_events(integration)
+      assert error =~ "invalid_ticket"
+      assert HiEvents.list_orders(event.id) == []
+      assert HiEvents.ticket_count(event.id) == 0
+    end
+
     test "updates check-in and cancellation status for an existing attendee" do
       event = event_fixture()
       integration = integration_fixture(event)

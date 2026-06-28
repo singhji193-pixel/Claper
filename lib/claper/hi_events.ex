@@ -275,28 +275,27 @@ defmodule Claper.HiEvents do
 
     Repo.transaction(fn ->
       normalized = normalize_payload(sync_event.payload, sync_event.external_event_id)
-      order = upsert_order(sync_event, normalized.order)
-
-      normalized.attendees
-      |> Enum.each(&upsert_ticket(sync_event, order, &1))
-
       processed_at = now()
 
-      sync_event =
+      with {:ok, order} <- upsert_order(sync_event, normalized.order),
+           :ok <- upsert_tickets(sync_event, order, normalized.attendees),
+           {:ok, sync_event} <-
+             sync_event
+             |> SyncEvent.status_changeset(%{status: "processed", processed_at: processed_at})
+             |> Repo.update(),
+           {:ok, _integration} <-
+             sync_event.integration
+             |> Integration.status_changeset(%{
+               last_event_key: sync_event.external_event_key,
+               last_event_type: sync_event.external_event_type,
+               last_received_at: sync_event.received_at,
+               last_error: nil
+             })
+             |> Repo.update() do
         sync_event
-        |> SyncEvent.status_changeset(%{status: "processed", processed_at: processed_at})
-        |> Repo.update!()
-
-      sync_event.integration
-      |> Integration.status_changeset(%{
-        last_event_key: sync_event.external_event_key,
-        last_event_type: sync_event.external_event_type,
-        last_received_at: sync_event.received_at,
-        last_error: nil
-      })
-      |> Repo.update!()
-
-      sync_event
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
     end)
     |> case do
       {:ok, sync_event} ->
@@ -347,7 +346,7 @@ defmodule Claper.HiEvents do
     end
   end
 
-  defp upsert_order(_sync_event, nil), do: nil
+  defp upsert_order(_sync_event, nil), do: {:ok, nil}
 
   defp upsert_order(%SyncEvent{} = sync_event, attrs) do
     attrs =
@@ -373,9 +372,18 @@ defmodule Claper.HiEvents do
       returning: true
     )
     |> case do
-      {:ok, order} -> order
-      {:error, changeset} -> raise "Hi.Events order sync failed: #{inspect(changeset.errors)}"
+      {:ok, order} -> {:ok, order}
+      {:error, changeset} -> {:error, {:invalid_order, changeset}}
     end
+  end
+
+  defp upsert_tickets(sync_event, order, attendees) do
+    Enum.reduce_while(attendees, :ok, fn attendee, :ok ->
+      case upsert_ticket(sync_event, order, attendee) do
+        :ok -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
   end
 
   defp upsert_ticket(_sync_event, _order, nil), do: :ok
@@ -418,7 +426,7 @@ defmodule Claper.HiEvents do
       )
       |> case do
         {:ok, _ticket} -> :ok
-        {:error, changeset} -> raise "Hi.Events ticket sync failed: #{inspect(changeset.errors)}"
+        {:error, changeset} -> {:error, {:invalid_ticket, changeset}}
       end
     end
   end
