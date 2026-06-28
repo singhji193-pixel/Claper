@@ -146,8 +146,21 @@ defmodule ClaperWeb.EventLive.Index do
   @impl true
   def handle_event("duplicate", %{"id" => id}, %{assigns: %{current_user: current_user}} = socket) do
     event = Events.get_user_event!(current_user.id, id)
-    {:ok, _} = Events.duplicate_event(current_user.id, event.uuid)
-    {:noreply, redirect(socket, to: ~p"/events")}
+
+    case Events.duplicate_event(current_user.id, event.uuid) do
+      {:ok, _event} ->
+        {:noreply, redirect(socket, to: ~p"/events")}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> put_flash(
+           :error,
+           gettext(
+             "Could not duplicate event. Please review the event interactions and try again."
+           )
+         )}
+    end
   end
 
   @impl true

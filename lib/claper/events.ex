@@ -647,25 +647,21 @@ defmodule Claper.Events do
   defp duplicate_polls(original, changes) do
     case get_in(original.presentation_file.polls) do
       polls when is_list(polls) ->
-        polls =
-          for poll <- polls do
-            attrs =
-              Map.from_struct(poll)
-              |> Map.drop([:id, :inserted_at, :updated_at])
-              |> Map.put(:presentation_file_id, changes.presentation_file.id)
-              |> Map.put(
-                :poll_opts,
-                Enum.map(poll.poll_opts, fn opt ->
-                  Map.from_struct(opt)
-                  |> Map.drop([:id, :inserted_at, :updated_at, :vote_count])
-                end)
-              )
+        duplicate_many(polls, fn poll ->
+          attrs =
+            Map.from_struct(poll)
+            |> Map.drop([:id, :inserted_at, :updated_at])
+            |> Map.put(:presentation_file_id, changes.presentation_file.id)
+            |> Map.put(
+              :poll_opts,
+              Enum.map(poll.poll_opts, fn opt ->
+                Map.from_struct(opt)
+                |> Map.drop([:id, :inserted_at, :updated_at, :vote_count])
+              end)
+            )
 
-            {:ok, poll} = Claper.Polls.create_poll(attrs)
-            poll
-          end
-
-        {:ok, polls}
+          Claper.Polls.create_poll(attrs)
+        end)
 
       _ ->
         {:ok, nil}
@@ -675,22 +671,18 @@ defmodule Claper.Events do
   defp duplicate_forms(original, changes) do
     case get_in(original.presentation_file.forms) do
       forms when is_list(forms) ->
-        forms =
-          for form <- forms do
-            attrs =
-              Map.from_struct(form)
-              |> Map.drop([:id, :inserted_at, :updated_at])
-              |> Map.put(:presentation_file_id, changes.presentation_file.id)
-              |> Map.put(
-                :fields,
-                Enum.map(form.fields, &Map.from_struct(&1))
-              )
+        duplicate_many(forms, fn form ->
+          attrs =
+            Map.from_struct(form)
+            |> Map.drop([:id, :inserted_at, :updated_at])
+            |> Map.put(:presentation_file_id, changes.presentation_file.id)
+            |> Map.put(
+              :fields,
+              Enum.map(form.fields, &Map.from_struct(&1))
+            )
 
-            {:ok, form} = Claper.Forms.create_form(attrs)
-            form
-          end
-
-        {:ok, forms}
+          Claper.Forms.create_form(attrs)
+        end)
 
       _ ->
         {:ok, nil}
@@ -700,18 +692,14 @@ defmodule Claper.Events do
   defp duplicate_embeds(original, changes) do
     case get_in(original.presentation_file.embeds) do
       embeds when is_list(embeds) ->
-        embeds =
-          for embed <- embeds do
-            attrs =
-              Map.from_struct(embed)
-              |> Map.drop([:id, :inserted_at, :updated_at])
-              |> Map.put(:presentation_file_id, changes.presentation_file.id)
+        duplicate_many(embeds, fn embed ->
+          attrs =
+            Map.from_struct(embed)
+            |> Map.drop([:id, :inserted_at, :updated_at])
+            |> Map.put(:presentation_file_id, changes.presentation_file.id)
 
-            {:ok, embed} = Claper.Embeds.create_embed(attrs)
-            embed
-          end
-
-        {:ok, embeds}
+          Claper.Embeds.create_embed(attrs)
+        end)
 
       _ ->
         {:ok, nil}
@@ -721,22 +709,35 @@ defmodule Claper.Events do
   defp duplicate_quizzes(original, changes) do
     case get_in(original.presentation_file.quizzes) do
       quizzes when is_list(quizzes) ->
-        quizzes =
-          for quiz <- quizzes do
-            attrs =
-              Map.from_struct(quiz)
-              |> Map.drop([:id, :inserted_at, :updated_at])
-              |> Map.put(:presentation_file_id, changes.presentation_file.id)
-              |> Map.put(:quiz_questions, Enum.map(quiz.quiz_questions, &map_quiz_question/1))
+        duplicate_many(quizzes, fn quiz ->
+          attrs =
+            Map.from_struct(quiz)
+            |> Map.drop([:id, :inserted_at, :updated_at])
+            |> Map.put(:presentation_file_id, changes.presentation_file.id)
+            |> Map.put(:quiz_questions, Enum.map(quiz.quiz_questions, &map_quiz_question/1))
 
-            {:ok, quiz} = Claper.Quizzes.create_quiz(attrs)
-            quiz
-          end
-
-        {:ok, quizzes}
+          Claper.Quizzes.create_quiz(attrs)
+        end)
 
       _ ->
         {:ok, nil}
+    end
+  end
+
+  defp duplicate_many(records, duplicate_fun) do
+    records
+    |> Enum.reduce_while([], fn record, duplicated_records ->
+      case duplicate_fun.(record) do
+        {:ok, duplicated_record} ->
+          {:cont, [duplicated_record | duplicated_records]}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:error, reason} -> {:error, reason}
+      duplicated_records -> {:ok, Enum.reverse(duplicated_records)}
     end
   end
 

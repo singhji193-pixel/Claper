@@ -434,6 +434,35 @@ defmodule Claper.EventsTest do
       assert duplicate_embed.title == embed.title
     end
 
+    test "duplicate_event/2 returns an error and rolls back when an interaction cannot be cloned" do
+      event_name = "legacy duplicate event #{System.unique_integer([:positive])}"
+      original = event_fixture(%{name: event_name})
+      presentation_file = presentation_file_fixture(%{event: original})
+
+      poll =
+        poll_fixture(%{
+          presentation_file_id: presentation_file.id,
+          title: "Legacy poll",
+          position: 0
+        })
+
+      Repo.update_all(from(p in Claper.Polls.Poll, where: p.id == ^poll.id), set: [position: nil])
+
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Events.duplicate_event(original.user_id, original.uuid)
+
+      assert %{position: ["can't be blank"]} = errors_on(changeset)
+
+      assert 0 ==
+               Repo.aggregate(
+                 from(e in Event,
+                   where: e.user_id == ^original.user_id and e.name == ^"#{event_name} (Copy)"
+                 ),
+                 :count,
+                 :id
+               )
+    end
+
     test "duplicate_event/2 raises when an invalid user-event is supplied", context do
       original = Enum.at(context.alice_active_events, 0)
 

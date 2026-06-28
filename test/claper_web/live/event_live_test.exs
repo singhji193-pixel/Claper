@@ -77,6 +77,38 @@ defmodule ClaperWeb.EventLiveTest do
 
       refute has_element?(index_live, "#event-#{presentation_file.event.uuid}")
     end
+
+    test "shows an error instead of crashing when event duplication fails", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      poll =
+        poll_fixture(%{
+          presentation_file_id: presentation_file.id,
+          title: "Legacy poll",
+          position: 0
+        })
+
+      Repo.update_all(from(p in Claper.Polls.Poll, where: p.id == ^poll.id), set: [position: nil])
+
+      {:ok, index_live, _html} = live(conn, ~p"/events")
+
+      html = render_click(index_live, "duplicate", %{"id" => presentation_file.event.uuid})
+
+      assert html =~
+               "Could not duplicate event. Please review the event interactions and try again."
+
+      assert 0 ==
+               Repo.aggregate(
+                 from(e in Claper.Events.Event,
+                   where:
+                     e.user_id == ^presentation_file.event.user_id and
+                       e.name == ^"#{presentation_file.event.name} (Copy)"
+                 ),
+                 :count,
+                 :id
+               )
+    end
   end
 
   describe "Show" do
