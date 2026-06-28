@@ -340,15 +340,24 @@ defmodule Claper.BingosTest do
 
       for _index <- 1..4 do
         assert {:ok, _connection} =
-                 Bingos.connect_player(event.id, first_player.attendee_identifier, second_player.code)
+                 Bingos.connect_player(
+                   event.id,
+                   first_player.attendee_identifier,
+                   second_player.code
+                 )
       end
 
       assert {:ok, _connection} =
-               Bingos.connect_player(event.id, second_player.attendee_identifier, third_player.code)
+               Bingos.connect_player(
+                 event.id,
+                 second_player.attendee_identifier,
+                 third_player.code
+               )
 
       Bingos.get_or_create_settings(event.id)
 
-      {leaderboard, leaderboard_queries} = count_repo_queries(fn -> Bingos.leaderboard(event.id) end)
+      {leaderboard, leaderboard_queries} =
+        count_repo_queries(fn -> Bingos.leaderboard(event.id) end)
 
       assert [%{name: "Player 01", completed_prompts: 4} | _] = leaderboard
       assert leaderboard_queries in 1..3

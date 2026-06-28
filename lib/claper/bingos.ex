@@ -310,7 +310,9 @@ defmodule Claper.Bingos do
   def progress_count(nil), do: 0
 
   def progress_count(%BingoPlayer{} = player) do
-    from(c in BingoConnection, where: c.event_id == ^player.event_id and c.player_id == ^player.id)
+    from(c in BingoConnection,
+      where: c.event_id == ^player.event_id and c.player_id == ^player.id
+    )
     |> Repo.aggregate(:count, :id)
   end
 
