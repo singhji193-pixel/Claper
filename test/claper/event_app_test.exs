@@ -16,7 +16,7 @@ defmodule Claper.EventAppTest do
       assert bootstrap.event.code == event.code
       assert bootstrap.event.name == event.name
       assert bootstrap.settings.enabled
-      assert bootstrap.settings.theme.primary_color == "#f15a24"
+      assert bootstrap.settings.theme.primary_color == "#C9A84C"
       assert bootstrap.features.agenda.available
       assert bootstrap.features.agenda.count == 1
       assert bootstrap.features.bingo.available
@@ -42,8 +42,8 @@ defmodule Claper.EventAppTest do
       refute setting.live_interactions_enabled
       refute setting.qa_enabled
       refute setting.resources_enabled
-      assert setting.primary_color == "#f15a24"
-      assert setting.accent_color == "#365a91"
+      assert setting.primary_color == "#C9A84C"
+      assert setting.accent_color == "#8B6218"
     end
 
     test "publishes disabled-by-default Live feature settings" do
