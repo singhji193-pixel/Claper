@@ -310,7 +310,7 @@ defmodule Claper.Bingos do
   def progress_count(nil), do: 0
 
   def progress_count(%BingoPlayer{} = player) do
-    from(c in BingoConnection, where: c.player_id == ^player.id)
+    from(c in BingoConnection, where: c.event_id == ^player.event_id and c.player_id == ^player.id)
     |> Repo.aggregate(:count, :id)
   end
 
@@ -318,7 +318,9 @@ defmodule Claper.Bingos do
 
   def list_connections_for_player(%BingoPlayer{} = player) do
     from(c in BingoConnection,
-      where: c.player_id == ^player.id or c.connected_player_id == ^player.id,
+      where:
+        c.event_id == ^player.event_id and
+          (c.player_id == ^player.id or c.connected_player_id == ^player.id),
       order_by: [desc: c.id],
       preload: [:prompt, :player, :connected_player]
     )
@@ -405,12 +407,13 @@ defmodule Claper.Bingos do
   def leaderboard(nil), do: []
 
   def leaderboard(event_id) do
-    prompt_count = length(list_prompts(event_id))
+    prompt_count = count_prompts(event_id)
+    progress_counts = progress_counts_by_player(event_id)
 
     event_id
     |> list_players()
     |> Enum.map(fn player ->
-      completed_prompts = progress_count(player)
+      completed_prompts = Map.get(progress_counts, player.id, 0)
 
       %{
         player_id: player.id,
@@ -436,30 +439,34 @@ defmodule Claper.Bingos do
 
   def dashboard_stats(event_id) do
     prompts = list_prompts(event_id)
-    players = list_players(event_id)
     prompt_count = length(prompts)
-    player_count = length(players)
+    player_count = count_players(event_id)
+    prompt_performance = prompt_performance(prompts)
 
     completed_count =
       if prompt_count == 0 do
         0
       else
-        Enum.count(players, &(progress_count(&1) >= prompt_count))
+        event_id
+        |> progress_counts_by_player()
+        |> Enum.count(fn {_player_id, completed_prompts} -> completed_prompts >= prompt_count end)
       end
 
     %{
       player_count: player_count,
       prompt_count: prompt_count,
-      connection_count: count_connections(event_id),
+      connection_count: total_prompt_connections(prompt_performance),
       completed_count: completed_count,
       completion_rate: percentage(completed_count, player_count),
-      prompt_performance: prompt_performance(prompts)
+      prompt_performance: prompt_performance
     }
   end
 
   def export_players_rows(event_id) do
     settings = get_or_create_settings(event_id)
     prompt_count = length(list_prompts(event_id))
+    progress_counts = progress_counts_by_player(event_id)
+    connection_counts = connection_counts_by_player(event_id)
 
     headers = [
       "Name",
@@ -493,8 +500,8 @@ defmodule Claper.Bingos do
           Map.get(profile, :linkedin_url, ""),
           Map.get(profile, :website_url, ""),
           player.code,
-          player |> list_connections_for_player() |> length(),
-          progress_count(player),
+          Map.get(connection_counts, player.id, 0),
+          Map.get(progress_counts, player.id, 0),
           prompt_count,
           format_naive_datetime(player.inserted_at)
         ]
@@ -559,24 +566,80 @@ defmodule Claper.Bingos do
   defp present?(value) when is_binary(value), do: String.trim(value) != ""
   defp present?(_value), do: true
 
-  defp count_connections(event_id) do
-    from(c in BingoConnection, where: c.event_id == ^event_id)
+  defp count_prompts(event_id) do
+    from(p in BingoPrompt, where: p.event_id == ^event_id)
     |> Repo.aggregate(:count, :id)
   end
 
+  defp count_players(event_id) do
+    from(p in BingoPlayer, where: p.event_id == ^event_id)
+    |> Repo.aggregate(:count, :id)
+  end
+
+  defp progress_counts_by_player(nil), do: %{}
+
+  defp progress_counts_by_player(event_id) do
+    from(c in BingoConnection,
+      where: c.event_id == ^event_id,
+      group_by: c.player_id,
+      select: {c.player_id, count(c.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  defp connection_counts_by_player(nil), do: %{}
+
+  defp connection_counts_by_player(event_id) do
+    outgoing =
+      from(c in BingoConnection,
+        where: c.event_id == ^event_id,
+        group_by: c.player_id,
+        select: {c.player_id, count(c.id)}
+      )
+      |> Repo.all()
+
+    incoming =
+      from(c in BingoConnection,
+        where: c.event_id == ^event_id,
+        group_by: c.connected_player_id,
+        select: {c.connected_player_id, count(c.id)}
+      )
+      |> Repo.all()
+
+    Enum.reduce(outgoing ++ incoming, %{}, fn {player_id, count}, counts ->
+      Map.update(counts, player_id, count, &(&1 + count))
+    end)
+  end
+
   defp prompt_performance(prompts) do
+    connection_counts = prompt_connection_counts(prompts)
+
     Enum.map(prompts, fn prompt ->
       %{
         prompt_id: prompt.id,
         prompt: prompt.prompt,
-        connection_count: count_prompt_connections(prompt.id)
+        connection_count: Map.get(connection_counts, prompt.id, 0)
       }
     end)
   end
 
-  defp count_prompt_connections(prompt_id) do
-    from(c in BingoConnection, where: c.bingo_prompt_id == ^prompt_id)
-    |> Repo.aggregate(:count, :id)
+  defp prompt_connection_counts([]), do: %{}
+
+  defp prompt_connection_counts(prompts) do
+    prompt_ids = Enum.map(prompts, & &1.id)
+
+    from(c in BingoConnection,
+      where: c.bingo_prompt_id in ^prompt_ids,
+      group_by: c.bingo_prompt_id,
+      select: {c.bingo_prompt_id, count(c.id)}
+    )
+    |> Repo.all()
+    |> Map.new()
+  end
+
+  defp total_prompt_connections(prompt_performance) do
+    Enum.reduce(prompt_performance, 0, fn prompt, total -> total + prompt.connection_count end)
   end
 
   defp percentage(_count, 0), do: 0

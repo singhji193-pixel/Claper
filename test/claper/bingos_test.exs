@@ -317,5 +317,86 @@ defmodule Claper.BingosTest do
       assert "avery@example.com" in avery_row
       refute "555-111-2222" in avery_row
     end
+
+    test "leaderboard, dashboard stats, and export use aggregate query counts" do
+      event = event_fixture()
+
+      for index <- 1..4 do
+        bingo_prompt_fixture(%{event: event, prompt: "Prompt #{index}"})
+      end
+
+      players =
+        for index <- 1..8 do
+          padded_index = index |> Integer.to_string() |> String.pad_leading(2, "0")
+
+          bingo_player_fixture(%{
+            event: event,
+            attendee_identifier: "attendee-#{index}",
+            name: "Player #{padded_index}"
+          })
+        end
+
+      [first_player, second_player, third_player | _] = players
+
+      for _index <- 1..4 do
+        assert {:ok, _connection} =
+                 Bingos.connect_player(event.id, first_player.attendee_identifier, second_player.code)
+      end
+
+      assert {:ok, _connection} =
+               Bingos.connect_player(event.id, second_player.attendee_identifier, third_player.code)
+
+      Bingos.get_or_create_settings(event.id)
+
+      {leaderboard, leaderboard_queries} = count_repo_queries(fn -> Bingos.leaderboard(event.id) end)
+
+      assert [%{name: "Player 01", completed_prompts: 4} | _] = leaderboard
+      assert leaderboard_queries in 1..3
+
+      {stats, dashboard_queries} = count_repo_queries(fn -> Bingos.dashboard_stats(event.id) end)
+
+      assert stats.player_count == 8
+      assert stats.prompt_count == 4
+      assert stats.connection_count == 5
+      assert stats.completed_count == 1
+      assert dashboard_queries in 1..4
+
+      {{_headers, rows}, export_queries} =
+        count_repo_queries(fn -> Bingos.export_players_rows(event.id) end)
+
+      assert length(rows) == 8
+      assert export_queries in 1..6
+    end
+  end
+
+  defp count_repo_queries(fun) do
+    caller = self()
+    ref = make_ref()
+    handler_id = {__MODULE__, ref}
+    event_name = (Repo.config()[:telemetry_prefix] || [:claper, :repo]) ++ [:query]
+
+    :telemetry.attach(
+      handler_id,
+      event_name,
+      fn _event, _measurements, _metadata, _config ->
+        send(caller, {ref, :query})
+      end,
+      nil
+    )
+
+    try do
+      result = fun.()
+      {result, drain_repo_queries(ref, 0)}
+    after
+      :telemetry.detach(handler_id)
+    end
+  end
+
+  defp drain_repo_queries(ref, count) do
+    receive do
+      {^ref, :query} -> drain_repo_queries(ref, count + 1)
+    after
+      0 -> count
+    end
   end
 end
