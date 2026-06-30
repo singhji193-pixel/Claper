@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
 
 ENV NODE_VERSION 22.17.0
 ENV PRESENTATION_STORAGE_DIR /app/uploads
+ENV UV_USE_IO_URING=0
 
 # custom ERL_FLAGS are passed for (public) multi-platform builds
 # to fix qemu segfault, more info: https://github.com/erlang/otp/pull/6340
