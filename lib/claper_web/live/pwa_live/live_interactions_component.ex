@@ -346,7 +346,7 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   defp posts_panel(assigns) do
     ~H"""
     <%= if @enabled do %>
-      <section class="ngs-live-posts">
+      <section class={["ngs-live-posts", "is-#{@kind}"]}>
         <header class="ngs-live-posts-header">
           <span><.ngs_icon name={@icon} class="size-5" /></span>
           <div>
@@ -355,105 +355,123 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
           </div>
         </header>
 
-        <form
-          id={"pwa-live-#{@kind}-form"}
-          phx-submit="live-create-post"
-          phx-target={@myself}
-          class="ngs-live-compose"
-        >
-          <input type="hidden" name="kind" value={@kind} />
-          <label>
-            <span class="sr-only">{post_placeholder(@kind)}</span>
-            <textarea
-              name="body"
-              required
-              minlength="2"
-              maxlength="255"
-              placeholder={post_placeholder(@kind)}
-            ></textarea>
-          </label>
-          <label :if={@snapshot && @snapshot.state.anonymous_chat_enabled} class="ngs-live-anonymous">
-            <input type="checkbox" name="anonymous" value="true" />
-            <span>{gettext("Post anonymously")}</span>
-          </label>
-          <button
-            type="submit"
-            phx-disable-with={gettext("Posting...")}
-            class="ngs-button ngs-button-primary ngs-focus"
-          >
-            {if @kind == "question", do: gettext("Ask question"), else: gettext("Send message")}
-          </button>
-        </form>
+        <div class="ngs-live-posts-scroll">
+          <div class="ngs-live-post-list" role="list">
+            <article
+              :for={post <- @posts}
+              id={"pwa-live-post-#{post.uuid}"}
+              class="ngs-live-post"
+              role="listitem"
+            >
+              <header>
+                <strong>{post.name}</strong>
+                <span :if={post.pinned}>
+                  <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
+                </span>
+              </header>
+              <p>{post.body}</p>
+              <div class="ngs-live-post-actions">
+                <button
+                  type="button"
+                  phx-click="live-toggle-reaction"
+                  phx-value-post-id={post.uuid}
+                  phx-value-icon="👍"
+                  phx-target={@myself}
+                  class={["ngs-focus", post.reacted && "is-active"]}
+                  aria-pressed={post.reacted}
+                >
+                  <img src="/images/icons/thumb.svg" alt="" class="ngs-live-post-action-icon" />
+                  <span>{post.like_count}</span>
+                </button>
+                <span :if={@kind == "message"}>
+                  <img src="/images/icons/heart.svg" alt="" class="ngs-live-post-action-icon" />
+                  {post.love_count}
+                </span>
+                <span :if={@kind == "message"}>
+                  <img src="/images/icons/laugh.svg" alt="" class="ngs-live-post-action-icon" />
+                  {post.lol_count}
+                </span>
+              </div>
+            </article>
+          </div>
 
-        <div
-          :if={@kind == "message"}
-          class="ngs-live-global-reactions"
-          aria-label={gettext("Room reactions")}
-        >
-          <button
-            :for={
-              {type, label} <- [
-                {"heart", "Heart"},
-                {"clap", "Clap"},
-                {"hundred", "100"},
-                {"raisehand", "Raise hand"}
-              ]
+          <.live_empty
+            :if={Enum.empty?(@posts)}
+            icon={@icon}
+            title={
+              if @kind == "question", do: gettext("No questions yet"), else: gettext("Chat is quiet")
             }
-            type="button"
-            phx-click="live-global-reaction"
-            phx-value-type={type}
-            phx-target={@myself}
-            class="ngs-focus"
-            aria-label={label}
+            body={
+              if @kind == "question",
+                do: gettext("Ask the first question for this session."),
+                else: gettext("Start a useful conversation with the room.")
+            }
+          />
+        </div>
+
+        <div class="ngs-live-posts-composer" aria-label={post_placeholder(@kind)}>
+          <div
+            :if={@kind == "message"}
+            class="ngs-live-global-reactions"
+            aria-label={gettext("Room reactions")}
           >
-            <.ngs_icon name={global_reaction_icon(type)} class="size-5" />
-          </button>
-        </div>
+            <button
+              :for={
+                {type, label} <- [
+                  {"heart", "Heart"},
+                  {"clap", "Clap"},
+                  {"hundred", "100"},
+                  {"raisehand", "Raise hand"}
+                ]
+              }
+              type="button"
+              phx-click="live-global-reaction"
+              phx-value-type={type}
+              phx-target={@myself}
+              class="ngs-focus"
+              aria-label={label}
+            >
+              <img src={global_reaction_asset(type)} alt="" class="ngs-live-reaction-img" />
+            </button>
+          </div>
 
-        <div class="ngs-live-post-list">
-          <article :for={post <- @posts} id={"pwa-live-post-#{post.uuid}"} class="ngs-live-post">
-            <header>
-              <strong>{post.name}</strong>
-              <span :if={post.pinned}>
-                <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
-              </span>
-            </header>
-            <p>{post.body}</p>
-            <div class="ngs-live-post-actions">
-              <button
-                type="button"
-                phx-click="live-toggle-reaction"
-                phx-value-post-id={post.uuid}
-                phx-value-icon="👍"
-                phx-target={@myself}
-                class={["ngs-focus", post.reacted && "is-active"]}
-                aria-pressed={post.reacted}
-              >
-                <.ngs_icon name="hero-hand-thumb-up" class="size-4" />
-                <span>{post.like_count}</span>
-              </button>
-              <span :if={@kind == "message"}>
-                <.ngs_icon name="hero-heart" class="size-4" /> {post.love_count}
-              </span>
-              <span :if={@kind == "message"}>
-                <.ngs_icon name="hero-face-smile" class="size-4" /> {post.lol_count}
-              </span>
-            </div>
-          </article>
+          <form
+            id={"pwa-live-#{@kind}-form"}
+            phx-submit="live-create-post"
+            phx-target={@myself}
+            class="ngs-live-compose"
+          >
+            <input type="hidden" name="kind" value={@kind} />
+            <label class="ngs-live-compose-field">
+              <span class="sr-only">{post_placeholder(@kind)}</span>
+              <textarea
+                name="body"
+                required
+                minlength="2"
+                maxlength="255"
+                placeholder={post_placeholder(@kind)}
+              ></textarea>
+            </label>
+            <label
+              :if={@snapshot && @snapshot.state.anonymous_chat_enabled}
+              class="ngs-live-anonymous"
+            >
+              <input type="checkbox" name="anonymous" value="true" />
+              <span>{gettext("Post anonymously")}</span>
+            </label>
+            <button
+              type="submit"
+              phx-disable-with={gettext("Posting...")}
+              class="ngs-live-send ngs-focus"
+              aria-label={
+                if @kind == "question", do: gettext("Ask question"), else: gettext("Send message")
+              }
+            >
+              <img src="/images/icons/send.svg" alt="" />
+              <span>{if @kind == "question", do: gettext("Ask"), else: gettext("Send")}</span>
+            </button>
+          </form>
         </div>
-
-        <.live_empty
-          :if={Enum.empty?(@posts)}
-          icon={@icon}
-          title={
-            if @kind == "question", do: gettext("No questions yet"), else: gettext("Chat is quiet")
-          }
-          body={
-            if @kind == "question",
-              do: gettext("Ask the first question for this session."),
-              else: gettext("Start a useful conversation with the room.")
-          }
-        />
       </section>
     <% else %>
       <.live_empty icon={@icon} title={@title} body={@unavailable} />
@@ -612,10 +630,10 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   defp global_reaction_type("raisehand"), do: :raisehand
   defp global_reaction_type(_type), do: :invalid
 
-  defp global_reaction_icon("heart"), do: "hero-heart"
-  defp global_reaction_icon("clap"), do: "hero-sparkles"
-  defp global_reaction_icon("hundred"), do: "hero-fire"
-  defp global_reaction_icon("raisehand"), do: "hero-hand-raised"
+  defp global_reaction_asset("heart"), do: "/images/icons/heart.svg"
+  defp global_reaction_asset("clap"), do: "/images/icons/clap.svg"
+  defp global_reaction_asset("hundred"), do: "/images/icons/hundred.svg"
+  defp global_reaction_asset("raisehand"), do: "/images/icons/raisehand.svg"
 
   defp integer(value) when is_integer(value), do: value
 

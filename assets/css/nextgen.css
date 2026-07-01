@@ -2311,18 +2311,27 @@
 
 .nextgen-summit-liveview .ngs-live-posts {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+  min-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 34px);
+  padding-bottom: 150px;
+}
+
+.nextgen-summit-liveview .ngs-live-posts.is-message {
+  padding-bottom: 194px;
 }
 
 .nextgen-summit-liveview .ngs-live-posts-header {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 11px;
+  padding: 2px 2px 0;
 }
 
 .nextgen-summit-liveview .ngs-live-posts-header > span {
   width: 42px;
   height: 42px;
+  flex: none;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -2339,69 +2348,34 @@
   font-size: 12px;
 }
 
-.nextgen-summit-liveview .ngs-live-compose {
-  display: grid;
-  gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--ngs-line);
+.nextgen-summit-liveview .ngs-live-posts-scroll {
+  min-height: 280px;
+  max-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 224px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 2px 10px;
+  scrollbar-width: thin;
 }
 
-.nextgen-summit-liveview .ngs-live-compose textarea {
-  width: 100%;
-  min-height: 96px;
-  resize: vertical;
-  padding: 12px;
-  border: 1px solid var(--ngs-line);
-  border-radius: 8px;
-  background: #ffffff;
-  color: var(--ngs-ink);
-  font: 500 16px/1.5 var(--ngs-text);
-}
-
-.nextgen-summit-liveview .ngs-live-anonymous {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--ngs-ink-2);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.nextgen-summit-liveview .ngs-live-anonymous input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--ngs-blue);
-}
-
-.nextgen-summit-liveview .ngs-live-global-reactions {
-  display: grid;
-  grid-template-columns: repeat(4, 44px);
-  gap: 8px;
-}
-
-.nextgen-summit-liveview .ngs-live-global-reactions button {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--ngs-line);
-  border-radius: 50%;
-  background: var(--ngs-surface);
-  color: var(--ngs-ink-2);
+.nextgen-summit-liveview .ngs-live-posts.is-message .ngs-live-posts-scroll {
+  max-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 268px);
 }
 
 .nextgen-summit-liveview .ngs-live-post-list {
-  display: grid;
-  gap: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .nextgen-summit-liveview .ngs-live-post {
   min-width: 0;
-  padding: 13px;
-  border: 1px solid var(--ngs-line);
-  border-radius: 8px;
-  background: var(--ngs-surface);
+  width: fit-content;
+  max-width: min(92%, 620px);
+  padding: 12px 13px 10px;
+  border: 1px solid rgba(207, 199, 190, 0.88);
+  border-radius: 18px 18px 18px 8px;
+  background: rgba(250, 248, 245, 0.96);
+  box-shadow: 0 12px 28px -24px rgba(10, 8, 6, 0.48);
 }
 
 .nextgen-summit-liveview .ngs-live-post > header,
@@ -2415,7 +2389,8 @@
 .nextgen-summit-liveview .ngs-live-post > header strong {
   overflow-wrap: anywhere;
   color: var(--ngs-ink);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .nextgen-summit-liveview .ngs-live-post > header span {
@@ -2428,7 +2403,7 @@
 }
 
 .nextgen-summit-liveview .ngs-live-post > p {
-  margin: 8px 0 10px;
+  margin: 6px 0 9px;
   overflow-wrap: anywhere;
   color: var(--ngs-ink);
   font-size: 14px;
@@ -2441,24 +2416,162 @@
 
 .nextgen-summit-liveview .ngs-live-post-actions button,
 .nextgen-summit-liveview .ngs-live-post-actions > span {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 5px;
   border: 1px solid var(--ngs-line);
-  border-radius: 22px;
-  background: var(--ngs-surface-2);
+  border-radius: 999px;
+  background: rgba(245, 230, 190, 0.5);
   color: var(--ngs-ink-2);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 800;
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button {
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .nextgen-summit-liveview .ngs-live-post-actions button.is-active {
   border-color: var(--ngs-blue);
   background: var(--ngs-blue-wash);
   color: var(--ngs-blue);
+}
+
+.nextgen-summit-liveview .ngs-live-post-action-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.nextgen-summit-liveview .ngs-live-posts-composer {
+  position: fixed;
+  right: 0;
+  bottom: calc(var(--ngs-nav-h) + var(--ngs-safe-b));
+  left: 0;
+  z-index: 38;
+  display: grid;
+  gap: 8px;
+  padding: 8px 14px 10px;
+  border-top: 1px solid rgba(207, 199, 190, 0.9);
+  background: rgba(248, 244, 236, 0.94);
+  box-shadow: 0 -16px 38px -28px rgba(10, 8, 6, 0.48);
+  backdrop-filter: saturate(180%) blur(18px);
+}
+
+.nextgen-summit-liveview .ngs-live-posts-composer > * {
+  width: min(100%, 760px);
+  margin-inline: auto;
+}
+
+.nextgen-summit-liveview .ngs-live-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "field send"
+    "anonymous anonymous";
+  align-items: end;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid var(--ngs-line);
+  border-radius: 22px;
+  background: var(--ngs-surface);
+  box-shadow: 0 14px 36px -28px rgba(10, 8, 6, 0.5);
+}
+
+.nextgen-summit-liveview .ngs-live-compose-field {
+  grid-area: field;
+  min-width: 0;
+}
+
+.nextgen-summit-liveview .ngs-live-compose textarea {
+  width: 100%;
+  min-height: 46px;
+  max-height: 120px;
+  resize: vertical;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(245, 230, 190, 0.54);
+  color: var(--ngs-ink);
+  font: 600 16px/1.45 var(--ngs-text);
+}
+
+.nextgen-summit-liveview .ngs-live-compose textarea::placeholder {
+  color: var(--ngs-ink-3);
+}
+
+.nextgen-summit-liveview .ngs-live-anonymous {
+  grid-area: anonymous;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-inline: 6px;
+  color: var(--ngs-ink-2);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.nextgen-summit-liveview .ngs-live-anonymous input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--ngs-blue);
+}
+
+.nextgen-summit-liveview .ngs-live-send {
+  grid-area: send;
+  min-width: 54px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ngs-grad-brand);
+  color: var(--ngs-ink);
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 12px 22px -18px rgba(139, 98, 24, 0.9);
+}
+
+.nextgen-summit-liveview .ngs-live-send img {
+  width: 17px;
+  height: 17px;
+}
+
+.nextgen-summit-liveview .ngs-live-global-reactions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.nextgen-summit-liveview .ngs-live-global-reactions button {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(207, 199, 190, 0.9);
+  border-radius: 50%;
+  background: var(--ngs-surface);
+  box-shadow: var(--ngs-shadow-1);
+}
+
+.nextgen-summit-liveview .ngs-live-global-reactions button:active,
+.nextgen-summit-liveview .ngs-live-send:active,
+.nextgen-summit-liveview .ngs-live-post-actions button:active {
+  transform: scale(0.97);
+}
+
+.nextgen-summit-liveview .ngs-live-reaction-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .nextgen-summit-liveview .ngs-resource-section {
@@ -2514,6 +2627,29 @@
 }
 
 @media (min-width: 760px) {
+  .nextgen-summit-liveview .ngs-live-posts {
+    min-height: calc(100dvh - 120px);
+    padding-bottom: 126px;
+  }
+
+  .nextgen-summit-liveview .ngs-live-posts.is-message {
+    padding-bottom: 176px;
+  }
+
+  .nextgen-summit-liveview .ngs-live-posts-scroll {
+    max-height: calc(100dvh - 238px);
+  }
+
+  .nextgen-summit-liveview .ngs-live-posts.is-message .ngs-live-posts-scroll {
+    max-height: calc(100dvh - 288px);
+  }
+
+  .nextgen-summit-liveview .ngs-live-posts-composer {
+    left: 248px;
+    bottom: 0;
+    padding: 10px 30px 14px;
+  }
+
   .nextgen-summit-liveview .ngs-live-banner {
     right: 24px;
     bottom: 20px;
