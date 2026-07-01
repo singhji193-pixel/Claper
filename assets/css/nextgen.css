@@ -228,7 +228,7 @@
   width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  padding: 14px 18px calc(var(--ngs-nav-h) + var(--ngs-safe-b) + 34px);
+  padding: 14px 18px calc(var(--ngs-nav-h) + var(--ngs-safe-b) + 112px);
   display: grid;
   gap: 20px;
 }
@@ -1890,7 +1890,7 @@
   }
 
   .nextgen-summit-liveview .ngs-main {
-    padding: 24px 30px 52px;
+    padding: 24px 30px 96px;
     gap: 24px;
   }
 
@@ -2310,14 +2310,16 @@
 }
 
 .nextgen-summit-liveview .ngs-live-posts {
+  --ngs-live-scroll-reserve: 296px;
   display: grid;
   gap: 12px;
   min-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 34px);
-  padding-bottom: 150px;
+  padding-bottom: 174px;
 }
 
 .nextgen-summit-liveview .ngs-live-posts.is-message {
-  padding-bottom: 194px;
+  --ngs-live-scroll-reserve: 340px;
+  padding-bottom: 218px;
 }
 
 .nextgen-summit-liveview .ngs-live-posts-header {
@@ -2349,16 +2351,15 @@
 }
 
 .nextgen-summit-liveview .ngs-live-posts-scroll {
-  min-height: 280px;
-  max-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 224px);
+  min-height: min(
+    280px,
+    calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - var(--ngs-live-scroll-reserve))
+  );
+  max-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - var(--ngs-live-scroll-reserve));
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 2px 2px 10px;
+  padding: 2px 2px 18px;
   scrollbar-width: thin;
-}
-
-.nextgen-summit-liveview .ngs-live-posts.is-message .ngs-live-posts-scroll {
-  max-height: calc(100dvh - var(--ngs-bar-h) - var(--ngs-nav-h) - var(--ngs-safe-b) - 268px);
 }
 
 .nextgen-summit-liveview .ngs-live-post-list {
@@ -2412,12 +2413,12 @@
 
 .nextgen-summit-liveview .ngs-live-post-actions {
   justify-content: flex-start;
+  flex-wrap: wrap;
 }
 
-.nextgen-summit-liveview .ngs-live-post-actions button,
-.nextgen-summit-liveview .ngs-live-post-actions > span {
-  min-width: 40px;
-  min-height: 36px;
+.nextgen-summit-liveview .ngs-live-post-actions button {
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2430,15 +2431,22 @@
   font-weight: 800;
 }
 
-.nextgen-summit-liveview .ngs-live-post-actions button {
-  min-width: 44px;
-  min-height: 44px;
-}
-
-.nextgen-summit-liveview .ngs-live-post-actions button.is-active {
+.nextgen-summit-liveview .ngs-live-post-actions button.is-like.is-active {
   border-color: var(--ngs-blue);
   background: var(--ngs-blue-wash);
   color: var(--ngs-blue);
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button.is-heart.is-active {
+  border-color: rgba(198, 47, 54, 0.36);
+  background: var(--ngs-error-wash);
+  color: var(--ngs-error);
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button.is-laugh.is-active {
+  border-color: rgba(201, 168, 76, 0.46);
+  background: var(--ngs-champagne);
+  color: var(--ngs-deep-gold);
 }
 
 .nextgen-summit-liveview .ngs-live-post-action-icon {
@@ -2628,20 +2636,19 @@
 
 @media (min-width: 760px) {
   .nextgen-summit-liveview .ngs-live-posts {
+    --ngs-live-scroll-reserve: 286px;
     min-height: calc(100dvh - 120px);
-    padding-bottom: 126px;
+    padding-bottom: 146px;
   }
 
   .nextgen-summit-liveview .ngs-live-posts.is-message {
-    padding-bottom: 176px;
+    --ngs-live-scroll-reserve: 346px;
+    padding-bottom: 196px;
   }
 
   .nextgen-summit-liveview .ngs-live-posts-scroll {
-    max-height: calc(100dvh - 238px);
-  }
-
-  .nextgen-summit-liveview .ngs-live-posts.is-message .ngs-live-posts-scroll {
-    max-height: calc(100dvh - 288px);
+    min-height: min(280px, calc(100dvh - var(--ngs-live-scroll-reserve)));
+    max-height: calc(100dvh - var(--ngs-live-scroll-reserve));
   }
 
   .nextgen-summit-liveview .ngs-live-posts-composer {

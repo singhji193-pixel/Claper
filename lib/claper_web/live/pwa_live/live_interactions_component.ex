@@ -377,20 +377,41 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
                   phx-value-post-id={post.uuid}
                   phx-value-icon="👍"
                   phx-target={@myself}
-                  class={["ngs-focus", post.reacted && "is-active"]}
-                  aria-pressed={post.reacted}
+                  class={["ngs-focus is-like", post.liked && "is-active"]}
+                  aria-label={gettext("Like")}
+                  aria-pressed={post.liked}
                 >
                   <img src="/images/icons/thumb.svg" alt="" class="ngs-live-post-action-icon" />
                   <span>{post.like_count}</span>
                 </button>
-                <span :if={@kind == "message"}>
+                <button
+                  :if={@kind == "message"}
+                  type="button"
+                  phx-click="live-toggle-reaction"
+                  phx-value-post-id={post.uuid}
+                  phx-value-icon="❤️"
+                  phx-target={@myself}
+                  class={["ngs-focus is-heart", post.loved && "is-active"]}
+                  aria-label={gettext("Heart")}
+                  aria-pressed={post.loved}
+                >
                   <img src="/images/icons/heart.svg" alt="" class="ngs-live-post-action-icon" />
-                  {post.love_count}
-                </span>
-                <span :if={@kind == "message"}>
+                  <span>{post.love_count}</span>
+                </button>
+                <button
+                  :if={@kind == "message"}
+                  type="button"
+                  phx-click="live-toggle-reaction"
+                  phx-value-post-id={post.uuid}
+                  phx-value-icon="😂"
+                  phx-target={@myself}
+                  class={["ngs-focus is-laugh", post.laughed && "is-active"]}
+                  aria-label={gettext("Laugh")}
+                  aria-pressed={post.laughed}
+                >
                   <img src="/images/icons/laugh.svg" alt="" class="ngs-live-post-action-icon" />
-                  {post.lol_count}
-                </span>
+                  <span>{post.lol_count}</span>
+                </button>
               </div>
             </article>
           </div>

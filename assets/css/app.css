@@ -57,7 +57,7 @@
 
 /* Shared flash notification: explicit colors keep it legible across themes. */
 .claper-flash {
-  pointer-events: auto;
+  pointer-events: none;
   position: relative;
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 44px;
@@ -119,6 +119,7 @@
 }
 
 .claper-flash__dismiss {
+  pointer-events: auto;
   display: grid;
   width: 44px;
   height: 44px;

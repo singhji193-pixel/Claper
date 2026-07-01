@@ -570,7 +570,33 @@ defmodule ClaperWeb.EventLiveTest do
         |> render_submit()
 
       assert html =~ "Great session"
-      assert [%{kind: "message"}] = Claper.Posts.list_posts_by_kind(event.uuid, "message")
+
+      assert [%{kind: "message"} = message] =
+               Claper.Posts.list_posts_by_kind(event.uuid, "message")
+
+      html =
+        live_view
+        |> element(~s(#pwa-live-post-#{message.uuid} button[aria-label="Like"]))
+        |> render_click()
+
+      assert html =~ ">1<"
+      assert [%{like_count: 1}] = Claper.Posts.list_posts_by_kind(event.uuid, "message")
+
+      html =
+        live_view
+        |> element(~s(#pwa-live-post-#{message.uuid} button[aria-label="Heart"]))
+        |> render_click()
+
+      assert html =~ ">1<"
+      assert [%{love_count: 1}] = Claper.Posts.list_posts_by_kind(event.uuid, "message")
+
+      html =
+        live_view
+        |> element(~s(#pwa-live-post-#{message.uuid} button[aria-label="Laugh"]))
+        |> render_click()
+
+      assert html =~ ">1<"
+      assert [%{lol_count: 1}] = Claper.Posts.list_posts_by_kind(event.uuid, "message")
     end
 
     test "serves native Live through the vanity app route", %{

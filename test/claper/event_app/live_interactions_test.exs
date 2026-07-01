@@ -165,11 +165,62 @@ defmodule Claper.EventApp.LiveInteractionsTest do
 
     assert unreacted.like_count == 0
 
+    assert {:ok, message, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "Great session",
+               false
+             )
+
+    assert {:ok, :added, liked} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               message.uuid,
+               "👍"
+             )
+
+    assert liked.like_count == 1
+
+    assert {:ok, :added, loved} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               message.uuid,
+               "❤️"
+             )
+
+    assert loved.love_count == 1
+
+    assert {:ok, :added, laughed} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               message.uuid,
+               "😂"
+             )
+
+    assert laughed.lol_count == 1
+
     assert {:ok, snapshot} =
              LiveInteractions.snapshot(context.event, context.interaction_key)
 
     assert [%{body: "How will this affect founders?", kind: "question"}] = snapshot.questions
-    assert snapshot.messages == []
+
+    assert [
+             %{
+               body: "Great session",
+               kind: "message",
+               liked: true,
+               loved: true,
+               laughed: true,
+               like_count: 1,
+               love_count: 1,
+               lol_count: 1
+             }
+           ] = snapshot.messages
   end
 
   test "uses Anonymous only when presenter policy permits it", context do

@@ -357,12 +357,13 @@ defmodule Claper.EventApp.LiveInteractions do
   defp public_posts(_context, _interaction_key, _kind, false), do: []
 
   defp public_posts(context, interaction_key, kind, true) do
-    reacted = reacted_post_ids(context.event.id, interaction_key)
-
     context.event.uuid
     |> Posts.list_posts_by_kind(kind, [:reactions])
     |> Enum.filter(&(&1.position == context.state.position))
     |> Enum.map(fn post ->
+      reactions = attendee_reaction_icons(post, interaction_key)
+      liked = MapSet.member?(reactions, "👍")
+
       %{
         uuid: post.uuid,
         body: post.body,
@@ -372,7 +373,10 @@ defmodule Claper.EventApp.LiveInteractions do
         like_count: post.like_count,
         love_count: post.love_count,
         lol_count: post.lol_count,
-        reacted: MapSet.member?(reacted, post.id),
+        reacted: liked,
+        liked: liked,
+        loved: MapSet.member?(reactions, "❤️"),
+        laughed: MapSet.member?(reactions, "😂"),
         inserted_at: post.inserted_at
       }
     end)
@@ -396,11 +400,15 @@ defmodule Claper.EventApp.LiveInteractions do
 
   defp form_submit(_interaction_key, _form_id), do: nil
 
-  defp reacted_post_ids(event_id, interaction_key)
+  defp attendee_reaction_icons(%{reactions: reactions}, interaction_key)
        when is_binary(interaction_key) and byte_size(interaction_key) > 0,
-       do: MapSet.new(Posts.reacted_posts(event_id, interaction_key, "👍"))
+       do:
+         reactions
+         |> Enum.filter(&(&1.attendee_identifier == interaction_key))
+         |> Enum.map(& &1.icon)
+         |> MapSet.new()
 
-  defp reacted_post_ids(_event_id, _interaction_key), do: MapSet.new()
+  defp attendee_reaction_icons(_post, _interaction_key), do: MapSet.new()
 
   defp public_embed(embed) do
     case safe_embed_url(embed.provider, embed.content) do
