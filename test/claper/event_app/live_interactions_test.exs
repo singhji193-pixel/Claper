@@ -223,6 +223,29 @@ defmodule Claper.EventApp.LiveInteractionsTest do
            ] = snapshot.messages
   end
 
+  test "marks the attendee's own posts as mine without exposing identifiers", context do
+    assert {:ok, _message, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "This one is mine",
+               false
+             )
+
+    assert {:ok, snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert [%{body: "This one is mine", mine: true} = post] = snapshot.messages
+    assert %NaiveDateTime{} = post.inserted_at
+    refute Map.has_key?(post, :attendee_identifier)
+
+    assert {:ok, other_snapshot} =
+             LiveInteractions.snapshot(context.event, Ecto.UUID.generate())
+
+    assert [%{body: "This one is mine", mine: false}] = other_snapshot.messages
+  end
+
   test "uses Anonymous only when presenter policy permits it", context do
     assert {:ok, _state} =
              Presentations.update_presentation_state(context.state, %{

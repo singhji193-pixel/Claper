@@ -394,6 +394,12 @@ defmodule ClaperWeb.PwaLive.App do
 
   def active_live?(_snapshot), do: false
 
+  def live_kind_icon(%{kind: :poll}), do: "hero-chart-bar"
+  def live_kind_icon(%{kind: :quiz}), do: "hero-light-bulb"
+  def live_kind_icon(%{kind: :form}), do: "hero-document-text"
+  def live_kind_icon(%{kind: :embed}), do: "hero-play-circle"
+  def live_kind_icon(_interaction), do: "hero-bolt"
+
   defp live_error_message(:feature_disabled), do: gettext("Live interactions are not open.")
   defp live_error_message(:banned), do: gettext("Live participation is unavailable.")
   defp live_error_message(:invalid_selection), do: gettext("Select an answer before submitting.")
@@ -691,6 +697,48 @@ defmodule ClaperWeb.PwaLive.App do
         <% "hero-arrow-top-right-on-square" -> %>
           <path d="M13.5 4.5h6v6M19.5 4.5 10.5 13.5" />
           <path d="M11.5 6.5H6.25a1.75 1.75 0 0 0-1.75 1.75v9.5c0 .97.78 1.75 1.75 1.75h9.5c.97 0 1.75-.78 1.75-1.75V12.5" />
+        <% "hero-chart-bar" -> %>
+          <path d="M3.75 20.25h16.5" />
+          <path d="M6.75 20.25v-8.5M12 20.25V4.75M17.25 20.25V10" />
+        <% "hero-light-bulb" -> %>
+          <path d="M12 3.75a5.75 5.75 0 0 0-3.55 10.27c.66.52 1.13 1.25 1.3 2.07l.13.66h4.24l.13-.66c.17-.82.64-1.55 1.3-2.07A5.75 5.75 0 0 0 12 3.75Z" />
+          <path d="M10 20.25h4M10.5 17.5h3" />
+        <% "hero-bolt" -> %>
+          <path d="M13.25 3.75 5.5 13.5h5.25l-.75 6.75 7.75-9.75H12.5l.75-6.75Z" />
+        <% "hero-signal-slash" -> %>
+          <path d="m4.5 4.5 15 15" />
+          <path d="M6.6 9.6a7.5 7.5 0 0 0-1.35 4.27M9.2 7.05A7.5 7.5 0 0 1 12 6.5c1.9 0 3.65.7 4.98 1.87M18.75 13.87a7.44 7.44 0 0 1-.44 2.55" />
+          <path d="M12 13.85h.01" />
+        <% "hero-no-symbol" -> %>
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <path d="m5.65 5.65 12.7 12.7" />
+        <% "hero-arrow-path" -> %>
+          <path d="M4.75 12a7.25 7.25 0 0 1 12.4-5.1l2.1 2M19.25 12a7.25 7.25 0 0 1-12.4 5.1l-2.1-2" />
+          <path d="M19.25 4.75V8.9h-4.15M4.75 19.25V15.1H8.9" />
+        <% "hero-question-mark-circle" -> %>
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <path d="M9.6 9.3a2.5 2.5 0 0 1 4.85.83c0 1.67-2.45 2.17-2.45 3.42M12 16.5h.01" />
+        <% "hero-chat-bubble-left-right" -> %>
+          <path d="M4.75 5.75h8a1.5 1.5 0 0 1 1.5 1.5v4.5a1.5 1.5 0 0 1-1.5 1.5H8.5l-3.75 3v-9a1.5 1.5 0 0 1 0-1.5Z" />
+          <path d="M15.75 9h3a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-.75v2.75L14.5 16" />
+        <% "hero-play-circle" -> %>
+          <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          <path d="m10.25 8.9 4.75 3.1-4.75 3.1V8.9Z" />
+        <% "hero-document-text" -> %>
+          <path d="M6.75 3.75h6.5l4 4V19a1.25 1.25 0 0 1-1.25 1.25H6.75A1.25 1.25 0 0 1 5.5 19V5a1.25 1.25 0 0 1 1.25-1.25Z" />
+          <path d="M13.25 3.75V7.75h4M8.75 12.25h6.5M8.75 15.75h4.5" />
+        <% "hero-presentation-chart-bar" -> %>
+          <path d="M3.75 4.75h16.5M5.25 4.75v8.75a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V4.75" />
+          <path d="M9 12.25v-2M12 12.25v-4M15 12.25v-3M12 15v2.25M12 17.25l-3.25 2.5M12 17.25l3.25 2.5" />
+        <% "hero-paper-airplane" -> %>
+          <path d="m4.75 5 14.5 7-14.5 7 2.5-7-2.5-7Z" />
+          <path d="M7.25 12h6.5" />
+        <% "hero-hand-thumb-up" -> %>
+          <path d="M7.25 10.75v8.5H5.25A1.25 1.25 0 0 1 4 18v-6a1.25 1.25 0 0 1 1.25-1.25h2Z" />
+          <path d="m7.25 10.75 3.05-6.1a1.6 1.6 0 0 1 3.03.71v3.39h4.25a1.75 1.75 0 0 1 1.72 2.09l-1.26 6.5a1.75 1.75 0 0 1-1.72 1.41H7.25" />
+        <% "hero-link" -> %>
+          <path d="m9.75 14.25 4.5-4.5" />
+          <path d="m11.25 7 1.4-1.4a3.25 3.25 0 0 1 4.6 4.6L15.5 11.9M8.5 12.1l-1.75 1.75a3.25 3.25 0 0 0 4.6 4.6L12.75 17" />
         <% _ -> %>
           <path d="M12 5v14M5 12h14" />
       <% end %>

@@ -370,6 +370,7 @@ defmodule Claper.EventApp.LiveInteractions do
         name: post.name || "Attendee",
         kind: post.kind,
         pinned: post.pinned,
+        mine: is_binary(interaction_key) and post.attendee_identifier == interaction_key,
         like_count: post.like_count,
         love_count: post.love_count,
         lol_count: post.lol_count,

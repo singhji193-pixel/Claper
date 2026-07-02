@@ -364,6 +364,8 @@ defmodule ClaperWeb.EventLiveTest do
         |> render_submit()
 
       assert html =~ "Submitted"
+      # Results render as visual bars once the vote is locked.
+      assert html =~ "ngs-live-bar"
       assert length(Polls.get_poll_vote(identity.interaction_key, poll.id)) == 1
 
       assert {:ok, _poll} = Polls.update_poll(event.uuid, poll, %{title: "Updated poll"})
@@ -388,10 +390,16 @@ defmodule ClaperWeb.EventLiveTest do
       conn = sign_in_attendee(conn, event)
       {:ok, _home, html} = live(conn, ~p"/app/#{event.code}")
 
+      # Home shows the Live card only; the compact banner would duplicate it.
       assert html =~ "ngs-live-home-card"
-      assert html =~ "ngs-live-banner"
+      refute html =~ "ngs-live-banner"
       assert html =~ "Live audience check-in"
       assert html =~ "ngs-bottomnav"
+
+      {:ok, _agenda, agenda_html} = live(conn, ~p"/app/#{event.code}/agenda")
+
+      assert agenda_html =~ "ngs-live-banner"
+      assert agenda_html =~ "Live audience check-in"
     end
 
     test "shows Live to an already-connected attendee when an organizer enables it", %{
@@ -571,6 +579,10 @@ defmodule ClaperWeb.EventLiveTest do
         |> render_submit()
 
       assert html =~ "Great session"
+
+      # Own message renders as a right-aligned bubble with a timestamp.
+      assert html =~ "is-mine"
+      assert html =~ "ngs-post-time"
 
       assert [%{kind: "message"} = message] =
                Claper.Posts.list_posts_by_kind(event.uuid, "message")

@@ -2716,3 +2716,356 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Live section redesign: premium calm + single live accent           */
+/* ------------------------------------------------------------------ */
+
+.nextgen-summit-liveview {
+  --ngs-live: #c2472f;
+  --ngs-live-wash: #f9e8e3;
+}
+
+@keyframes ngs-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(194, 71, 47, 0.45);
+  }
+  60% {
+    box-shadow: 0 0 0 6px rgba(194, 71, 47, 0);
+  }
+}
+
+.nextgen-summit-liveview .ngs-live-pulse {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--ngs-live);
+  animation: ngs-live-pulse 2s ease-out infinite;
+}
+
+.nextgen-summit-liveview .ngs-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--ngs-line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ngs-ink);
+  font: 700 12px/1 var(--ngs-text);
+  letter-spacing: 0.02em;
+}
+
+/* Home live card: calm ink surface, clear join affordance */
+.nextgen-summit-liveview .ngs-live-home-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.nextgen-summit-liveview .ngs-live-home-text {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.nextgen-summit-liveview .ngs-live-home-text small {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ngs-gold-bright);
+  font: 800 11px/1 var(--ngs-text);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.nextgen-summit-liveview .ngs-live-home-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nextgen-summit-liveview .ngs-live-home-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex: none;
+}
+
+/* Compact banner: slim pill, no longer competes with page content */
+.nextgen-summit-liveview .ngs-live-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+
+.nextgen-summit-liveview .ngs-live-banner strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nextgen-summit-liveview .ngs-live-banner small {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex: none;
+  font-weight: 700;
+}
+
+/* Tabs: count badges */
+.nextgen-summit-liveview .ngs-live-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 150ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-tab-count {
+  min-width: 18px;
+  padding: 3px 5px;
+  border-radius: 999px;
+  background: var(--ngs-champagne);
+  color: var(--ngs-gold-deep);
+  font: 700 10px/1 var(--ngs-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextgen-summit-liveview .ngs-live-tab.is-active .ngs-tab-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+/* Poll result bars */
+.nextgen-summit-liveview .ngs-live-option {
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+  transition: transform 150ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-live-option:active {
+  transform: scale(0.985);
+}
+
+.nextgen-summit-liveview .ngs-live-option > * {
+  position: relative;
+}
+
+.nextgen-summit-liveview .ngs-live-option .ngs-live-bar {
+  position: absolute;
+  inset: 0;
+  width: var(--ngs-bar, 0%);
+  background: var(--ngs-champagne);
+  border-right: 2px solid var(--ngs-brand-line);
+  transition: width 300ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-live-option.has-results {
+  background: var(--ngs-surface);
+}
+
+.nextgen-summit-liveview .ngs-live-option.is-selected {
+  border-color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-live-option-check {
+  flex: none;
+  color: var(--ngs-gold-deep);
+}
+
+.nextgen-summit-liveview .ngs-live-option strong {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Centered empty states kill the dead-space look */
+.nextgen-summit-liveview .ngs-live-panel {
+  display: grid;
+}
+
+.nextgen-summit-liveview .ngs-live-panel > .ngs-live-empty {
+  align-self: center;
+  justify-self: center;
+}
+
+/* Posts: slim count row + chat bubbles */
+.nextgen-summit-liveview .ngs-live-posts-count {
+  margin: 0 0 10px;
+  color: var(--ngs-ink-3);
+  font: 700 11px/1 var(--ngs-text);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.nextgen-summit-liveview .ngs-live-post {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  max-width: 88%;
+}
+
+.nextgen-summit-liveview .ngs-live-post.is-mine {
+  margin-left: auto;
+  flex-direction: row-reverse;
+}
+
+.nextgen-summit-liveview .ngs-post-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--ngs-champagne);
+  color: var(--ngs-gold-deep);
+  font: 700 11px/1 var(--ngs-text);
+}
+
+.nextgen-summit-liveview .ngs-live-post-bubble {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ngs-line-soft);
+  border-radius: 14px 14px 14px 4px;
+  background: #ffffff;
+  box-shadow: var(--ngs-shadow-1);
+}
+
+.nextgen-summit-liveview .ngs-live-post.is-mine .ngs-live-post-bubble {
+  border-radius: 14px 14px 4px 14px;
+  border-color: var(--ngs-brand-line);
+  background: var(--ngs-champagne);
+}
+
+.nextgen-summit-liveview .ngs-live-post-bubble header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.nextgen-summit-liveview .ngs-live-post-bubble header strong {
+  font: 700 12px/1.3 var(--ngs-text);
+  color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-post-time {
+  margin-left: auto;
+  flex: none;
+  color: var(--ngs-ink-3);
+  font: 500 11px/1.3 var(--ngs-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextgen-summit-liveview .ngs-post-pinned {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ngs-gold-deep);
+  font: 700 11px/1.3 var(--ngs-text);
+}
+
+.nextgen-summit-liveview .ngs-live-post-bubble p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Reactions: ghost pills, count only when > 0 */
+.nextgen-summit-liveview .ngs-live-post-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(10, 8, 6, 0.04);
+  color: var(--ngs-ink-2);
+  font: 700 12px/1 var(--ngs-text);
+  font-variant-numeric: tabular-nums;
+  transition: transform 150ms ease-out, background-color 150ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button:active {
+  transform: scale(0.92);
+}
+
+.nextgen-summit-liveview .ngs-live-post-actions button.is-active {
+  border-color: var(--ngs-brand-line);
+  background: var(--ngs-champagne);
+  color: var(--ngs-gold-deep);
+}
+
+/* Global room reactions: tap pop */
+.nextgen-summit-liveview .ngs-live-global-reactions button {
+  transition: transform 150ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-live-global-reactions button:active {
+  transform: scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextgen-summit-liveview .ngs-live-pulse {
+    animation: none;
+  }
+
+  .nextgen-summit-liveview .ngs-live-option .ngs-live-bar {
+    transition: none;
+  }
+}
+
+/* Live redesign: structural corrections after visual pass */
+.nextgen-summit-liveview .ngs-live-option {
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+}
+
+.nextgen-summit-liveview .ngs-live-option .ngs-live-bar {
+  border-right: 0;
+}
+
+.nextgen-summit-liveview .ngs-live-banner > span.ngs-live-pulse {
+  width: 8px;
+  height: 8px;
+  background: var(--ngs-live);
+  border-radius: 999px;
+}
+
+.nextgen-summit-liveview .ngs-live-posts-scroll {
+  display: flex;
+  flex-direction: column;
+}
+
+.nextgen-summit-liveview .ngs-live-posts-scroll > .ngs-live-post-list {
+  margin-top: auto;
+}
+
+.nextgen-summit-liveview .ngs-live-posts-scroll > .ngs-live-empty {
+  margin: auto;
+}
+
+.nextgen-summit-liveview .ngs-live-post-list {
+  padding-bottom: 10px;
+}

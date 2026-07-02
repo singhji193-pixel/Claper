@@ -91,21 +91,28 @@
 
           <h1 class="ngs-appbar-title">{ngs_page_title(@live_action)}</h1>
 
-          <%= if @ticket_wallet do %>
-            <.link
-              navigate={app_path(assigns, "/ticket")}
-              class={[
-                "ngs-status-chip ngs-focus",
-                @ticket_wallet.checked_in && "is-checked-in"
-              ]}
-            >
-              <.ngs_icon name={ticket_status_icon(@ticket_wallet)} class="size-4" />
-              {ticket_status_label(@ticket_wallet)}
-            </.link>
+          <%= if @live_action == :live && active_live?(@live_snapshot) do %>
+            <span class="ngs-live-badge">
+              <span class="ngs-live-pulse" aria-hidden="true"></span>
+              {gettext("Live now")}
+            </span>
           <% else %>
-            <.link href={app_path(assigns, "/login")} class="ngs-status-chip ngs-focus">
-              {gettext("Sign in")}
-            </.link>
+            <%= if @ticket_wallet do %>
+              <.link
+                navigate={app_path(assigns, "/ticket")}
+                class={[
+                  "ngs-status-chip ngs-focus",
+                  @ticket_wallet.checked_in && "is-checked-in"
+                ]}
+              >
+                <.ngs_icon name={ticket_status_icon(@ticket_wallet)} class="size-4" />
+                {ticket_status_label(@ticket_wallet)}
+              </.link>
+            <% else %>
+              <.link href={app_path(assigns, "/login")} class="ngs-status-chip ngs-focus">
+                {gettext("Sign in")}
+              </.link>
+            <% end %>
           <% end %>
         </header>
 
@@ -118,6 +125,7 @@
                 snapshot={@live_snapshot}
                 event={@event}
                 interaction_key={@interaction_key}
+                timezone={@timezone}
               />
             <% :agenda -> %>
               <section class="ngs-filterbar" aria-label={gettext("Agenda filters")}>
@@ -811,13 +819,18 @@
                 class="ngs-live-home-card ngs-focus"
               >
                 <span class="ngs-live-home-icon">
-                  <.ngs_icon name="hero-bolt" class="size-6" />
+                  <.ngs_icon name={live_kind_icon(@live_snapshot.active)} class="size-6" />
                 </span>
-                <span>
-                  <small>{gettext("Live now")}</small>
+                <span class="ngs-live-home-text">
+                  <small>
+                    <span class="ngs-live-pulse" aria-hidden="true"></span>
+                    {gettext("Live now")}
+                  </small>
                   <strong>{@live_snapshot.active.title}</strong>
                 </span>
-                <span class="ngs-live-home-action">{gettext("Join")}</span>
+                <span class="ngs-live-home-action">
+                  {gettext("Join")} <.ngs_icon name="hero-chevron-right" class="size-4" />
+                </span>
               </.link>
 
               <section
@@ -915,16 +928,16 @@
         </main>
 
         <.link
-          :if={@live_action != :live && active_live?(@live_snapshot)}
+          :if={@live_action not in [:live, :home] && active_live?(@live_snapshot)}
           navigate={app_path(assigns, "/live")}
           class="ngs-live-banner ngs-focus"
           aria-label={
             gettext("Open active interaction: %{title}", title: @live_snapshot.active.title)
           }
         >
-          <span><.ngs_icon name="hero-bolt" class="size-5" /></span>
+          <span class="ngs-live-pulse" aria-hidden="true"></span>
           <strong>{@live_snapshot.active.title}</strong>
-          <small>{gettext("Interact")}</small>
+          <small>{gettext("Join")} <.ngs_icon name="hero-chevron-right" class="size-4" /></small>
         </.link>
 
         <nav class="ngs-bottomnav" aria-label={gettext("Event app navigation")}>

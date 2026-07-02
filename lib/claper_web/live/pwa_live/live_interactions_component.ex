@@ -39,6 +39,9 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
           aria-current={@active_tab == tab && "page"}
         >
           {label}
+          <span :if={tab_count(@snapshot, tab) > 0} class="ngs-tab-count">
+            {tab_count(@snapshot, tab)}
+          </span>
         </button>
       </nav>
 
@@ -67,6 +70,7 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
             title={gettext("Session Q&A")}
             unavailable={gettext("Q&A is not enabled for this event.")}
             snapshot={@snapshot}
+            timezone={assigns[:timezone]}
             myself={@myself}
           />
         <% :chat -> %>
@@ -78,6 +82,7 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
             title={gettext("Session chat")}
             unavailable={gettext("Chat is not open right now.")}
             snapshot={@snapshot}
+            timezone={assigns[:timezone]}
             myself={@myself}
           />
       <% end %>
@@ -165,9 +170,17 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
           :for={option <- @interaction.options}
           class={[
             "ngs-live-option",
-            option.id in @interaction.submitted_option_ids && "is-selected"
+            option.id in @interaction.submitted_option_ids && "is-selected",
+            Map.has_key?(option, :vote_count) && "has-results"
           ]}
         >
+          <span
+            :if={Map.has_key?(option, :vote_count)}
+            class="ngs-live-bar"
+            style={"--ngs-bar: #{option.percentage}%"}
+            aria-hidden="true"
+          >
+          </span>
           <input
             type={if @interaction.multiple, do: "checkbox", else: "radio"}
             name="option_ids[]"
@@ -176,6 +189,11 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
             disabled={@submitted?}
           />
           <span>{option.content}</span>
+          <.ngs_icon
+            :if={option.id in @interaction.submitted_option_ids}
+            name="hero-check-circle"
+            class="size-4 ngs-live-option-check"
+          />
           <strong :if={Map.has_key?(option, :vote_count)}>{option.percentage}%</strong>
         </label>
 
@@ -341,77 +359,85 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   attr :title, :string, required: true
   attr :unavailable, :string, required: true
   attr :snapshot, :map, default: nil
+  attr :timezone, :string, default: nil
   attr :myself, :any, required: true
 
   defp posts_panel(assigns) do
     ~H"""
     <%= if @enabled do %>
       <section class={["ngs-live-posts", "is-#{@kind}"]}>
-        <header class="ngs-live-posts-header">
-          <span><.ngs_icon name={@icon} class="size-5" /></span>
-          <div>
-            <h2>{@title}</h2>
-            <p>{post_count_label(@posts, @kind)}</p>
-          </div>
-        </header>
+        <h2 class="sr-only">{@title}</h2>
+        <p class="ngs-live-posts-count">{post_count_label(@posts, @kind)}</p>
 
-        <div class="ngs-live-posts-scroll">
+        <div
+          class="ngs-live-posts-scroll"
+          id={"pwa-live-post-scroll-#{@kind}"}
+          phx-hook="ScrollBottom"
+        >
           <div class="ngs-live-post-list" role="list">
             <article
               :for={post <- @posts}
               id={"pwa-live-post-#{post.uuid}"}
-              class="ngs-live-post"
+              class={["ngs-live-post", post[:mine] && "is-mine"]}
               role="listitem"
             >
-              <header>
-                <strong>{post.name}</strong>
-                <span :if={post.pinned}>
-                  <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
-                </span>
-              </header>
-              <p>{post.body}</p>
-              <div class="ngs-live-post-actions">
-                <button
-                  type="button"
-                  phx-click="live-toggle-reaction"
-                  phx-value-post-id={post.uuid}
-                  phx-value-icon="👍"
-                  phx-target={@myself}
-                  class={["ngs-focus is-like", post.liked && "is-active"]}
-                  aria-label={gettext("Like")}
-                  aria-pressed={post.liked}
-                >
-                  <img src="/images/icons/thumb.svg" alt="" class="ngs-live-post-action-icon" />
-                  <span>{post.like_count}</span>
-                </button>
-                <button
-                  :if={@kind == "message"}
-                  type="button"
-                  phx-click="live-toggle-reaction"
-                  phx-value-post-id={post.uuid}
-                  phx-value-icon="❤️"
-                  phx-target={@myself}
-                  class={["ngs-focus is-heart", post.loved && "is-active"]}
-                  aria-label={gettext("Heart")}
-                  aria-pressed={post.loved}
-                >
-                  <img src="/images/icons/heart.svg" alt="" class="ngs-live-post-action-icon" />
-                  <span>{post.love_count}</span>
-                </button>
-                <button
-                  :if={@kind == "message"}
-                  type="button"
-                  phx-click="live-toggle-reaction"
-                  phx-value-post-id={post.uuid}
-                  phx-value-icon="😂"
-                  phx-target={@myself}
-                  class={["ngs-focus is-laugh", post.laughed && "is-active"]}
-                  aria-label={gettext("Laugh")}
-                  aria-pressed={post.laughed}
-                >
-                  <img src="/images/icons/laugh.svg" alt="" class="ngs-live-post-action-icon" />
-                  <span>{post.lol_count}</span>
-                </button>
+              <span :if={!post[:mine]} class="ngs-post-avatar" aria-hidden="true">
+                {post_initials(post.name)}
+              </span>
+              <div class="ngs-live-post-bubble">
+                <header>
+                  <strong>{if post[:mine], do: gettext("You"), else: post.name}</strong>
+                  <span :if={post.pinned} class="ngs-post-pinned">
+                    <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
+                  </span>
+                  <time :if={post[:inserted_at]} class="ngs-post-time">
+                    {post_time(post.inserted_at, @timezone)}
+                  </time>
+                </header>
+                <p>{post.body}</p>
+                <div class="ngs-live-post-actions">
+                  <button
+                    type="button"
+                    phx-click="live-toggle-reaction"
+                    phx-value-post-id={post.uuid}
+                    phx-value-icon="👍"
+                    phx-target={@myself}
+                    class={["ngs-focus is-like", post.liked && "is-active"]}
+                    aria-label={gettext("Like")}
+                    aria-pressed={post.liked}
+                  >
+                    <img src="/images/icons/thumb.svg" alt="" class="ngs-live-post-action-icon" />
+                    <span :if={post.like_count > 0}>{post.like_count}</span>
+                  </button>
+                  <button
+                    :if={@kind == "message"}
+                    type="button"
+                    phx-click="live-toggle-reaction"
+                    phx-value-post-id={post.uuid}
+                    phx-value-icon="❤️"
+                    phx-target={@myself}
+                    class={["ngs-focus is-heart", post.loved && "is-active"]}
+                    aria-label={gettext("Heart")}
+                    aria-pressed={post.loved}
+                  >
+                    <img src="/images/icons/heart.svg" alt="" class="ngs-live-post-action-icon" />
+                    <span :if={post.love_count > 0}>{post.love_count}</span>
+                  </button>
+                  <button
+                    :if={@kind == "message"}
+                    type="button"
+                    phx-click="live-toggle-reaction"
+                    phx-value-post-id={post.uuid}
+                    phx-value-icon="😂"
+                    phx-target={@myself}
+                    class={["ngs-focus is-laugh", post.laughed && "is-active"]}
+                    aria-label={gettext("Laugh")}
+                    aria-pressed={post.laughed}
+                  >
+                    <img src="/images/icons/laugh.svg" alt="" class="ngs-live-post-action-icon" />
+                    <span :if={post.lol_count > 0}>{post.lol_count}</span>
+                  </button>
+                </div>
               </div>
             </article>
           </div>
@@ -644,6 +670,30 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
 
   defp post_placeholder("question"), do: gettext("Ask a clear question")
   defp post_placeholder(_kind), do: gettext("Message the room")
+
+  defp tab_count(nil, _tab), do: 0
+  defp tab_count(snapshot, :qa), do: length(snapshot.questions)
+  defp tab_count(snapshot, :chat), do: length(snapshot.messages)
+  defp tab_count(_snapshot, _tab), do: 0
+
+  defp post_initials(name) when is_binary(name) and name != "" do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map(&String.first/1)
+    |> Enum.join()
+    |> String.upcase()
+  end
+
+  defp post_initials(_name), do: "A"
+
+  defp post_time(%NaiveDateTime{} = inserted_at, timezone) do
+    inserted_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%H:%M")
+  end
+
+  defp post_time(_inserted_at, _timezone), do: nil
 
   defp global_reaction_type("heart"), do: :heart
   defp global_reaction_type("clap"), do: :clap

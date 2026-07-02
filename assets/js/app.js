@@ -85,6 +85,20 @@ let csrfToken = document
   .getAttribute("content");
 let Hooks = {};
 
+Hooks.ScrollBottom = {
+  mounted() {
+    this.el.scrollTop = this.el.scrollHeight;
+  },
+  updated() {
+    // Keep the newest post visible unless the attendee scrolled up to read.
+    const nearBottom =
+      this.el.scrollHeight - this.el.scrollTop - this.el.clientHeight < 160;
+    if (nearBottom) {
+      this.el.scrollTop = this.el.scrollHeight;
+    }
+  },
+};
+
 Hooks.EmbeddedBanner = {
   mounted() {
     if (window !== window.parent) {
