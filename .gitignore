@@ -48,3 +48,9 @@ priv/static/loaderio-eb3b956a176cdd4f54eb8570ce8bbb06.txt
 .elixir_ls
 
 tailwind.config.js
+
+# E2E suite artifacts
+/e2e/node_modules/
+/e2e/playwright-report/
+/e2e/test-results/
+/e2e/.auth/
