@@ -77,8 +77,12 @@
         />
       </aside>
 
-      <div class={["ngs-app-body", @live_action == :home && "is-home"]}>
-        <header :if={@live_action != :home} class="ngs-appbar">
+      <div class={[
+        "ngs-app-body",
+        @live_action == :home && "is-home",
+        @live_action == :live && "is-live"
+      ]}>
+        <header :if={@live_action not in [:home, :live]} class="ngs-appbar">
           <%= if @live_action == :session do %>
             <.link
               navigate={agenda_filter_path(assigns, @selected_day, @selected_track, "", false)}
@@ -91,28 +95,21 @@
 
           <h1 class="ngs-appbar-title">{ngs_page_title(@live_action)}</h1>
 
-          <%= if @live_action == :live && active_live?(@live_snapshot) do %>
-            <span class="ngs-live-badge">
-              <span class="ngs-live-pulse" aria-hidden="true"></span>
-              {gettext("Live now")}
-            </span>
+          <%= if @ticket_wallet do %>
+            <.link
+              navigate={app_path(assigns, "/ticket")}
+              class={[
+                "ngs-status-chip ngs-focus",
+                @ticket_wallet.checked_in && "is-checked-in"
+              ]}
+            >
+              <.ngs_icon name={ticket_status_icon(@ticket_wallet)} class="size-4" />
+              {ticket_status_label(@ticket_wallet)}
+            </.link>
           <% else %>
-            <%= if @ticket_wallet do %>
-              <.link
-                navigate={app_path(assigns, "/ticket")}
-                class={[
-                  "ngs-status-chip ngs-focus",
-                  @ticket_wallet.checked_in && "is-checked-in"
-                ]}
-              >
-                <.ngs_icon name={ticket_status_icon(@ticket_wallet)} class="size-4" />
-                {ticket_status_label(@ticket_wallet)}
-              </.link>
-            <% else %>
-              <.link href={app_path(assigns, "/login")} class="ngs-status-chip ngs-focus">
-                {gettext("Sign in")}
-              </.link>
-            <% end %>
+            <.link href={app_path(assigns, "/login")} class="ngs-status-chip ngs-focus">
+              {gettext("Sign in")}
+            </.link>
           <% end %>
         </header>
 
@@ -824,12 +821,13 @@
                 <span class="ngs-live-home-text">
                   <small>
                     <span class="ngs-live-pulse" aria-hidden="true"></span>
-                    {gettext("Live now")}
+                    {gettext("Live now")} &middot; {live_kind_label(@live_snapshot.active)}
                   </small>
                   <strong>{@live_snapshot.active.title}</strong>
                 </span>
                 <span class="ngs-live-home-action">
-                  {gettext("Join")} <.ngs_icon name="hero-chevron-right" class="size-4" />
+                  {live_cta_label(@live_snapshot.active)}
+                  <.ngs_icon name="hero-chevron-right" class="size-4" />
                 </span>
               </.link>
 
@@ -937,7 +935,10 @@
         >
           <span class="ngs-live-pulse" aria-hidden="true"></span>
           <strong>{@live_snapshot.active.title}</strong>
-          <small>{gettext("Join")} <.ngs_icon name="hero-chevron-right" class="size-4" /></small>
+          <small>
+            {live_cta_label(@live_snapshot.active)}
+            <.ngs_icon name="hero-chevron-right" class="size-4" />
+          </small>
         </.link>
 
         <nav class="ngs-bottomnav" aria-label={gettext("Event app navigation")}>

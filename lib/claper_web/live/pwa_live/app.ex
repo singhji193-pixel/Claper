@@ -365,14 +365,44 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp refresh_live_state(%{assigns: %{event: %Event{} = event}} = socket) do
     settings = EventApp.settings_for_event(event.id)
+    previous_snapshot = socket.assigns[:live_snapshot]
 
     socket
     |> assign(:settings, settings)
     |> assign(:timezone, settings.timezone)
     |> load_live_snapshot()
+    |> maybe_nudge_activation(previous_snapshot)
   end
 
   defp refresh_live_state(socket), do: socket
+
+  # A fresh activation while the attendee is elsewhere in the app gets a
+  # flash nudge on top of the compact Live banner.
+  defp maybe_nudge_activation(%{assigns: %{live_action: :live}} = socket, _previous), do: socket
+
+  defp maybe_nudge_activation(socket, previous_snapshot) do
+    new_ref = live_active_ref(socket.assigns[:live_snapshot])
+
+    if new_ref && new_ref != live_active_ref(previous_snapshot) do
+      active = socket.assigns.live_snapshot.active
+
+      put_flash(
+        socket,
+        :info,
+        gettext("%{kind} started: %{title}",
+          kind: live_kind_label(active),
+          title: active.title
+        )
+      )
+    else
+      socket
+    end
+  end
+
+  defp live_active_ref(%{active: %{} = active}),
+    do: {Map.get(active, :kind), Map.get(active, :id) || Map.get(active, :title)}
+
+  defp live_active_ref(_snapshot), do: nil
 
   defp maybe_connect_live(socket) do
     if connected?(socket) and is_binary(socket.assigns.interaction_key) do
@@ -399,6 +429,18 @@ defmodule ClaperWeb.PwaLive.App do
   def live_kind_icon(%{kind: :form}), do: "hero-document-text"
   def live_kind_icon(%{kind: :embed}), do: "hero-play-circle"
   def live_kind_icon(_interaction), do: "hero-bolt"
+
+  def live_kind_label(%{kind: :poll}), do: gettext("Poll")
+  def live_kind_label(%{kind: :quiz}), do: gettext("Quiz")
+  def live_kind_label(%{kind: :form}), do: gettext("Form")
+  def live_kind_label(%{kind: :embed}), do: gettext("Live content")
+  def live_kind_label(_interaction), do: gettext("Live")
+
+  def live_cta_label(%{kind: :poll}), do: gettext("Vote now")
+  def live_cta_label(%{kind: :quiz}), do: gettext("Answer")
+  def live_cta_label(%{kind: :form}), do: gettext("Respond")
+  def live_cta_label(%{kind: :embed}), do: gettext("Watch")
+  def live_cta_label(_interaction), do: gettext("Join")
 
   defp live_error_message(:feature_disabled), do: gettext("Live interactions are not open.")
   defp live_error_message(:banned), do: gettext("Live participation is unavailable.")

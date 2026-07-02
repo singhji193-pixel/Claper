@@ -8,6 +8,7 @@ defmodule ClaperWeb.EventLiveTest do
     BingosFixtures,
     FormsFixtures,
     PollsFixtures,
+    PostsFixtures,
     PresentationsFixtures,
     QuizzesFixtures
   }
@@ -400,6 +401,128 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert agenda_html =~ "ngs-live-banner"
       assert agenda_html =~ "Live audience check-in"
+
+      # Kind-specific verb CTAs guide first-time attendees.
+      assert html =~ "Vote now"
+      assert agenda_html =~ "Vote now"
+    end
+
+    test "merges the LIVE badge into the tab row without an app bar", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      poll_fixture(%{
+        presentation_file_id: presentation_file.id,
+        position: 0,
+        enabled: true,
+        title: "Header merge poll"
+      })
+
+      conn = sign_in_attendee(conn, event)
+      {:ok, _live_view, html} = live(conn, ~p"/app/#{event.code}/live")
+
+      refute html =~ "ngs-appbar-title"
+      assert html =~ "ngs-live-badge"
+      assert html =~ "ngs-live-tabs"
+    end
+
+    test "auto-switches to Interact when a new interaction activates and flags unread tabs", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+
+      {:ok, _settings} =
+        EventApp.update_settings(settings, %{
+          live_interactions_enabled: true,
+          qa_enabled: true,
+          chat_enabled: true
+        })
+
+      presentation_file = Repo.preload(presentation_file, :presentation_state)
+
+      {:ok, _state} =
+        Claper.Presentations.update_presentation_state(
+          presentation_file.presentation_state,
+          %{chat_enabled: true}
+        )
+
+      conn = sign_in_attendee(conn, event)
+      {:ok, live_view, _html} = live(conn, ~p"/app/#{event.code}/live")
+
+      # Attendee reads chat while nothing is active.
+      html = live_view |> element("button[phx-value-tab='chat']") |> render_click()
+      assert html =~ "Session chat"
+
+      # Presenter opens a poll: attendee is brought to Interact automatically.
+      poll =
+        poll_fixture(%{
+          presentation_file_id: presentation_file.id,
+          position: 0,
+          enabled: true,
+          title: "Auto-jump poll"
+        })
+
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{event.uuid}",
+        {:poll_updated, poll}
+      )
+
+      html = render(live_view)
+      assert html =~ "Auto-jump poll"
+      assert html =~ "Submit answer"
+
+      # A question posted while the attendee is on Interact flags Q&A as unread.
+      post_fixture(%{
+        event: event,
+        kind: "question",
+        body: "Unread indicator question",
+        name: "Riley"
+      })
+
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{event.uuid}",
+        {:post_created, %{event_id: event.id}}
+      )
+
+      assert render(live_view) =~ "ngs-tab-dot"
+    end
+
+    test "nudges attendees on other pages when an interaction activates", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+      {:ok, _settings} = EventApp.update_settings(settings, %{live_interactions_enabled: true})
+
+      conn = sign_in_attendee(conn, event)
+      {:ok, agenda_live, _html} = live(conn, ~p"/app/#{event.code}/agenda")
+
+      poll =
+        poll_fixture(%{
+          presentation_file_id: presentation_file.id,
+          position: 0,
+          enabled: true,
+          title: "Nudge poll"
+        })
+
+      Phoenix.PubSub.broadcast(
+        Claper.PubSub,
+        "event:#{event.uuid}",
+        {:poll_updated, poll}
+      )
+
+      html = render(agenda_live)
+      assert html =~ "Nudge poll"
+      assert html =~ "Vote now"
     end
 
     test "shows Live to an already-connected attendee when an organizer enables it", %{

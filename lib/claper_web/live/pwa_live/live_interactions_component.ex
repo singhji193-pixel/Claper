@@ -8,11 +8,54 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
 
   @impl true
   def update(assigns, socket) do
+    previous_snapshot = socket.assigns[:snapshot]
+
     {:ok,
      socket
      |> assign(assigns)
-     |> assign_new(:active_tab, fn -> :interact end)}
+     |> assign_new(:active_tab, fn -> :interact end)
+     |> maybe_jump_to_interact(previous_snapshot)
+     |> track_unread()}
   end
+
+  # A fresh presenter activation pulls the attendee to Interact so nobody
+  # has to know where to navigate. Manual tab choices are only overridden
+  # when a genuinely new interaction starts.
+  defp maybe_jump_to_interact(socket, previous_snapshot) do
+    new_ref = active_ref(socket.assigns[:snapshot])
+
+    if previous_snapshot != nil and new_ref != nil and
+         new_ref != active_ref(previous_snapshot) do
+      assign(socket, :active_tab, :interact)
+    else
+      socket
+    end
+  end
+
+  defp active_ref(%{active: %{} = active}),
+    do: {Map.get(active, :kind), Map.get(active, :id) || Map.get(active, :title)}
+
+  defp active_ref(_snapshot), do: nil
+
+  # Posts arriving while another tab is open flag that tab with a dot; the
+  # count is marked seen the moment the tab is visited.
+  defp track_unread(socket) do
+    snapshot = socket.assigns[:snapshot]
+    counts = %{qa: tab_count(snapshot, :qa), chat: tab_count(snapshot, :chat)}
+    seen = socket.assigns[:seen_counts] || counts
+    seen = mark_seen(seen, socket.assigns.active_tab, counts)
+
+    socket
+    |> assign(:seen_counts, seen)
+    |> assign(:unread_tabs, %{
+      qa: counts.qa > Map.get(seen, :qa, 0),
+      chat: counts.chat > Map.get(seen, :chat, 0)
+    })
+  end
+
+  defp mark_seen(seen, :qa, counts), do: Map.put(seen, :qa, counts.qa)
+  defp mark_seen(seen, :chat, counts), do: Map.put(seen, :chat, counts.chat)
+  defp mark_seen(seen, _tab, _counts), do: seen
 
   @impl true
   def render(assigns) do
@@ -28,7 +71,16 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
         <span>{gettext("Reconnecting before answers can be submitted...")}</span>
       </div>
 
+      <h1 class="sr-only">{gettext("Live")}</h1>
+
       <nav class="ngs-live-tabs" aria-label={gettext("Live session views")}>
+        <span class={[
+          "ngs-live-badge is-inline",
+          !(@snapshot && @snapshot.active) && "is-idle"
+        ]}>
+          <span class="ngs-live-pulse" aria-hidden="true"></span>
+          {gettext("Live")}
+        </span>
         <button
           :for={{tab, label} <- live_tabs(@snapshot)}
           type="button"
@@ -41,6 +93,9 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
           {label}
           <span :if={tab_count(@snapshot, tab) > 0} class="ngs-tab-count">
             {tab_count(@snapshot, tab)}
+          </span>
+          <span :if={unread_tab?(@unread_tabs, tab)} class="ngs-tab-dot">
+            <span class="sr-only">{gettext("new activity")}</span>
           </span>
         </button>
       </nav>
@@ -128,7 +183,11 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
           <.live_empty
             icon="hero-bolt"
             title={gettext("Nothing live right now")}
-            body={gettext("Keep this screen open. It will update when the presenter starts.")}
+            body={
+              gettext(
+                "Q&A and Chat stay open in the tabs above. This view jumps in the moment the presenter starts a poll or quiz."
+              )
+            }
           />
       <% end %>
     </div>
@@ -542,7 +601,10 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
 
   @impl true
   def handle_event("live-tab", %{"tab" => tab}, socket) do
-    {:noreply, assign(socket, :active_tab, tab_atom(tab))}
+    {:noreply,
+     socket
+     |> assign(:active_tab, tab_atom(tab))
+     |> track_unread()}
   end
 
   def handle_event("live-vote-poll", params, socket) do
@@ -675,6 +737,11 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
   defp tab_count(snapshot, :qa), do: length(snapshot.questions)
   defp tab_count(snapshot, :chat), do: length(snapshot.messages)
   defp tab_count(_snapshot, _tab), do: 0
+
+  defp unread_tab?(unread_tabs, tab) when is_map(unread_tabs),
+    do: Map.get(unread_tabs, tab, false)
+
+  defp unread_tab?(_unread_tabs, _tab), do: false
 
   defp post_initials(name) when is_binary(name) and name != "" do
     name

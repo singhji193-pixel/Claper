@@ -3069,3 +3069,49 @@
 .nextgen-summit-liveview .ngs-live-post-list {
   padding-bottom: 10px;
 }
+
+/* Live discoverability: merged header, unread dots, idle badge */
+.nextgen-summit-liveview .ngs-app-body.is-live .ngs-main {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+}
+
+.nextgen-summit-liveview .ngs-app-body.is-live .ngs-live-tabs {
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+}
+
+.nextgen-summit-liveview .ngs-live-badge.is-inline {
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ngs-ink-2);
+}
+
+.nextgen-summit-liveview .ngs-live-badge.is-idle .ngs-live-pulse {
+  background: var(--ngs-line);
+  animation: none;
+}
+
+.nextgen-summit-liveview .ngs-live-tab {
+  position: relative;
+}
+
+.nextgen-summit-liveview .ngs-tab-dot {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ngs-live);
+  animation: ngs-live-pulse 2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextgen-summit-liveview .ngs-tab-dot {
+    animation: none;
+  }
+}
