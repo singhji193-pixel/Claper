@@ -41,6 +41,12 @@ defmodule Claper.EventApp do
     end
   end
 
+  def event_timezone(nil), do: Setting.default_timezone()
+
+  def event_timezone(event_id) do
+    settings_for_event(event_id).timezone || Setting.default_timezone()
+  end
+
   def change_settings(%Setting{} = setting, attrs \\ %{}) do
     Setting.changeset(setting, attrs)
   end
@@ -673,7 +679,8 @@ defmodule Claper.EventApp do
       checked_in_at: format_datetime(ticket.checked_in_at),
       reference: ticket_reference(ticket),
       external_ticket_id: ticket.external_ticket_id,
-      external_attendee_id: ticket.external_attendee_id
+      external_attendee_id: ticket.external_attendee_id,
+      qr_value: ticket_qr_value(ticket)
     }
   end
 
@@ -687,7 +694,8 @@ defmodule Claper.EventApp do
       checked_in_at: nil,
       reference: "ATT-#{attendee.id}",
       external_ticket_id: nil,
-      external_attendee_id: nil
+      external_attendee_id: nil,
+      qr_value: "ATT-#{attendee.id}"
     }
   end
 
@@ -697,6 +705,14 @@ defmodule Claper.EventApp do
       present?(ticket.external_attendee_id) -> ticket.external_attendee_id
       true -> "TICKET-#{ticket.id}"
     end
+  end
+
+  # Hi.Events check-in scanners resolve attendees by public_id; fall back to
+  # the display reference so the QR is never empty.
+  defp ticket_qr_value(%EventTicket{} = ticket) do
+    if present?(ticket.external_public_id),
+      do: ticket.external_public_id,
+      else: ticket_reference(ticket)
   end
 
   defp fetch_agenda_item_id(event_id, agenda_item_id) do

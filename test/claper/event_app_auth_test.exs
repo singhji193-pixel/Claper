@@ -225,6 +225,43 @@ defmodule Claper.EventAppAuthTest do
       refute Map.has_key?(wallet, :raw_payload)
     end
 
+    test "wallet QR value prefers the Hi.Events attendee public_id" do
+      event = event_fixture()
+
+      ticket_fixture(event, %{
+        attendee_email: "avery@example.com",
+        external_public_id: "attendee-public-99",
+        external_ticket_id: "ticket_internal_9"
+      })
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert {:ok, wallet} = EventApp.ticket_wallet(event.id, token)
+      assert wallet.qr_value == "attendee-public-99"
+    end
+
+    test "wallet QR value falls back to the ticket reference without a public_id" do
+      event = event_fixture()
+
+      ticket_fixture(event, %{
+        attendee_email: "avery@example.com",
+        external_ticket_id: "ticket_internal_10"
+      })
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert {:ok, wallet} = EventApp.ticket_wallet(event.id, token)
+      assert wallet.qr_value == "ticket_internal_10"
+    end
+
     test "toggles saved agenda sessions for a signed-in attendee" do
       event = event_fixture()
       agenda_item = agenda_item_fixture(%{event: event, title: "Investor meetup"})

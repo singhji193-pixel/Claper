@@ -25,6 +25,7 @@ defmodule ClaperWeb.PwaLive.App do
     case code && Events.get_event_with_code(code) do
       %Event{} = event ->
         settings = EventApp.settings_for_event(event.id)
+        timezone = settings.timezone
         bootstrap = EventApp.bootstrap_for_event(event, attendee_session_token)
         interaction_key = interaction_key(event.id, attendee_session_token)
         agenda_items = Agendas.list_agenda_items(event.id)
@@ -36,12 +37,13 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:event_code, event.code)
          |> assign(:vanity, vanity)
          |> assign(:settings, settings)
+         |> assign(:timezone, timezone)
          |> assign(:bootstrap, bootstrap)
          |> assign(:attendee, bootstrap.attendee)
          |> assign(:attendee_session_token, attendee_session_token)
          |> assign(:interaction_key, interaction_key)
          |> assign(:agenda_items, agenda_items)
-         |> assign(:agenda_days, Agendas.agenda_days(event.id))
+         |> assign(:agenda_days, Agendas.agenda_days(event.id, timezone))
          |> assign(:agenda_tracks, Agendas.agenda_tracks(event.id))
          |> assign(:visible_agenda_items, agenda_items)
          |> assign(:agenda_query, "")
@@ -70,6 +72,7 @@ defmodule ClaperWeb.PwaLive.App do
          |> assign(:event_code, code || "")
          |> assign(:vanity, vanity)
          |> assign(:settings, nil)
+         |> assign(:timezone, nil)
          |> assign(:bootstrap, nil)
          |> assign(:attendee, nil)
          |> assign(:attendee_session_token, nil)
@@ -217,7 +220,12 @@ defmodule ClaperWeb.PwaLive.App do
         do: Agendas.list_resources(session_item.id, published_only: true),
         else: []
 
-    selected_day = session_item && date_value(NaiveDateTime.to_date(session_item.starts_at))
+    selected_day =
+      session_item &&
+        date_value(
+          Claper.EventApp.Time.local_date(session_item.starts_at, socket.assigns.timezone)
+        )
+
     selected_track = session_item && (session_item.track_name || "all")
 
     socket
@@ -262,7 +270,11 @@ defmodule ClaperWeb.PwaLive.App do
 
   defp visible_agenda_items(socket, selected_day, selected_track, query, saved_only) do
     socket.assigns.event.id
-    |> Agendas.list_agenda_items_for_app(day: selected_day, track: selected_track)
+    |> Agendas.list_agenda_items_for_app(
+      day: selected_day,
+      track: selected_track,
+      timezone: socket.assigns.timezone
+    )
     |> filter_saved_agenda_items(socket.assigns.bookmarked_agenda_item_ids, saved_only)
     |> filter_agenda_query(query)
   end
@@ -352,8 +364,11 @@ defmodule ClaperWeb.PwaLive.App do
   defp load_live_snapshot(socket), do: assign(socket, :live_snapshot, nil)
 
   defp refresh_live_state(%{assigns: %{event: %Event{} = event}} = socket) do
+    settings = EventApp.settings_for_event(event.id)
+
     socket
-    |> assign(:settings, EventApp.settings_for_event(event.id))
+    |> assign(:settings, settings)
+    |> assign(:timezone, settings.timezone)
     |> load_live_snapshot()
   end
 
@@ -769,6 +784,7 @@ defmodule ClaperWeb.PwaLive.App do
   attr :item, :map, required: true
   attr :saved, :boolean, default: false
   attr :signed_in, :boolean, default: false
+  attr :timezone, :string, default: nil
 
   def ngs_agenda_card(assigns) do
     assigns =
@@ -781,7 +797,7 @@ defmodule ClaperWeb.PwaLive.App do
     ~H"""
     <article class={["ngs-schedule-slot", "ngs-track-#{@track_tone}"]}>
       <div class="ngs-slot-time" aria-hidden="true">
-        <time>{format_agenda_time(@item.starts_at)}</time>
+        <time>{format_agenda_time(@item.starts_at, @timezone)}</time>
         <span>{format_duration(@item.duration_minutes)}</span>
       </div>
 
@@ -821,7 +837,7 @@ defmodule ClaperWeb.PwaLive.App do
           </span>
           <span>
             <.ngs_icon name="hero-clock" class="size-4" />
-            {format_session_date(@item.starts_at)}
+            {format_session_date(@item.starts_at, @timezone)}
           </span>
         </div>
       </div>
@@ -860,7 +876,7 @@ defmodule ClaperWeb.PwaLive.App do
           id="pwa-ticket-qr"
           phx-hook="QRCode"
           phx-update="ignore"
-          data-url={@wallet.external_ticket_id || @wallet.external_attendee_id || @wallet.reference}
+          data-url={@wallet.qr_value}
           data-size="152"
           class="ngs-qr-mark ngs-real-qr"
           aria-label={gettext("Ticket QR code")}
@@ -903,18 +919,24 @@ defmodule ClaperWeb.PwaLive.App do
   def ngs_page_title(:live), do: gettext("Live")
   def ngs_page_title(_), do: gettext("Event app")
 
-  def format_event_time(nil), do: gettext("Time to be announced")
+  def format_event_time(nil, _timezone), do: gettext("Time to be announced")
 
-  def format_event_time(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%b %d, %Y at %H:%M")
+  def format_event_time(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%b %d, %Y at %H:%M")
   end
 
-  def format_agenda_time(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%H:%M")
+  def format_agenda_time(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%H:%M")
   end
 
-  def format_session_date(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%b %d")
+  def format_session_date(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%b %d")
   end
 
   def format_agenda_day(%Date{} = day) do

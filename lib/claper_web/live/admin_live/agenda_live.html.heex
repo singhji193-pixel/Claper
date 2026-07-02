@@ -58,6 +58,7 @@
           id={"agenda-item-form-#{@agenda_item.id || "new"}"}
           action={@live_action}
           agenda_item={@agenda_item}
+          timezone={@timezone}
           event_options={@event_options}
           navigate={~p"/admin/agenda?event_id=#{@selected_event_id}"}
         />
@@ -118,7 +119,7 @@
                       </div>
                     </div>
                   </td>
-                  <td>{format_agenda_time(agenda_item.starts_at)}</td>
+                  <td>{format_agenda_time(agenda_item.starts_at, @timezone)}</td>
                   <td>
                     <div class="font-medium">{agenda_item.title}</div>
                     <%= if agenda_item.track_name || agenda_item.location_name do %>

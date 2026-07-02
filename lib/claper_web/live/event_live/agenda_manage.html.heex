@@ -400,7 +400,7 @@
                     <span class="rounded-full bg-primary-100 px-2 py-0.5 font-semibold text-primary-700">
                       {index + 1}
                     </span>
-                    <time>{format_agenda_time(agenda_item.starts_at)}</time>
+                    <time>{format_agenda_time(agenda_item.starts_at, @timezone)}</time>
                     <span :if={agenda_item.duration_minutes}>&middot;</span>
                     <span :if={agenda_item.duration_minutes}>
                       {format_duration(agenda_item.duration_minutes)}

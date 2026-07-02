@@ -200,9 +200,10 @@ defmodule ClaperWeb.EventLiveTest do
     } do
       event = presentation_file.event
 
+      # 16:00 UTC renders as the 09:00 PDT wall time attendees expect.
       agenda_item_fixture(%{
         event: event,
-        starts_at: ~N[2026-06-01 09:00:00],
+        starts_at: ~N[2026-06-01 16:00:00],
         title: "Opening keynote",
         speaker_name: "Avery Singh",
         speaker_title: "Founder",
@@ -893,17 +894,18 @@ defmodule ClaperWeb.EventLiveTest do
     } do
       event = presentation_file.event
 
+      # Stored as naive UTC; displayed in the event timezone (PDT, UTC-7).
       second =
         agenda_item_fixture(%{
           event: event,
-          starts_at: ~N[2026-06-01 10:00:00],
+          starts_at: ~N[2026-06-01 17:00:00],
           title: "Second session"
         })
 
       first =
         agenda_item_fixture(%{
           event: event,
-          starts_at: ~N[2026-06-01 09:00:00],
+          starts_at: ~N[2026-06-01 16:00:00],
           title: "First session"
         })
 
@@ -994,6 +996,45 @@ defmodule ClaperWeb.EventLiveTest do
       |> render_click()
 
       refute Repo.reload(first)
+    end
+
+    test "stores organizer wall time as UTC and displays event-local times", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      {:ok, new_live, _html} = live(conn, ~p"/e/#{event.code}/manage/agenda/new")
+
+      {:ok, _index_live, html} =
+        new_live
+        |> form("#agenda-item-form",
+          agenda_item: %{
+            starts_at: "2026-07-25T08:30",
+            title: "Timezone check",
+            duration_minutes: "30"
+          }
+        )
+        |> render_submit()
+        |> follow_redirect(conn, ~p"/e/#{event.code}/manage/agenda")
+
+      # 08:30 PDT wall time persists as 15:30 UTC.
+      agenda_item =
+        event.id
+        |> Agendas.list_agenda_items()
+        |> Enum.find(&(&1.title == "Timezone check"))
+
+      assert agenda_item.starts_at == ~N[2026-07-25 15:30:00]
+
+      # The manage list shows the organizer wall time, not UTC.
+      assert html =~ "2026-07-25 08:30"
+
+      # The edit form is prefilled with the organizer wall time.
+      {:ok, _edit_live, edit_html} =
+        live(conn, ~p"/e/#{event.code}/manage/agenda/#{agenda_item}/edit")
+
+      assert edit_html =~ "2026-07-25T08:30"
+      refute edit_html =~ "2026-07-25T15:30"
     end
 
     test "redirects non-owners away from agenda management", %{conn: conn} do
@@ -1186,6 +1227,26 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "/api/integrations/hi-events/webhook"
       assert html =~ "Signature"
       assert html =~ "Sync existing tickets"
+    end
+
+    test "saves the event timezone from the app settings form", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      {:ok, manage_live, html} = live(conn, ~p"/e/#{event.code}/manage/app")
+
+      assert html =~ "Event timezone"
+      assert html =~ "America/Vancouver"
+
+      html =
+        manage_live
+        |> form("#event-app-feature-form", setting: %{timezone: "America/Toronto"})
+        |> render_change()
+
+      assert EventApp.get_or_create_settings(event.id).timezone == "America/Toronto"
+      assert html =~ "Changes saved"
     end
 
     test "redirects non-owners away from event app management", %{conn: conn} do

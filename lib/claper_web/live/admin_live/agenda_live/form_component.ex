@@ -2,6 +2,7 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
   use ClaperWeb, :live_component
 
   alias Claper.Agendas
+  alias Claper.EventApp.Time, as: EventTime
 
   @impl true
   def render(assigns) do
@@ -158,7 +159,13 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
 
   @impl true
   def update(%{agenda_item: agenda_item} = assigns, socket) do
-    changeset = Agendas.change_agenda_item(agenda_item)
+    timezone = assigns[:timezone]
+
+    changeset =
+      Agendas.change_agenda_item(%{
+        agenda_item
+        | starts_at: EventTime.to_local(agenda_item.starts_at, timezone)
+      })
 
     {:ok,
      socket
@@ -170,14 +177,14 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
   def handle_event("validate", %{"agenda_item" => agenda_item_params}, socket) do
     changeset =
       socket.assigns.agenda_item
-      |> Agendas.change_agenda_item(agenda_item_params)
+      |> Agendas.change_agenda_item(convert_params(agenda_item_params, socket))
       |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
   end
 
   def handle_event("save", %{"agenda_item" => agenda_item_params}, socket) do
-    save_agenda_item(socket, socket.assigns.action, agenda_item_params)
+    save_agenda_item(socket, socket.assigns.action, convert_params(agenda_item_params, socket))
   end
 
   def handle_event("cancel", _params, socket) do
@@ -216,6 +223,10 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
     assign(socket, :form, to_form(changeset))
+  end
+
+  defp convert_params(params, socket) do
+    EventTime.convert_starts_at_param(params, socket.assigns[:timezone])
   end
 
   defp saved_path(socket, agenda_item) do

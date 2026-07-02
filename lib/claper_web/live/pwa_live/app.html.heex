@@ -232,6 +232,7 @@
                         event={@event}
                         vanity={@vanity}
                         item={item}
+                        timezone={@timezone}
                         signed_in={signed_in?(@attendee)}
                         saved={saved_agenda_item?(@bookmarked_agenda_item_ids, item)}
                       />
@@ -255,7 +256,10 @@
                   <p :if={@session_item.speaker_name}>{speaker_line(@session_item)}</p>
                   <div class="ngs-detail-stats">
                     <span>
-                      <strong>{format_agenda_time(@session_item.starts_at)}</strong><small>{format_session_date(@session_item.starts_at)}</small>
+                      <strong>{format_agenda_time(@session_item.starts_at, @timezone)}</strong><small>{format_session_date(
+                        @session_item.starts_at,
+                        @timezone
+                      )}</small>
                     </span>
                     <span>
                       <strong>{format_duration(@session_item.duration_minutes)}</strong><small>{gettext("Duration")}</small>
@@ -749,7 +753,8 @@
                       <h2>{@event.name}</h2>
                       <p>
                         {if @vanity, do: gettext("Event app"), else: String.upcase(@event.code)} | {format_event_time(
-                          @event.started_at
+                          @event.started_at,
+                          @timezone
                         )}
                       </p>
                     </div>
@@ -834,7 +839,8 @@
                 <div class="ngs-nextup-meta">
                   <span>
                     <.ngs_icon name="hero-clock" class="size-4" /> {format_agenda_time(
-                      next_item.starts_at
+                      next_item.starts_at,
+                      @timezone
                     )}
                   </span>
                   <span :if={next_item.location_name}>

@@ -44,6 +44,34 @@ defmodule Claper.EventAppTest do
       refute setting.resources_enabled
       assert setting.primary_color == "#C9A84C"
       assert setting.accent_color == "#8B6218"
+      assert setting.timezone == "America/Vancouver"
+    end
+
+    test "rejects an invalid timezone" do
+      event = event_fixture()
+      setting = EventApp.get_or_create_settings(event.id)
+
+      assert {:error, changeset} = EventApp.update_settings(setting, %{timezone: "Not/AZone"})
+      assert "is not a valid timezone" in errors_on(changeset).timezone
+    end
+
+    test "accepts a valid timezone update" do
+      event = event_fixture()
+      setting = EventApp.get_or_create_settings(event.id)
+
+      assert {:ok, updated} = EventApp.update_settings(setting, %{timezone: "America/Toronto"})
+      assert updated.timezone == "America/Toronto"
+    end
+
+    test "event_timezone/1 returns the configured or default timezone" do
+      event = event_fixture()
+
+      assert EventApp.event_timezone(event.id) == "America/Vancouver"
+
+      setting = EventApp.get_or_create_settings(event.id)
+      {:ok, _updated} = EventApp.update_settings(setting, %{timezone: "America/Toronto"})
+
+      assert EventApp.event_timezone(event.id) == "America/Toronto"
     end
 
     test "publishes disabled-by-default Live feature settings" do

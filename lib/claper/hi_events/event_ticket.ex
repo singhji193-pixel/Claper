@@ -6,6 +6,7 @@ defmodule Claper.HiEvents.EventTicket do
     field :external_attendee_id, :string
     field :external_ticket_id, :string
     field :external_ticket_type_id, :string
+    field :external_public_id, :string
     field :ticket_name, :string
     field :attendee_email, :string
     field :attendee_first_name, :string
@@ -32,6 +33,7 @@ defmodule Claper.HiEvents.EventTicket do
       :external_attendee_id,
       :external_ticket_id,
       :external_ticket_type_id,
+      :external_public_id,
       :ticket_name,
       :attendee_email,
       :attendee_first_name,

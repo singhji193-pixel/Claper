@@ -104,6 +104,7 @@ defmodule ClaperWeb.AdminLive.AgendaLive do
     socket
     |> assign(:selected_event_id, event_id)
     |> assign(:selected_event, selected_event)
+    |> assign(:timezone, Claper.EventApp.event_timezone(event_id))
     |> reload_agenda_items()
   end
 
@@ -152,8 +153,10 @@ defmodule ClaperWeb.AdminLive.AgendaLive do
 
   defp default_starts_at(event), do: event.started_at
 
-  def format_agenda_time(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%Y-%m-%d %H:%M")
+  def format_agenda_time(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%Y-%m-%d %H:%M")
   end
 
   def format_duration(nil), do: gettext("No duration")

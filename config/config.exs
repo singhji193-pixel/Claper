@@ -78,6 +78,11 @@ config :claper, :storage_dir, System.get_env("PRESENTATION_STORAGE_DIR", "priv/s
 
 config :flop, repo: Claper.Repo
 
+# Timezone database for event-local agenda times; bundled tzdata only, no
+# runtime HTTP updates inside release containers.
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+config :tzdata, :autoupdate, :disabled
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

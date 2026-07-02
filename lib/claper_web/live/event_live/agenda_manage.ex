@@ -3,6 +3,8 @@ defmodule ClaperWeb.EventLive.AgendaManage do
 
   alias Claper.Agendas
   alias Claper.Agendas.{AgendaItem, AgendaResource}
+  alias Claper.EventApp
+  alias Claper.EventApp.Time, as: EventTime
 
   @impl true
   def mount(_params, session, socket) do
@@ -13,6 +15,7 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     {:ok,
      socket
      |> assign(:event, nil)
+     |> assign(:timezone, nil)
      |> assign(:agenda_items, [])
      |> assign(:agenda_item, nil)
      |> assign(:form, nil)
@@ -28,6 +31,7 @@ defmodule ClaperWeb.EventLive.AgendaManage do
       {:noreply,
        socket
        |> assign(:event, event)
+       |> assign(:timezone, EventApp.event_timezone(event.id))
        |> reload_agenda_items()
        |> apply_action(socket.assigns.live_action, params)}
     else
@@ -43,14 +47,22 @@ defmodule ClaperWeb.EventLive.AgendaManage do
   def handle_event("validate", %{"agenda_item" => agenda_item_params}, socket) do
     changeset =
       socket.assigns.agenda_item
-      |> Agendas.change_agenda_item(force_event(agenda_item_params, socket.assigns.event))
+      |> Agendas.change_agenda_item(
+        agenda_item_params
+        |> EventTime.convert_starts_at_param(socket.assigns.timezone)
+        |> force_event(socket.assigns.event)
+      )
       |> Map.put(:action, :validate)
 
     {:noreply, assign_form(socket, changeset)}
   end
 
   def handle_event("save", %{"agenda_item" => agenda_item_params}, socket) do
-    save_agenda_item(socket, socket.assigns.live_action, agenda_item_params)
+    save_agenda_item(
+      socket,
+      socket.assigns.live_action,
+      EventTime.convert_starts_at_param(agenda_item_params, socket.assigns.timezone)
+    )
   end
 
   def handle_event("validate-resource", %{"agenda_resource" => params}, socket) do
@@ -182,7 +194,7 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     |> assign(:resources, [])
     |> assign(:resource, nil)
     |> assign(:resource_form, nil)
-    |> assign_form(Agendas.change_agenda_item(agenda_item))
+    |> assign_form(Agendas.change_agenda_item(localize_starts_at(agenda_item, socket)))
   end
 
   defp apply_action(socket, :edit, %{"id" => id}) do
@@ -192,7 +204,7 @@ defmodule ClaperWeb.EventLive.AgendaManage do
     |> assign(:page_title, gettext("Edit agenda item"))
     |> assign(:agenda_item, agenda_item)
     |> assign(:resources, Agendas.list_resources(agenda_item.id))
-    |> assign_form(Agendas.change_agenda_item(agenda_item))
+    |> assign_form(Agendas.change_agenda_item(localize_starts_at(agenda_item, socket)))
     |> reset_resource_form()
   end
 
@@ -288,10 +300,16 @@ defmodule ClaperWeb.EventLive.AgendaManage do
 
   defp default_starts_at(event), do: event.started_at || NaiveDateTime.utc_now()
 
+  defp localize_starts_at(%AgendaItem{} = agenda_item, socket) do
+    %{agenda_item | starts_at: EventTime.to_local(agenda_item.starts_at, socket.assigns.timezone)}
+  end
+
   defp agenda_path(event), do: ~p"/e/#{event.code}/manage/agenda"
 
-  def format_agenda_time(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%Y-%m-%d %H:%M")
+  def format_agenda_time(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> EventTime.to_local(timezone)
+    |> Calendar.strftime("%Y-%m-%d %H:%M")
   end
 
   def format_duration(nil), do: gettext("No duration")

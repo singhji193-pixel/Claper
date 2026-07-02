@@ -75,6 +75,20 @@
           </label>
         </div>
 
+        <div class="mt-4 max-w-sm">
+          <label for="event-app-timezone" class="block text-sm font-semibold text-slate-900">
+            {gettext("Event timezone")}
+          </label>
+          <p class="mt-1 text-sm leading-5 text-slate-500">
+            {gettext("Agenda times are entered and shown in this timezone.")}
+          </p>
+          {select(@app_settings_form, :timezone, timezone_options(@app_settings),
+            id: "event-app-timezone",
+            class:
+              "mt-2 block min-h-11 w-full rounded-lg border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+          )}
+        </div>
+
         <div
           class="mt-4 flex min-h-11 items-center gap-2 text-sm text-slate-600"
           role="status"

@@ -23,6 +23,7 @@ defmodule ClaperWeb.EventLive.Agenda do
        socket
        |> assign(:page_title, gettext("Agenda"))
        |> assign(:event, event)
+       |> assign(:timezone, Claper.EventApp.event_timezone(event.id))
        |> assign(:agenda_items, Agendas.list_agenda_items(event.id))}
     end
   end
@@ -41,8 +42,10 @@ defmodule ClaperWeb.EventLive.Agenda do
     )
   end
 
-  def format_agenda_time(%NaiveDateTime{} = starts_at) do
-    Calendar.strftime(starts_at, "%b %d, %H:%M")
+  def format_agenda_time(%NaiveDateTime{} = starts_at, timezone) do
+    starts_at
+    |> Claper.EventApp.Time.to_local(timezone)
+    |> Calendar.strftime("%b %d, %H:%M")
   end
 
   def format_duration(nil), do: nil

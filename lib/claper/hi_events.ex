@@ -411,6 +411,7 @@ defmodule Claper.HiEvents do
              :hi_events_order_id,
              :external_ticket_id,
              :external_ticket_type_id,
+             :external_public_id,
              :ticket_name,
              :attendee_email,
              :attendee_first_name,
@@ -575,6 +576,7 @@ defmodule Claper.HiEvents do
     %{
       external_attendee_id: to_string_value(external_attendee_id),
       external_ticket_id: to_string_value(external_ticket_id),
+      external_public_id: to_string_value(first_value(attendee, [["public_id"]])),
       external_ticket_type_id:
         first_value(attendee, [
           ["ticket_type_id"],

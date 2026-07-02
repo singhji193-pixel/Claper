@@ -66,6 +66,9 @@ defmodule Claper.HiEventsTest do
       assert [ticket] = HiEvents.list_tickets(event.id)
       assert ticket.external_attendee_id == "51"
       assert ticket.external_ticket_id == "attendee-public-51"
+      # Hi.Events check-in scanners resolve attendees by public_id, so it must
+      # be captured verbatim for the wallet QR code.
+      assert ticket.external_public_id == "attendee-public-51"
       assert ticket.status == "active"
     end
 

@@ -112,7 +112,7 @@
             <article class="relative border-l-2 border-primary-500 pl-5">
               <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-primary-500"></span>
               <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                <time>{format_agenda_time(agenda_item.starts_at)}</time>
+                <time>{format_agenda_time(agenda_item.starts_at, @timezone)}</time>
                 <%= if agenda_item.duration_minutes do %>
                   <span>&middot;</span>
                   <span>{format_duration(agenda_item.duration_minutes)}</span>

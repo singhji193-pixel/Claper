@@ -145,6 +145,39 @@ defmodule Claper.AgendasTest do
       assert next_day.id
     end
 
+    test "agenda_days/2 and day filtering group by event-local date" do
+      event = event_fixture()
+
+      # 08:30 and 17:15 wall time on July 25 in America/Vancouver (PDT, UTC-7)
+      morning =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-07-25 15:30:00],
+          title: "Opening keynote"
+        })
+
+      evening =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-07-26 00:15:00],
+          title: "Evening reception"
+        })
+
+      # Without a timezone the UTC dates split the event across two days.
+      assert [~D[2026-07-25], ~D[2026-07-26]] == Agendas.agenda_days(event.id)
+
+      # In the event timezone both items land on the same local day.
+      assert [~D[2026-07-25]] == Agendas.agenda_days(event.id, "America/Vancouver")
+
+      assert [morning.id, evening.id] ==
+               event.id
+               |> Agendas.list_agenda_items_for_app(
+                 day: "2026-07-25",
+                 timezone: "America/Vancouver"
+               )
+               |> Enum.map(& &1.id)
+    end
+
     test "delete_agenda_item/1 removes item and normalizes positions" do
       event = event_fixture()
       first = agenda_item_fixture(%{event: event, title: "First"})

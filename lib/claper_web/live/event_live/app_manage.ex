@@ -188,6 +188,29 @@ defmodule ClaperWeb.EventLive.AppManage do
     assign(socket, :form, to_form(changeset, as: :integration))
   end
 
+  @common_timezones [
+    "America/Vancouver",
+    "America/Edmonton",
+    "America/Winnipeg",
+    "America/Toronto",
+    "America/Halifax",
+    "America/Los_Angeles",
+    "America/Denver",
+    "America/Chicago",
+    "America/New_York",
+    "UTC"
+  ]
+
+  def timezone_options(app_settings) do
+    current = app_settings && app_settings.timezone
+
+    @common_timezones
+    |> then(fn zones ->
+      if is_binary(current) and current not in zones, do: [current | zones], else: zones
+    end)
+    |> Enum.map(&{&1, &1})
+  end
+
   defp force_event(params, event) do
     Map.put(params, "event_id", event.id)
   end

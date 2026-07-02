@@ -22,9 +22,11 @@ defmodule Claper.Agendas do
   end
 
   def list_agenda_items_for_app(event_id, opts \\ []) do
+    timezone = Keyword.get(opts, :timezone)
+
     event_id
     |> list_agenda_items()
-    |> filter_by_day(Keyword.get(opts, :day))
+    |> filter_by_day(Keyword.get(opts, :day), timezone)
     |> filter_by_track(Keyword.get(opts, :track))
   end
 
@@ -49,10 +51,10 @@ defmodule Claper.Agendas do
     end
   end
 
-  def agenda_days(event_id) do
+  def agenda_days(event_id, timezone \\ nil) do
     event_id
     |> list_agenda_items()
-    |> Enum.map(&NaiveDateTime.to_date(&1.starts_at))
+    |> Enum.map(&item_date(&1, timezone))
     |> Enum.uniq()
   end
 
@@ -370,19 +372,25 @@ defmodule Claper.Agendas do
     end
   end
 
-  defp filter_by_day(items, nil), do: items
-  defp filter_by_day(items, ""), do: items
+  defp filter_by_day(items, nil, _timezone), do: items
+  defp filter_by_day(items, "", _timezone), do: items
 
-  defp filter_by_day(items, day) when is_binary(day) do
+  defp filter_by_day(items, day, timezone) when is_binary(day) do
     case Date.from_iso8601(day) do
-      {:ok, date} -> filter_by_day(items, date)
+      {:ok, date} -> filter_by_day(items, date, timezone)
       {:error, _reason} -> items
     end
   end
 
-  defp filter_by_day(items, %Date{} = day) do
-    Enum.filter(items, &(NaiveDateTime.to_date(&1.starts_at) == day))
+  defp filter_by_day(items, %Date{} = day, timezone) do
+    Enum.filter(items, &(item_date(&1, timezone) == day))
   end
+
+  defp item_date(%AgendaItem{starts_at: starts_at}, nil),
+    do: NaiveDateTime.to_date(starts_at)
+
+  defp item_date(%AgendaItem{starts_at: starts_at}, timezone),
+    do: Claper.EventApp.Time.local_date(starts_at, timezone)
 
   defp filter_by_track(items, nil), do: items
   defp filter_by_track(items, ""), do: items
