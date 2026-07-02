@@ -331,21 +331,71 @@ defmodule ClaperWeb.Component.Input do
       |> assign_new(:placeholder, fn -> false end)
       |> assign_new(:labelClass, fn -> "text-gray-700" end)
       |> assign_new(:fieldClass, fn -> "bg-white" end)
+      |> assign_new(:autocomplete, fn -> "current-password" end)
       |> assign_new(:value, fn -> Map.get(assigns.form.data, assigns.key, "") end)
 
     ~H"""
-    <div class="relative" x-data={"{input: '#{assigns.value}'}"}>
+    <div class="relative" x-data={"{input: '#{assigns.value}', show: false}"}>
       {label(@form, @key, @name, class: "block text-sm font-medium #{@labelClass}")}
-      <div class="mt-1">
+      <div class="mt-1 relative">
         {password_input(@form, @key,
           required: @required,
           autofocus: @autofocus,
           placeholder: @placeholder,
+          autocomplete: @autocomplete,
           class:
-            "#{@fieldClass} shadow-base block w-full text-lg focus:ring-primary-500 focus:ring-2 outline-hidden rounded-md py-2 px-3",
+            "#{@fieldClass} shadow-base block w-full text-lg focus:ring-primary-500 focus:ring-2 outline-hidden rounded-md py-2 px-3 pr-12",
           "x-model": "input",
-          "x-ref": "input"
+          "x-ref": "input",
+          "x-bind:type": "show ? 'text' : 'password'"
         )}
+        <button
+          type="button"
+          x-on:click="show = !show"
+          x-bind:aria-label={"show ? '#{gettext("Hide password")}' : '#{gettext("Show password")}'"}
+          x-bind:aria-pressed="show"
+          class="absolute inset-y-0 right-0 flex min-w-11 items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-hidden focus:ring-2 focus:ring-primary-500 rounded-md"
+        >
+          <svg
+            x-show="!show"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="h-5 w-5"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.5 12a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"
+            />
+          </svg>
+          <svg
+            x-show="show"
+            x-cloak
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="h-5 w-5"
+            aria-hidden="true"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="m4 4 16 16" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9.9 5.9A9.5 9.5 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17.6 17.6 0 0 1-2.8 3.6M6.3 7.3A16.5 16.5 0 0 0 2.5 12S6 18.5 12 18.5c1.1 0 2.13-.22 3.06-.58"
+            />
+          </svg>
+        </button>
       </div>
       <%= if Keyword.has_key?(@form.errors, @key) do %>
         <p class="text-supporting-red-500 text-sm">{error_tag(@form, @key)}</p>

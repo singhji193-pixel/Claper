@@ -1,92 +1,131 @@
 <div>
   <div class="relative min-h-screen grid bg-black">
-    <div class="flex flex-col sm:flex-row items-center md:items-start sm:justify-center md:justify-start flex-auto min-w-0 ">
+    <div class="flex flex-col sm:flex-row items-center md:items-start sm:justify-center md:justify-start flex-auto min-w-0">
       <div
-        class="sm:w-1/2 xl:w-3/5 bg-primary-500 h-full hidden md:flex flex-auto items-center justify-center p-10 overflow-hidden  text-white bg-no-repeat bg-cover relative"
+        class="sm:w-1/2 xl:w-3/5 bg-primary-500 h-full hidden md:flex flex-auto items-center justify-center p-10 overflow-hidden text-white bg-no-repeat bg-cover relative"
         style="background-image: url(/images/client-login.jpg); background-position: 0% 60%;"
       >
-        <div class="absolute bg-black  opacity-25 inset-0 z-0"></div>
-        <div class="w-full  lg:max-w-2xl md:max-w-md z-10 items-center text-center ">
-          <div class=" font-bold leading-tight mb-6 mx-auto w-full content-center items-center ">
-            <img src="/images/logo-large.png" class="ml-3 w-auto lg:h-20 h-15 inline" />
+        <div class="absolute inset-0 z-0 bg-linear-to-t from-black/80 via-black/40 to-black/30">
+        </div>
+        <div class="w-full lg:max-w-2xl md:max-w-md z-10 items-center text-center">
+          <div class="font-bold leading-tight mb-6 mx-auto w-full content-center items-center">
+            <img
+              src="/images/logo-large.png"
+              class="ml-3 w-auto lg:h-20 h-15 inline"
+              alt="CoreOrbit"
+            />
           </div>
         </div>
       </div>
-      <div class="md:flex md:items-center md:justify-left w-full sm:w-auto md:h-full xl:w-1/2 p-8 md:p-10 lg:p-14 sm:rounded-lg md:rounded-none ">
-        <div class="max-w-xl w-full space-y-4">
-          <div class="lg:text-left text-center">
-            <h2 class="mt-6  font-bold text-gray-100">
-              <img src="/images/logo.png" class="h-10 w-auto inline" />
-            </h2>
-            <h2 class="mt-6 text-4xl md:text-6xl font-bold text-gray-100">
-              {gettext("It's time to empower your presentations.")}
-            </h2>
-            <p class="mt-10 text-2xl md:text-4xl text-gray-200">
-              {gettext("Connect to your account")}
-            </p>
-          </div>
-          <div class="flex flex-row justify-center items-center space-x-3"></div>
 
-          <.form :let={f} for={@conn} action={~p"/users/log_in"} as={:user} class="mt-12">
+      <div class="md:flex md:items-center md:justify-center w-full sm:w-auto md:h-full xl:w-1/2 p-8 md:p-10 lg:p-14">
+        <div class="max-w-md w-full">
+          <img src="/images/logo.png" class="h-10 w-auto" alt="" />
+
+          <h1 class="mt-8 text-3xl md:text-4xl font-bold tracking-tight text-white">
+            {gettext("Welcome back")}
+          </h1>
+          <p class="mt-2 text-base text-gray-400">
+            {gettext("Sign in to manage your events and presentations.")}
+          </p>
+
+          <.form
+            :let={f}
+            for={@conn}
+            action={~p"/users/log_in"}
+            as={:user}
+            class="mt-10 space-y-5"
+            x-data="{ submitting: false }"
+            x-on:submit="submitting = true"
+          >
             <%= if @error_message do %>
               <ClaperWeb.Component.Alert.error message={@error_message} stick={true} />
             <% end %>
             <input type="hidden" name="remember" value="true" />
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <ClaperWeb.Component.Input.email
-                form={f}
-                key={:email}
-                labelClass="text-white sr-only"
-                placeholder={gettext("Email address")}
-                fieldClass="bg-gray-700 text-white"
-                name={gettext("Email")}
-                autofocus="true"
-                required="true"
-              />
+
+            <ClaperWeb.Component.Input.email
+              form={f}
+              key={:email}
+              labelClass="text-gray-300"
+              placeholder={gettext("you@company.com")}
+              fieldClass="bg-gray-800 text-white border border-gray-700 placeholder-gray-500"
+              name={gettext("Email")}
+              autofocus="true"
+              required="true"
+            />
+            <div>
               <ClaperWeb.Component.Input.password
                 form={f}
                 key={:password}
-                labelClass="text-white sr-only"
-                placeholder={gettext("Password")}
-                fieldClass="bg-gray-700 text-white"
+                labelClass="text-gray-300"
+                placeholder="••••••••"
+                fieldClass="bg-gray-800 text-white border border-gray-700 placeholder-gray-500"
                 name={gettext("Password")}
                 required="true"
               />
+              <div class="mt-2 text-right">
+                {link(gettext("Forgot your password?"),
+                  to: ~p"/users/reset_password",
+                  class: "text-sm text-gray-400 hover:text-white underline underline-offset-2"
+                )}
+              </div>
             </div>
 
-            <div class="pt-5">
-              <button
-                type="submit"
-                class="w-full flex justify-center text-white p-4 rounded-md tracking-wide font-bold focus:outline-hidden focus:shadow-outline shadow-lg bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] hover:bg-position-[100%_100%] transition-all duration-500"
+            <button
+              type="submit"
+              x-bind:disabled="submitting"
+              class="w-full flex items-center justify-center gap-x-2 text-white min-h-12 p-3.5 rounded-lg tracking-wide font-bold focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/70 shadow-lg bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] hover:bg-position-[100%_100%] transition-all duration-500 disabled:opacity-60 disabled:cursor-wait"
+            >
+              <svg
+                x-show="submitting"
+                x-cloak
+                class="h-5 w-5 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                {gettext("Login")}
-              </button>
-            </div>
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                >
+                </circle>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                >
+                </path>
+              </svg>
+              <span x-show="!submitting">{gettext("Login")}</span>
+              <span x-show="submitting" x-cloak>{gettext("Signing in...")}</span>
+            </button>
           </.form>
 
-          <div :if={@oidc_enabled}>
+          <div :if={@oidc_enabled} class="mt-5">
             <%= link(
               to: ~p"/users/oidc",
               class:
-                "w-full flex justify-center items-center gap-x-2 py-2 px-4 rounded-md shadow-sm text-sm font-medium text-white border-2 border-secondary-500 hover:bg-secondary-500/40"
+                "w-full flex justify-center items-center gap-x-2 min-h-12 py-2 px-4 rounded-lg shadow-sm text-sm font-medium text-white border border-gray-600 hover:border-gray-400 hover:bg-white/5"
             ) do %>
-              <img width="24" src={@oidc_logo_url} />
+              <img width="24" src={@oidc_logo_url} alt="" />
               <span>{gettext("Login with %{provider}", provider: @oidc_provider_name)}</span>
             <% end %>
           </div>
 
-          <div class="mt-4 text-center justify-center">
-            {link(gettext("Forgot your password?"),
-              to: ~p"/users/reset_password",
-              class: "text-white text-sm text-center"
+          <p
+            :if={Application.get_env(:claper, :enable_account_creation)}
+            class="mt-8 text-center text-sm text-gray-400"
+          >
+            {gettext("New here?")} {link(gettext("Create account"),
+              to: ~p"/users/register",
+              class: "font-semibold text-white underline underline-offset-2"
             )}
-            <%= if Application.get_env(:claper, :enable_account_creation) do %>
-              <span class="text-white">•</span> {link(gettext("Create account"),
-                to: ~p"/users/register",
-                class: "text-white text-sm text-center"
-              )}
-            <% end %>
-          </div>
+          </p>
         </div>
       </div>
     </div>

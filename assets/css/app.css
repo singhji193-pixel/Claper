@@ -20,8 +20,13 @@
   }
 }
 
+/* --font-family-sans no longer exists in Tailwind v4; the undefined var made
+   every organizer screen fall back to the browser serif. Plus Jakarta Sans is
+   loaded by the root layout and Roboto ships locally as @font-face. */
 * {
-  font-family: var(--font-family-sans);
+  font-family:
+    "Plus Jakarta Sans", "Roboto", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
 }
 
 [x-cloak] { display: none !important; }

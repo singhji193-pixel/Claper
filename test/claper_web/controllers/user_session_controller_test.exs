@@ -11,7 +11,9 @@ defmodule ClaperWeb.UserSessionControllerTest do
     test "renders log in page", %{conn: conn} do
       conn = get(conn, ~p"/users/log_in")
       response = html_response(conn, 200)
-      assert response =~ "Email address"
+      assert response =~ "Welcome back"
+      assert response =~ ~s(name="user[email]")
+      assert response =~ ~s(autocomplete="current-password")
     end
 
     test "redirects if already logged in", %{conn: conn, user: user} do

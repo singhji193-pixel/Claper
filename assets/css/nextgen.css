@@ -3115,3 +3115,12 @@
     animation: none;
   }
 }
+
+/* OTP auth: white logo needs an ink backdrop on the parchment theme */
+.nextgen-summit-liveview .ngs-auth-ref-logo {
+  height: 104px;
+  padding: 16px 26px;
+  margin: 0 auto 32px;
+  background: var(--ngs-ink);
+  border-radius: 20px;
+}

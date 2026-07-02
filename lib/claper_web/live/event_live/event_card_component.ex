@@ -10,14 +10,14 @@ defmodule ClaperWeb.EventLive.EventCardComponent do
 
     ~H"""
     <li class="w-full my-4" id={"event-#{@event.uuid}"}>
-      <div class="block bg-white rounded-2xl shadow-base">
+      <div class="block bg-white rounded-2xl border border-gray-200 shadow-sm transition-shadow hover:shadow-md">
         <div class="px-4 py-4 sm:px-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center">
               <a
                 data-phx-link="patch"
                 data-phx-link-state="push"
-                class="text-lg font-medium text-primary-600 truncate"
+                class="text-lg font-semibold text-gray-900 truncate hover:text-primary-600"
                 href={~p"/e/#{@event.code}/manage"}
               >
                 {@event.name}
