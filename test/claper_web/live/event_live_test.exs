@@ -1067,6 +1067,59 @@ defmodule ClaperWeb.EventLiveTest do
     end
   end
 
+  describe "Owner manage Q&A" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "counts and lists kind-questions even without a question mark", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+      settings = EventApp.get_or_create_settings(event.id)
+
+      {:ok, _settings} =
+        EventApp.update_settings(settings, %{live_interactions_enabled: true, qa_enabled: true})
+
+      post_fixture(%{
+        event: event,
+        kind: "question",
+        body: "Tell us about funding options",
+        name: "Riley"
+      })
+
+      {:ok, manage_live, html} = live(conn, ~p"/e/#{event.code}/manage")
+
+      assert html =~ "Questions (1)"
+      assert html =~ "Tell us about funding options"
+
+      # A live-arriving PWA question (no question mark) must also land in the
+      # Questions stream and bump the counter.
+      ticket_fixture(event, %{attendee_email: "qa-test@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "qa-test@example.com", code: "4821")
+
+      assert {:ok, %{token: token}} =
+               EventApp.verify_login_code(event.code, "qa-test@example.com", "4821")
+
+      assert {:ok, identity} = EventApp.interaction_identity(event.id, token)
+
+      {:ok, live_question, _settings} =
+        Claper.EventApp.LiveInteractions.create_post(
+          event,
+          identity.interaction_key,
+          "question",
+          "Second question with no punctuation",
+          true
+        )
+
+      html = render(manage_live)
+      assert html =~ "Questions (2)"
+      assert html =~ "Second question with no punctuation"
+      assert live_question.kind == "question"
+    end
+  end
+
   describe "Owner agenda management" do
     setup [:register_and_log_in_user, :create_event]
 
