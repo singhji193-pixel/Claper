@@ -12,7 +12,6 @@
       >
         {gettext("Back")}
       </.link>
-      <span class="ngs-auth-ref-pill">{gettext("OTP")}</span>
     </nav>
 
     <section class="ngs-auth-ref-panel" aria-labelledby="ngs-verify-title">
@@ -30,6 +29,8 @@
         action={app_path(assigns, "/verify")}
         as={:attendee}
         class="ngs-auth-ref-form"
+        x-data="{ submitting: false }"
+        x-on:submit="submitting = true"
       >
         <input type="hidden" name={f[:email].name} value={@email} />
         <input :if={@next_path} type="hidden" name={f[:next].name} value={@next_path} />
@@ -57,8 +58,15 @@
           />
         </div>
 
-        <button type="submit" class="ngs-auth-ref-submit ngs-focus" disabled={!@event}>
-          {gettext("Verify and continue")}
+        <button
+          type="submit"
+          class="ngs-auth-ref-submit ngs-focus"
+          disabled={!@event}
+          x-bind:disabled="submitting"
+        >
+          <span x-show="submitting" x-cloak class="ngs-spinner" aria-hidden="true"></span>
+          <span x-show="!submitting">{gettext("Verify and continue")}</span>
+          <span x-show="submitting" x-cloak>{gettext("Verifying...")}</span>
         </button>
       </.form>
 

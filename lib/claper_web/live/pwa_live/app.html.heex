@@ -420,6 +420,30 @@
                         {gettext("Open networking profile")}
                       </.link>
                     </section>
+                    <div
+                      :if={@people_query == ""}
+                      class="ngs-steps"
+                      aria-label={gettext("How the directory works")}
+                    >
+                      <div class="ngs-step">
+                        <span>1</span>
+                        <div>
+                          <strong>{gettext("Introduce yourself")}</strong>
+                          <p>
+                            {gettext("Your networking card appears here for other attendees.")}
+                          </p>
+                        </div>
+                      </div>
+                      <div class="ngs-step">
+                        <span>2</span>
+                        <div>
+                          <strong>{gettext("Find the right people")}</strong>
+                          <p>
+                            {gettext("Search the room by name, role, or company.")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   <% true -> %>
                     <div class="ngs-people-grid">
                       <article :for={person <- @visible_forum_players} class="ngs-person-card">
@@ -447,6 +471,35 @@
                       <h2>{gettext("Prompts are coming soon")}</h2>
                       <p>{gettext("The organizer has not published networking prompts yet.")}</p>
                     </section>
+                    <div class="ngs-steps" aria-label={gettext("How networking works")}>
+                      <div class="ngs-step">
+                        <span>1</span>
+                        <div>
+                          <strong>{gettext("Create your card")}</strong>
+                          <p>
+                            {gettext("Pick the name and intro other attendees will see.")}
+                          </p>
+                        </div>
+                      </div>
+                      <div class="ngs-step">
+                        <span>2</span>
+                        <div>
+                          <strong>{gettext("Scan to connect")}</strong>
+                          <p>
+                            {gettext("Scan another attendee's code when you meet in person.")}
+                          </p>
+                        </div>
+                      </div>
+                      <div class="ngs-step">
+                        <span>3</span>
+                        <div>
+                          <strong>{gettext("Complete the prompts")}</strong>
+                          <p>
+                            {gettext("Match connections to prompts and climb the leaderboard.")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   <% is_nil(@bingo_player) -> %>
                     <section class="ngs-card ngs-networking-onboarding">
                       <span class="ngs-feature-icon ngs-feature-icon-large">
