@@ -3253,3 +3253,153 @@
     animation-duration: 1.6s;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Gallery Editorial: ink rules, display numerals, white surfaces     */
+/* ------------------------------------------------------------------ */
+
+.nextgen-summit-liveview .ngs-card,
+.nextgen-summit-liveview .ngs-empty-state,
+.nextgen-summit-liveview .ngs-identity-card,
+.nextgen-summit-liveview .ngs-session-card,
+.nextgen-summit-liveview .ngs-person-card,
+.nextgen-summit-liveview .ngs-tile {
+  background: #ffffff;
+}
+
+.nextgen-summit-liveview .ngs-eyebrow {
+  color: var(--ngs-gold-deep);
+  letter-spacing: 0.16em;
+}
+
+.nextgen-summit-liveview .ngs-editorial {
+  border-top: 2px solid var(--ngs-ink);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.nextgen-summit-liveview .ngs-num {
+  font-family: var(--ngs-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nextgen-summit-liveview .ngs-appbar-title,
+.nextgen-summit-liveview .ngs-card h2,
+.nextgen-summit-liveview .ngs-identity-card h2,
+.nextgen-summit-liveview .ngs-empty-state h2 {
+  font-family: var(--ngs-display);
+  letter-spacing: -0.01em;
+}
+
+/* Next up: ink card becomes an editorial light block with a display time */
+.nextgen-summit-liveview .ngs-nextup {
+  background: #ffffff;
+  color: var(--ngs-ink);
+  border: 1px solid var(--ngs-line);
+  border-top: 2px solid var(--ngs-ink);
+  border-radius: 0 0 var(--ngs-r-lg) var(--ngs-r-lg);
+  box-shadow: none;
+}
+
+.nextgen-summit-liveview .ngs-nextup .ngs-ring {
+  display: none;
+}
+
+.nextgen-summit-liveview .ngs-nextup-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nextgen-summit-liveview .ngs-nextup-time {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-nextup-title {
+  color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-nextup p {
+  color: var(--ngs-ink-2);
+}
+
+.nextgen-summit-liveview .ngs-nextup-meta,
+.nextgen-summit-liveview .ngs-nextup-meta span {
+  color: var(--ngs-ink-2);
+}
+
+/* Stat tiles */
+.nextgen-summit-liveview .ngs-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.nextgen-summit-liveview .ngs-stat {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border: 1px solid var(--ngs-line);
+  border-radius: var(--ngs-r-sm);
+  background: #ffffff;
+  transition: border-color 150ms ease-out, transform 150ms ease-out;
+}
+
+.nextgen-summit-liveview .ngs-stat:active {
+  transform: scale(0.97);
+}
+
+.nextgen-summit-liveview .ngs-stat .ngs-num {
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-stat-word {
+  font-family: var(--ngs-display);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-stat span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ngs-ink-3);
+}
+
+/* Agenda: slot times as display numerals; hero blocks get the rule */
+.nextgen-summit-liveview .ngs-slot-time time {
+  font-family: var(--ngs-display);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--ngs-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.nextgen-summit-liveview .ngs-hero,
+.nextgen-summit-liveview .ngs-filterbar {
+  border-top: 2px solid var(--ngs-ink);
+}
+
+.nextgen-summit-liveview .ngs-live-option strong,
+.nextgen-summit-liveview .ngs-tab-count,
+.nextgen-summit-liveview .ngs-post-time {
+  font-family: var(--ngs-display);
+}
+
+/* Session detail stats become numerals */
+.nextgen-summit-liveview .ngs-detail-stats strong {
+  font-family: var(--ngs-display);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}

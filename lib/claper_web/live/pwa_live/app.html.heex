@@ -891,8 +891,12 @@
                   "ngs-track-#{track_tone(next_item.track_name || next_item.session_type || "all")}"
                 ]}
               >
-                <span class="ngs-ring ngs-ring-one"></span>
-                <p class="ngs-eyebrow">{gettext("Next up")}</p>
+                <div class="ngs-nextup-head">
+                  <p class="ngs-eyebrow">{gettext("Next up")}</p>
+                  <span class="ngs-num ngs-nextup-time">
+                    {format_agenda_time(next_item.starts_at, @timezone)}
+                  </span>
+                </div>
                 <.link
                   navigate={app_path(assigns, "/agenda/#{next_item.id}")}
                   class="ngs-nextup-title ngs-focus"
@@ -901,14 +905,14 @@
                 </.link>
                 <p :if={next_item.speaker_name}>{speaker_line(next_item)}</p>
                 <div class="ngs-nextup-meta">
+                  <span :if={next_item.location_name}>
+                    <.ngs_icon name="hero-map-pin" class="size-4" /> {next_item.location_name}
+                  </span>
                   <span>
-                    <.ngs_icon name="hero-clock" class="size-4" /> {format_agenda_time(
+                    <.ngs_icon name="hero-clock" class="size-4" /> {format_session_date(
                       next_item.starts_at,
                       @timezone
                     )}
-                  </span>
-                  <span :if={next_item.location_name}>
-                    <.ngs_icon name="hero-map-pin" class="size-4" /> {next_item.location_name}
                   </span>
                 </div>
               </section>
@@ -946,20 +950,27 @@
               </section>
 
               <section class="ngs-section ngs-grid-2 ngs-home-grid">
-                <div class="ngs-card">
+                <div class="ngs-card ngs-editorial">
                   <p class="ngs-eyebrow">{gettext("Today")}</p>
                   <h2>{gettext("Plan your day")}</h2>
-                  <ul class="ngs-livefeed">
-                    <li>
-                      <span><.ngs_icon name="hero-calendar-days" class="size-4" /></span><strong>{feature_count(@bootstrap.features.agenda, gettext("item"), gettext("items"))}</strong><small>{gettext("Published agenda sessions")}</small>
-                    </li>
-                    <li>
-                      <span><.ngs_icon name="hero-qr-code" class="size-4" /></span><strong>{feature_count(@bootstrap.features.bingo, gettext("prompt"), gettext("prompts"))}</strong><small>{gettext("Networking Bingo prompts")}</small>
-                    </li>
-                    <li>
-                      <span><.ngs_icon name="hero-ticket" class="size-4" /></span><strong>{if signed_in?(@attendee), do: gettext("Verified"), else: gettext("Locked")}</strong><small>{gettext("Ticket wallet")}</small>
-                    </li>
-                  </ul>
+                  <div class="ngs-stat-grid">
+                    <.link navigate={app_path(assigns, "/agenda")} class="ngs-stat ngs-focus">
+                      <strong class="ngs-num">{@bootstrap.features.agenda.count}</strong>
+                      <span>{gettext("Sessions")}</span>
+                    </.link>
+                    <.link navigate={app_path(assigns, "/scan")} class="ngs-stat ngs-focus">
+                      <strong class="ngs-num">{@bootstrap.features.bingo.count}</strong>
+                      <span>{gettext("Prompts")}</span>
+                    </.link>
+                    <.link navigate={app_path(assigns, "/ticket")} class="ngs-stat ngs-focus">
+                      <strong class="ngs-stat-word">
+                        {if signed_in?(@attendee),
+                          do: gettext("Verified"),
+                          else: gettext("Locked")}
+                      </strong>
+                      <span>{gettext("Ticket")}</span>
+                    </.link>
+                  </div>
                 </div>
 
                 <.link navigate={app_path(assigns, "/scan")} class="ngs-promo-card ngs-focus">
