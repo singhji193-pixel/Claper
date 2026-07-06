@@ -431,21 +431,27 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
         <div
           class="ngs-live-posts-scroll"
           id={"pwa-live-post-scroll-#{@kind}"}
-          phx-hook="ScrollBottom"
+          phx-hook={if @kind == "message", do: "ScrollBottom"}
         >
           <div class="ngs-live-post-list" role="list">
             <article
               :for={post <- @posts}
               id={"pwa-live-post-#{post.uuid}"}
-              class={["ngs-live-post", post[:mine] && "is-mine"]}
+              class={["ngs-live-post", @kind == "message" && post[:mine] && "is-mine"]}
               role="listitem"
             >
-              <span :if={!post[:mine]} class="ngs-post-avatar" aria-hidden="true">
+              <span
+                :if={@kind == "question" or !post[:mine]}
+                class="ngs-post-avatar"
+                aria-hidden="true"
+              >
                 {post_initials(post.name)}
               </span>
               <div class="ngs-live-post-bubble">
                 <header>
-                  <strong>{if post[:mine], do: gettext("You"), else: post.name}</strong>
+                  <strong>
+                    {if @kind == "message" && post[:mine], do: gettext("You"), else: post.name}
+                  </strong>
                   <span :if={post.pinned} class="ngs-post-pinned">
                     <.ngs_icon name="hero-bookmark" class="size-4" /> {gettext("Pinned")}
                   </span>
@@ -454,7 +460,10 @@ defmodule ClaperWeb.PwaLive.LiveInteractionsComponent do
                   </time>
                 </header>
                 <p>{post.body}</p>
-                <div class="ngs-live-post-actions">
+                <div
+                  :if={@snapshot && @snapshot.state.message_reaction_enabled}
+                  class="ngs-live-post-actions"
+                >
                   <button
                     type="button"
                     phx-click="live-toggle-reaction"

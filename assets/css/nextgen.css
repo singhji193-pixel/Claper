@@ -3403,3 +3403,21 @@
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
+
+/* Q&A is a top-down list, not a chat lane */
+.nextgen-summit-liveview .is-question .ngs-live-post-list {
+  margin-top: 0;
+}
+
+.nextgen-summit-liveview .is-question .ngs-live-post {
+  max-width: 100%;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.nextgen-summit-liveview .is-question .ngs-live-post-bubble {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--ngs-r-sm);
+  border-color: var(--ngs-line);
+}

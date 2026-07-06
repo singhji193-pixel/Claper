@@ -128,12 +128,16 @@ defmodule Claper.EventApp.LiveInteractions do
 
   def toggle_reaction(%Event{} = event, interaction_key, post_uuid, icon) do
     with {:ok, context} <- participant_context(event, interaction_key),
+         :ok <- reactions_enabled(context.state),
          :ok <- rate_limit(:reaction, context.event.id, interaction_key, 60),
          {:ok, status, post} <-
            Posts.toggle_attendee_reaction(context.event.id, interaction_key, post_uuid, icon) do
       {:ok, status, post}
     end
   end
+
+  defp reactions_enabled(%{message_reaction_enabled: true}), do: :ok
+  defp reactions_enabled(_state), do: {:error, :feature_disabled}
 
   def global_reaction(%Event{} = event, interaction_key, type)
       when type in [:heart, :clap, :hundred, :raisehand] do
@@ -320,13 +324,21 @@ defmodule Claper.EventApp.LiveInteractions do
 
   defp public_interaction(%Embed{}, _interaction_key), do: nil
 
+  # The presenter can restrict the room to pinned messages only; the PWA
+  # message lane mirrors the classic audience view. Q&A stays unfiltered.
+  defp pinned_only_filter(posts, "message", %{show_only_pinned: true}),
+    do: Enum.filter(posts, & &1.pinned)
+
+  defp pinned_only_filter(posts, _kind, _state), do: posts
+
   defp public_state(state) do
     %{
       position: state.position,
       chat_enabled: state.chat_enabled,
       chat_visible: state.chat_visible,
       anonymous_chat_enabled: state.anonymous_chat_enabled,
-      message_reaction_enabled: state.message_reaction_enabled
+      message_reaction_enabled: state.message_reaction_enabled,
+      show_only_pinned: state.show_only_pinned
     }
   end
 
@@ -360,6 +372,7 @@ defmodule Claper.EventApp.LiveInteractions do
     context.event.uuid
     |> Posts.list_posts_by_kind(kind, [:reactions])
     |> Enum.filter(&(&1.position == context.state.position))
+    |> pinned_only_filter(kind, context.state)
     |> Enum.map(fn post ->
       reactions = attendee_reaction_icons(post, interaction_key)
       liked = MapSet.member?(reactions, "👍")

@@ -1,85 +1,42 @@
-FROM ubuntu:22.04
+# Prebuilt Erlang/Elixir base; the previous asdf source build of Erlang was
+# slow and failed intermittently on fresh machines.
+FROM hexpm/elixir:1.18.4-erlang-28.0.1-ubuntu-noble-20260509.1
 
-# Set bash as the default shell
 SHELL ["/bin/bash", "-c"]
 
-# Avoid prompts during package installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Set up timezone
-RUN apt-get update && apt-get install -y tzdata \
-    && ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
-    && dpkg-reconfigure -f noninteractive tzdata
-
-# Install dependencies
 RUN apt-get update && apt-get install -y \
+    tzdata \
     build-essential \
     git \
     curl \
     wget \
     gnupg \
     ca-certificates \
-    apt-transport-https \
-    lsb-release \
-    python3 \
     openssl \
-    libncurses5-dev \
     locales \
     inotify-tools \
     unzip \
-    automake \
-    autoconf \
-    libreadline-dev \
-    libssl-dev \
-    libyaml-dev \
-    libxslt-dev \
-    libffi-dev \
-    libtool \
-    openjdk-11-jdk \
     ghostscript \
     libreoffice \
+    && ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Set locale
 RUN locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US:en
-ENV LC_ALL en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 
-# Install asdf
-ENV ASDF_VERSION=0.18.0
+# Node.js 22 for esbuild/tailwind asset tooling
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then \
-        ASDF_ARCH="arm64"; \
-    else \
-        ASDF_ARCH="amd64"; \
-    fi && \
-    wget https://github.com/asdf-vm/asdf/releases/download/v${ASDF_VERSION}/asdf-v${ASDF_VERSION}-linux-${ASDF_ARCH}.tar.gz \
-    && tar -xzf asdf-v${ASDF_VERSION}-linux-${ASDF_ARCH}.tar.gz \
-    && rm asdf-v${ASDF_VERSION}-linux-${ASDF_ARCH}.tar.gz \
-    && mv asdf /usr/bin/
-
-# Install Erlang and Elixir using asdf
-RUN asdf plugin add erlang \
-    && asdf plugin add elixir \
-    && asdf install erlang 28.0.1 \
-    && asdf install elixir 1.18.4-otp-28 \
-    && asdf set -u erlang 28.0.1 \
-    && asdf set -u elixir 1.18.4-otp-28
-
-# Install Node.js using asdf
-RUN asdf plugin add nodejs \
-    && asdf install nodejs 22.17.0 \
-    && asdf set -u nodejs 22.17.0
-
-ENV PATH="/root/.asdf/shims:$PATH"
-
-# Install Hex and Phoenix
 RUN mix local.hex --force \
-    && mix local.rebar --force \
-    && mix archive.install hex phx_new --force
+    && mix local.rebar --force
 
 # custom ERL_FLAGS are passed for (public) multi-platform builds
 ARG ERL_FLAGS

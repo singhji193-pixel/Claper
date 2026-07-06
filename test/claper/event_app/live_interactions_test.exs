@@ -223,6 +223,60 @@ defmodule Claper.EventApp.LiveInteractionsTest do
            ] = snapshot.messages
   end
 
+  test "rejects reactions when the presenter disables them", context do
+    assert {:ok, message, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "React to me",
+               false
+             )
+
+    assert {:ok, _state} =
+             Presentations.update_presentation_state(context.state, %{
+               message_reaction_enabled: false
+             })
+
+    assert {:error, :feature_disabled} =
+             LiveInteractions.toggle_reaction(
+               context.event,
+               context.interaction_key,
+               message.uuid,
+               "👍"
+             )
+  end
+
+  test "shows only pinned messages when the presenter enables pinned-only mode", context do
+    assert {:ok, pinned, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "Pinned announcement",
+               false
+             )
+
+    assert {:ok, _unpinned, _settings} =
+             LiveInteractions.create_post(
+               context.event,
+               context.interaction_key,
+               "message",
+               "Regular chatter",
+               false
+             )
+
+    {:ok, _post} = Claper.Posts.toggle_pin_post(pinned)
+
+    assert {:ok, _state} =
+             Presentations.update_presentation_state(context.state, %{show_only_pinned: true})
+
+    assert {:ok, snapshot} =
+             LiveInteractions.snapshot(context.event, context.interaction_key)
+
+    assert [%{body: "Pinned announcement", pinned: true}] = snapshot.messages
+  end
+
   test "marks the attendee's own posts as mine without exposing identifiers", context do
     assert {:ok, _message, _settings} =
              LiveInteractions.create_post(
