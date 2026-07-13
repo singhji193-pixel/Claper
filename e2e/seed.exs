@@ -38,7 +38,9 @@ owner =
     owner
   else
     owner
-    |> Ecto.Changeset.change(confirmed_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second))
+    |> Ecto.Changeset.change(
+      confirmed_at: NaiveDateTime.truncate(NaiveDateTime.utc_now(), :second)
+    )
     |> Repo.update!()
   end
 
@@ -160,6 +162,50 @@ settings = EventApp.get_or_create_settings(event.id)
   })
 
 {:ok, _poll} = Polls.set_enabled(poll.id)
+
+# --- disabled quiz, form, and embed for the manager bridge tests -----------
+
+{:ok, _quiz} =
+  Claper.Quizzes.create_quiz(%{
+    presentation_file_id: presentation_file.id,
+    title: "E2E summit quiz",
+    position: 0,
+    enabled: false,
+    show_results: true,
+    quiz_questions: [
+      %{
+        content: "Where is the summit held?",
+        type: "qcm",
+        quiz_question_opts: [
+          %{content: "Anvil Centre", is_correct: true},
+          %{content: "Moon Base", is_correct: false}
+        ]
+      }
+    ]
+  })
+
+{:ok, _form} =
+  Claper.Forms.create_form(%{
+    presentation_file_id: presentation_file.id,
+    title: "E2E feedback form",
+    position: 0,
+    enabled: false,
+    fields: [
+      %{name: "Full name", type: "text", required: true},
+      %{name: "Work email", type: "email", required: true}
+    ]
+  })
+
+{:ok, _embed} =
+  Claper.Embeds.create_embed(%{
+    presentation_file_id: presentation_file.id,
+    title: "E2E highlight reel",
+    provider: "youtube",
+    content: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    position: 0,
+    enabled: false,
+    attendee_visibility: true
+  })
 
 IO.puts("""
 E2E seed complete.
