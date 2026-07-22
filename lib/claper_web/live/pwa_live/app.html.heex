@@ -258,7 +258,17 @@
                     {session_kicker(@session_item)}
                   </span>
                   <h2>{@session_item.title}</h2>
-                  <p :if={@session_item.speaker_name}>{speaker_line(@session_item)}</p>
+                  <div :if={@session_item.speaker_name} class="ngs-speaker-row is-detail">
+                    <img
+                      :if={@session_item.speaker_image_url}
+                      src={@session_item.speaker_image_url}
+                      alt={@session_item.speaker_name}
+                      loading="lazy"
+                      onerror="this.style.display='none'"
+                      class="ngs-headshot is-large"
+                    />
+                    <p>{speaker_line(@session_item)}</p>
+                  </div>
                   <div class="ngs-detail-stats">
                     <span>
                       <strong>{format_agenda_time(@session_item.starts_at, @timezone)}</strong><small>{format_session_date(
@@ -903,7 +913,17 @@
                 >
                   {next_item.title}
                 </.link>
-                <p :if={next_item.speaker_name}>{speaker_line(next_item)}</p>
+                <div :if={next_item.speaker_name} class="ngs-speaker-row">
+                  <img
+                    :if={next_item.speaker_image_url}
+                    src={next_item.speaker_image_url}
+                    alt=""
+                    loading="lazy"
+                    onerror="this.style.display='none'"
+                    class="ngs-headshot"
+                  />
+                  <p>{speaker_line(next_item)}</p>
+                </div>
                 <div class="ngs-nextup-meta">
                   <span :if={next_item.location_name}>
                     <.ngs_icon name="hero-map-pin" class="size-4" /> {next_item.location_name}

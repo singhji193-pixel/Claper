@@ -43,6 +43,31 @@ defmodule Claper.AgendasTest do
       assert "must be greater than 0" in errors_on(changeset).duration_minutes
     end
 
+    test "create_agenda_item/1 stores a speaker headshot URL and rejects non-http values" do
+      event = event_fixture()
+
+      assert {:ok, item} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 09:00:00],
+                 title: "Keynote",
+                 speaker_name: "Laura Jones",
+                 speaker_image_url: "https://nextgensummit.co/speakers/laura-jones.jpg"
+               })
+
+      assert item.speaker_image_url == "https://nextgensummit.co/speakers/laura-jones.jpg"
+
+      assert {:error, changeset} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 10:00:00],
+                 title: "Bad image",
+                 speaker_image_url: "javascript:alert(1)"
+               })
+
+      assert "must be an http(s) URL" in errors_on(changeset).speaker_image_url
+    end
+
     test "list_agenda_items/1 only returns items for the requested event in agenda order" do
       event = event_fixture()
       other_event = event_fixture()

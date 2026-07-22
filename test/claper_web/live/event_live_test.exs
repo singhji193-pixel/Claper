@@ -209,10 +209,18 @@ defmodule ClaperWeb.EventLiveTest do
         speaker_name: "Avery Singh",
         speaker_title: "Founder",
         speaker_company: "CoreOrbit",
+        speaker_image_url: "https://nextgensummit.co/speakers/avery-singh.jpg",
         location_name: "Main Stage",
         track_name: "Growth",
         session_type: "Keynote",
         duration_minutes: 30
+      })
+
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 17:00:00],
+        title: "Networking break",
+        duration_minutes: 20
       })
 
       conn = sign_in_attendee(conn, event)
@@ -226,6 +234,11 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ "09:00"
       assert html =~ "Save"
       assert html =~ ~p"/app/#{event.code}/agenda"
+
+      # Headshot renders only for items that carry an image URL.
+      assert html =~ ~s(class="ngs-headshot")
+      assert html =~ "https://nextgensummit.co/speakers/avery-singh.jpg"
+      refute html =~ ~s(<img src="" class="ngs-headshot")
     end
 
     test "renders PWA session detail and lets signed-in attendees save a session", %{

@@ -97,6 +97,18 @@ defmodule ClaperWeb.AdminLive.AgendaLive.FormComponent do
             <label class="label">{error_tag(@form, :speaker_company)}</label>
           </div>
 
+          <div class="md:col-span-3">
+            <label class="label">
+              <span class="label-text">{gettext("Speaker photo URL")}</span>
+            </label>
+            {text_input(@form, :speaker_image_url,
+              class: "input input-bordered w-full",
+              maxlength: 255,
+              placeholder: "https://..."
+            )}
+            <label class="label">{error_tag(@form, :speaker_image_url)}</label>
+          </div>
+
           <div class="md:col-span-2">
             <label class="label">
               <span class="label-text">{gettext("Track")}</span>

@@ -954,6 +954,45 @@
   line-height: 1.4;
 }
 
+.nextgen-summit-liveview .ngs-speaker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nextgen-summit-liveview .ngs-speaker-row p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ngs-ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.nextgen-summit-liveview .ngs-headshot {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 1.5px solid var(--ngs-line);
+  background: var(--ngs-champagne);
+}
+
+.nextgen-summit-liveview .ngs-headshot.is-large {
+  width: 48px;
+  height: 48px;
+  border-width: 2px;
+}
+
+.nextgen-summit-liveview .ngs-speaker-row.is-detail {
+  margin-top: 4px;
+}
+
+.nextgen-summit-liveview .ngs-speaker-row.is-detail p {
+  font-size: 14px;
+}
+
 .nextgen-summit-liveview .ngs-session-meta {
   flex-wrap: wrap;
   padding-top: 9px;
