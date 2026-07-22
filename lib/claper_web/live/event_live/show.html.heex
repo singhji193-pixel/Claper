@@ -1,5 +1,5 @@
 <%= if @started || @is_leader do %>
-  <div class="relative min-h-screen lg:flex lg:flex-col lg:items-center lg:w-full bg-black lg:bg-linear-to-tl from-primary-500 to-secondary-500">
+  <div class="claper-chat-screen relative min-h-screen bg-black lg:flex lg:w-full lg:flex-col lg:items-center lg:bg-linear-to-tl lg:from-primary-500 lg:to-secondary-500">
     <div class="relative w-full">
       <div
         id="side-menu-shadow"
@@ -28,12 +28,18 @@
             viewBox="0 0 24 24"
             stroke-width="1.8"
             stroke="currentColor"
-            class="h-5 w-5 mr-3"
+            class="mr-3 h-5 w-5"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+              d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15.75-4.5h15A1.5 1.5 0 0 1 21 6v13.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5V6A1.5 1.5 0 0 1 4.5 4.5Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M7.5 12.75h.008v.008H7.5v-.008Zm4.5 0h.008v.008H12v-.008Zm4.5 0h.008v.008H16.5v-.008ZM7.5 16.5h.008v.008H7.5V16.5Zm4.5 0h.008v.008H12V16.5Zm4.5 0h.008v.008H16.5V16.5Z"
             />
           </svg>
           <span>{gettext("Agenda")}</span>
@@ -89,11 +95,17 @@
               stroke-width="1.8"
               stroke="currentColor"
               class="h-4 w-4"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+                d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15.75-4.5h15A1.5 1.5 0 0 1 21 6v13.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5V6A1.5 1.5 0 0 1 4.5 4.5Z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M7.5 12.75h.008v.008H7.5v-.008Zm4.5 0h.008v.008H12v-.008Zm4.5 0h.008v.008H16.5v-.008ZM7.5 16.5h.008v.008H7.5V16.5Zm4.5 0h.008v.008H12V16.5Zm4.5 0h.008v.008H16.5V16.5Z"
               />
             </svg>
             <span class="ml-1">{gettext("Agenda")}</span>
@@ -188,7 +200,7 @@
     <% end %>
 
     <div
-      class="flex flex-col space-y-4 px-5 pt-20 pb-32 lg:w-1/3 bg-black min-h-screen"
+      class="claper-chat-feed flex min-h-screen flex-col bg-black px-4 pb-48 pt-20 lg:w-1/3"
       id="post-list"
       phx-update="stream"
       data-posts-nb={Enum.count(@streams.posts)}
@@ -213,9 +225,28 @@
     </div>
 
     <%= if @post_count == 0 && @state.chat_enabled do %>
-      <div class="text-2xl text-white block fixed bottom-32 left-0 w-full lg:w-1/3 lg:left-1/2 lg:transform lg:-translate-x-1/2 text-center opacity-30">
-        <span>{gettext("Be the first to react !")}</span>
-        <img src="/images/icons/arrow-white.svg" class="h-24 rotate-180 ml-12 mt-8" />
+      <div class="claper-chat-empty fixed bottom-44 left-1/2 -translate-x-1/2 text-center">
+        <span class="claper-chat-empty__icon" aria-hidden="true">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.6"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm3.75 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm3.75 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M21 12c0 4.142-4.03 7.5-9 7.5a10.2 10.2 0 0 1-3.638-.657L3 20.25l1.78-4.153A6.52 6.52 0 0 1 3 12c0-4.142 4.03-7.5 9-7.5s9 3.358 9 7.5Z"
+            />
+          </svg>
+        </span>
+        <p>{gettext("Be the first to react !")}</p>
       </div>
     <% end %>
 
@@ -230,7 +261,7 @@
 
     <div
       id="nickname-popup"
-      class="hidden fixed bottom-0 h-36 w-full lg:w-1/3 lg:mx-auto bg-black text-white z-40 shadow-md rounded-md p-4 flex flex-col gap-y-2 animate__faster"
+      class="claper-nickname-sheet hidden fixed bottom-0 z-40 h-40 w-full flex-col gap-y-2 rounded-t-2xl p-4 text-white shadow-2xl lg:w-1/3 lg:mx-auto animate__faster"
     >
       <%= if @state.anonymous_chat_enabled do %>
         <button
@@ -308,34 +339,25 @@
       </button>
     </div>
 
-    <div class={"fixed w-full " <> if @state.message_reaction_enabled, do: "bottom-12", else: "bottom-3"}>
+    <div class={"claper-chat-composer-shell fixed w-full " <> if @state.message_reaction_enabled, do: "bottom-12", else: "bottom-3"}>
       <%= if @state.chat_enabled do %>
         <%= if !@state.anonymous_chat_enabled && (@nickname && @nickname == "") do %>
           <.form
             :let={f}
             for={@post_changeset}
             id="nickname-form"
-            class="w-full lg:w-1/3 lg:mx-auto"
+            class="claper-chat-composer w-full lg:w-1/3 lg:mx-auto"
             phx-submit="save-nickname"
           >
-            <div
-              class="rounded-lg text-base px-3 py-2 mx-5 relative"
-              style="
-              background: rgb(241,90,36);
-              background: linear-gradient(333deg, rgba(241,90,36,0.50) 0%, rgba(255,107,53,0.50) 100%);
-              box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-              backdrop-filter: blur(11.5px);
-              -webkit-backdrop-filter: blur(11.5px);"
-            >
+            <div class="claper-chat-composer-card claper-chat-composer-card--join mx-4">
               {text_input(f, :name,
-                class:
-                  "bg-transparent outline-hidden w-full text-white h-10 placeholder-white resize-none pr-20 leading-4 overflow-y-hidden focus:overflow-y-auto",
+                class: "claper-chat-name-input w-full bg-transparent outline-hidden",
                 placeholder: gettext("Enter your name")
               )}
               <p class="font-semibold text-sm">
                 {error_tag(f, :name)}
               </p>
-              {submit(gettext("Join"), class: "absolute right-5 top-2 p-2 bg-white rounded-md")}
+              {submit(gettext("Join"), class: "claper-chat-join-button")}
             </div>
           </.form>
         <% else %>
@@ -343,26 +365,14 @@
             :let={f}
             for={@post_changeset}
             id="post-form"
-            class="w-full lg:w-1/3 lg:mx-auto"
+            class="claper-chat-composer w-full lg:w-1/3 lg:mx-auto"
             phx-hook="PostForm"
             data-nickname={@nickname}
             phx-submit="save"
           >
-            <div
-              class="rounded-lg text-base px-3 py-2 mx-5 relative"
-              style="
-              background: rgb(241,90,36);
-              background: linear-gradient(333deg, rgba(241,90,36,0.50) 0%, rgba(255,107,53,0.50) 100%);
-              box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-              backdrop-filter: blur(11.5px);
-              -webkit-backdrop-filter: blur(11.5px);"
-            >
-              <div class="ml-0">
-                <a
-                  href="#"
-                  phx-click={toggle_nickname_popup()}
-                  class="px-2 py-0.5 text-xs text-white rounded-full w-fit bg-gray-900 flex gap-x-1 items-center"
-                >
+            <div class="claper-chat-composer-card mx-4">
+              <div class="claper-chat-composer-top">
+                <a href="#" phx-click={toggle_nickname_popup()} class="claper-chat-identity">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -385,35 +395,30 @@
                 </a>
               </div>
 
-              <button class="absolute right-5 top-6 opacity-50" id="submitBtn">
-                <img src="/images/icons/send.svg" class="h-6" />
-              </button>
-
-              <div class="flex space-x-2 items-center">
+              <div class="claper-chat-input-row">
                 {textarea(f, :body,
                   id: "postFormTA",
-                  class:
-                    "bg-transparent outline-hidden w-full text-white h-10 placeholder-white pt-3 resize-none pr-20 leading-4 overflow-y-hidden focus:overflow-y-auto",
+                  class: "claper-chat-textarea w-full resize-none bg-transparent outline-hidden",
                   placeholder: gettext("Ask, comment...")
                 )}
+                <button
+                  class="claper-chat-send opacity-50"
+                  id="submitBtn"
+                  aria-label={gettext("Send message")}
+                  title={gettext("Send message")}
+                >
+                  <img src="/images/icons/send.svg" class="h-5 w-5" alt="" />
+                </button>
               </div>
             </div>
             {submit("Save", phx_disable_with: "Saving...", id: "hiddenSubmit", class: "hidden")}
           </.form>
         <% end %>
       <% else %>
-        <div id="post-form" class="w-full lg:w-1/3 lg:mx-auto">
-          <div
-            class="rounded-lg text-base px-4 py-2 mx-5 relative"
-            style="
-            background: rgb(241,90,36);
-            background: linear-gradient(333deg, rgba(241,90,36,0.50) 0%, rgba(255,107,53,0.50) 100%);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(11.5px);
-            -webkit-backdrop-filter: blur(11.5px);"
-          >
-            <div class="flex space-x-2 items-center">
-              <div class="opacity-50 bg-transparent outline-hidden w-full text-white h-10 placeholder-white pt-3 resize-none pr-20 leading-4 overflow-y-hidden focus:overflow-y-auto">
+        <div id="post-form" class="claper-chat-composer w-full lg:w-1/3 lg:mx-auto">
+          <div class="claper-chat-composer-card claper-chat-composer-card--disabled mx-4">
+            <div class="claper-chat-input-row">
+              <div class="claper-chat-disabled-message">
                 {gettext("Messages deactivated")}
               </div>
             </div>
@@ -424,47 +429,55 @@
 
     <div
       :if={@state.message_reaction_enabled}
-      class="flex space-x-6 fixed justify-center bottom-3 w-full lg:w-1/3 lg:mx-auto"
+      class="claper-chat-reaction-dock fixed bottom-2 flex w-fit justify-center gap-1.5 lg:mx-auto"
     >
-      <a
+      <button
+        type="button"
         phx-click="global-react"
         phx-hook="ClickFeedback"
         id="react-heart"
-        class="cursor-pointer"
+        class="claper-chat-reaction-button"
         phx-value-type="heart"
+        aria-label={gettext("Send a heart")}
       >
-        <img class="h-6" src="/images/icons/heart.svg" />
-      </a>
+        <img class="h-6 w-6" src="/images/icons/heart.svg" alt="" />
+      </button>
 
-      <a
+      <button
+        type="button"
         phx-click="global-react"
         phx-hook="ClickFeedback"
         id="react-clap"
-        class="cursor-pointer"
+        class="claper-chat-reaction-button"
         phx-value-type="clap"
+        aria-label={gettext("Send applause")}
       >
-        <img class="h-6" src="/images/icons/clap.svg" />
-      </a>
+        <img class="h-6 w-6" src="/images/icons/clap.svg" alt="" />
+      </button>
 
-      <a
+      <button
+        type="button"
         phx-click="global-react"
         phx-hook="ClickFeedback"
         id="react-hundred"
-        class="cursor-pointer"
+        class="claper-chat-reaction-button"
         phx-value-type="hundred"
+        aria-label={gettext("Send a celebration")}
       >
-        <img class="h-6" src="/images/icons/hundred.svg" />
-      </a>
+        <img class="h-6 w-6" src="/images/icons/hundred.svg" alt="" />
+      </button>
 
-      <a
+      <button
+        type="button"
         phx-click="global-react"
         phx-hook="ClickFeedback"
         id="react-raisehand"
-        class="cursor-pointer"
+        class="claper-chat-reaction-button"
         phx-value-type="raisehand"
+        aria-label={gettext("Raise hand")}
       >
-        <img class="h-6" src="/images/icons/raisehand.svg" />
-      </a>
+        <img class="h-6 w-6" src="/images/icons/raisehand.svg" alt="" />
+      </button>
     </div>
   </div>
 <% else %>

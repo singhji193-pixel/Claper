@@ -923,12 +923,16 @@ defmodule ClaperWeb.PwaLive.App do
   attr :timezone, :string, default: nil
 
   def ngs_agenda_card(assigns) do
+    speaker_images = Claper.Agendas.AgendaItem.image_list(assigns.item)
+
     assigns =
-      assign(
-        assigns,
+      assigns
+      |> assign(
         :track_tone,
         track_tone(assigns.item.track_name || assigns.item.session_type || "all")
       )
+      |> assign(:speaker_images, speaker_images)
+      |> assign(:speaker_panel?, length(speaker_images) > 2)
 
     ~H"""
     <article class={["ngs-schedule-slot", "ngs-track-#{@track_tone}"]}>
@@ -962,10 +966,17 @@ defmodule ClaperWeb.PwaLive.App do
           {@item.title}
         </.link>
 
-        <div :if={@item.speaker_name} class="ngs-speaker-row">
-          <span :if={@item.speaker_image_url} class="ngs-headshot-line">
+        <div :if={@item.speaker_name} class={["ngs-speaker-row", @speaker_panel? && "is-panel"]}>
+          <span
+            :if={@speaker_images != []}
+            class={[
+              "ngs-headshot-line",
+              @speaker_panel? && "is-panel",
+              length(@speaker_images) > 4 && "is-wide"
+            ]}
+          >
             <img
-              :for={url <- Claper.Agendas.AgendaItem.image_list(@item)}
+              :for={url <- @speaker_images}
               src={url}
               alt=""
               loading="lazy"

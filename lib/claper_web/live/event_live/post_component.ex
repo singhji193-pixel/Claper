@@ -3,9 +3,9 @@ defmodule ClaperWeb.EventLive.PostComponent do
 
   def render(assigns) do
     ~H"""
-    <div id={@id}>
+    <div id={@id} class="claper-chat-row">
       <%= if @post.attendee_identifier == @attendee_identifier || (not is_nil(@current_user) && @post.user_id == @current_user.id) do %>
-        <div class="px-4 pt-3 pb-8 rounded-b-lg rounded-tl-lg bg-gray-700 text-white relative z-0 break-word">
+        <div class="claper-chat-bubble claper-chat-bubble--mine relative z-0 text-white">
           <button
             phx-click={
               JS.toggle(
@@ -17,25 +17,26 @@ defmodule ClaperWeb.EventLive.PostComponent do
             phx-click-away={
               JS.hide(to: "#post-menu-#{@post.id}", transition: "animate__animated animate__fadeOut")
             }
-            class="float-right mr-1"
+            class="claper-chat-menu-button"
+            aria-label={gettext("Message options")}
           >
-            <img src="/images/icons/ellipsis-horizontal-white.svg" class="h-5" />
+            <img src="/images/icons/ellipsis-horizontal-white.svg" class="h-5" alt="" />
           </button>
 
           <%= if @post.name || leader?(@post, @event, @leaders) || pinned?(@post) do %>
-            <div class="inline-flex items-center">
+            <div class="claper-chat-meta">
               <%= if @post.name do %>
-                <p class="text-white text-xs font-semibold mb-2 mr-2">{@post.name}</p>
+                <p class="claper-chat-author">{@post.name}</p>
               <% end %>
               <%= if leader?(@post, @event, @leaders) do %>
-                <div class="inline-flex items-center space-x-1 justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-supporting-yellow-100 text-supporting-yellow-800 mb-2">
-                  <img src="/images/icons/star.svg" class="h-3" />
+                <div class="claper-chat-badge claper-chat-badge--host">
+                  <img src="/images/icons/star.svg" class="h-3" alt="" />
                   <span>{gettext("Host")}</span>
                 </div>
               <% end %>
 
               <%= if pinned?(@post) do %>
-                <div class="inline-flex items-center space-x-1 justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-supporting-yellow-100 text-supporting-yellow-800 mb-2 ml-1">
+                <div class="claper-chat-badge claper-chat-badge--pinned">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     class="icon icon-tabler icon-tabler-pin-filled"
@@ -62,10 +63,7 @@ defmodule ClaperWeb.EventLive.PostComponent do
             </div>
           <% end %>
 
-          <div
-            id={"post-menu-#{@post.id}"}
-            class="hidden absolute right-4 top-7 bg-white rounded-lg px-5 py-2 animate__faster"
-          >
+          <div id={"post-menu-#{@post.id}"} class="claper-chat-menu hidden animate__faster">
             <span class="text-red-500">
               {link(gettext("Delete"),
                 to: "#",
@@ -76,40 +74,55 @@ defmodule ClaperWeb.EventLive.PostComponent do
               )}
             </span>
           </div>
-          <p>{ClaperWeb.Helpers.format_body(@post.body)}</p>
+          <p class="claper-chat-body">{ClaperWeb.Helpers.format_body(@post.body)}</p>
 
-          <div class="flex h-6 text-sm float-right text-white space-x-2">
+          <div class="claper-chat-reaction-summary">
             <%= if @post.like_count > 0 do %>
-              <div class="flex px-1 items-center">
-                <img src="/images/icons/thumb.svg" class="h-4" />
-                <span class="ml-1 text-white">{@post.like_count}</span>
+              <div class="claper-chat-reaction-count">
+                <img src="/images/icons/thumb.svg" class="h-4" alt="" />
+                <span>{@post.like_count}</span>
               </div>
             <% end %>
             <%= if @post.love_count > 0 do %>
-              <div class="flex px-1 items-center">
-                <img src="/images/icons/heart.svg" class="h-4" />
-                <span class="ml-1 text-white">{@post.love_count}</span>
+              <div class="claper-chat-reaction-count">
+                <img src="/images/icons/heart.svg" class="h-4" alt="" />
+                <span>{@post.love_count}</span>
               </div>
             <% end %>
             <%= if @post.lol_count > 0 do %>
-              <div class="flex px-1 items-center">
-                <img src="/images/icons/laugh.svg" class="h-4" />
-                <span class="ml-1 text-white">{@post.lol_count}</span>
+              <div class="claper-chat-reaction-count">
+                <img src="/images/icons/laugh.svg" class="h-4" alt="" />
+                <span>{@post.lol_count}</span>
               </div>
             <% end %>
           </div>
         </div>
       <% else %>
-        <div class="px-4 pt-3 pb-8 rounded-b-lg rounded-tr-lg bg-white text-black relative z-0 break-all">
-          <%= if @post.name || leader?(@post, @event, @leaders) do %>
-            <div class="inline-flex items-center">
+        <div class="claper-chat-bubble claper-chat-bubble--other relative z-0 text-black">
+          <%= if @post.name || leader?(@post, @event, @leaders) || pinned?(@post) do %>
+            <div class="claper-chat-meta">
               <%= if @post.name do %>
-                <p class="text-black text-xs font-semibold mb-2 mr-2">{@post.name}</p>
+                <p class="claper-chat-author">{@post.name}</p>
               <% end %>
               <%= if leader?(@post, @event, @leaders) do %>
-                <div class="inline-flex items-center space-x-1 justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-supporting-yellow-100 text-supporting-yellow-800 mb-2">
-                  <img src="/images/icons/star.svg" class="h-3" />
+                <div class="claper-chat-badge claper-chat-badge--host">
+                  <img src="/images/icons/star.svg" class="h-3" alt="" />
                   <span>{gettext("Host")}</span>
+                </div>
+              <% end %>
+              <%= if pinned?(@post) do %>
+                <div class="claper-chat-badge claper-chat-badge--pinned">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M15.113 3.21l.094.083 5.5 5.5a1 1 0 0 1-1.175 1.59l-3.172 3.171-1.424 3.797a1 1 0 0 1-.158.277l-.07.08-1.5 1.5a1 1 0 0 1-1.32.082l-.095-.083L9 16.415l-3.793 3.792a1 1 0 0 1-1.497-1.32l.083-.094L7.585 15l-2.792-2.793a1 1 0 0 1-.083-1.32l.083-.094 1.5-1.5a1 1 0 0 1 .258-.187l.098-.042 3.796-1.425 3.171-3.17a1 1 0 0 1 1.497-1.26Z" />
+                  </svg>
+                  <span>{gettext("Pinned")}</span>
                 </div>
               <% end %>
             </div>
@@ -130,14 +143,12 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   transition: "animate__animated animate__fadeOut"
                 )
               }
-              class="float-right mr-1"
+              class="claper-chat-menu-button"
+              aria-label={gettext("Message options")}
             >
-              <img src="/images/icons/ellipsis-horizontal.svg" class="h-5" />
+              <img src="/images/icons/ellipsis-horizontal.svg" class="h-5" alt="" />
             </button>
-            <div
-              id={"post-menu-#{@post.id}"}
-              class="hidden absolute right-4 top-7 bg-gray-900 rounded-lg px-5 py-2"
-            >
+            <div id={"post-menu-#{@post.id}"} class="claper-chat-menu claper-chat-menu--dark hidden">
               <span class="text-red-500">
                 {link(gettext("Delete"),
                   to: "#",
@@ -150,44 +161,20 @@ defmodule ClaperWeb.EventLive.PostComponent do
             </div>
           <% end %>
 
-          <%= if pinned?(@post) do %>
-            <div class="inline-flex items-center space-x-1 justify-center px-3 py-0.5 rounded-full text-xs font-medium bg-supporting-yellow-100 text-supporting-yellow-800 mb-2 ml-1">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="icon icon-tabler icon-tabler-pin-filled"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                stroke-width="2"
-                stroke="currentColor"
-                fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <path
-                  d="M15.113 3.21l.094 .083l5.5 5.5a1 1 0 0 1 -1.175 1.59l-3.172 3.171l-1.424 3.797a1 1 0 0 1 -.158 .277l-.07 .08l-1.5 1.5a1 1 0 0 1 -1.32 .082l-.095 -.083l-2.793 -2.792l-3.793 3.792a1 1 0 0 1 -1.497 -1.32l.083 -.094l3.792 -3.793l-2.792 -2.793a1 1 0 0 1 -.083 -1.32l.083 -.094l1.5 -1.5a1 1 0 0 1 .258 -.187l.098 -.042l3.796 -1.425l3.171 -3.17a1 1 0 0 1 1.497 -1.26z"
-                  stroke-width="0"
-                  fill="currentColor"
-                >
-                </path>
-              </svg>
-              <span>{gettext("Pinned")}</span>
-            </div>
-          <% end %>
+          <p class="claper-chat-body">{ClaperWeb.Helpers.format_body(@post.body)}</p>
 
-          <p>{ClaperWeb.Helpers.format_body(@post.body)}</p>
-
-          <div class="flex h-6 text-xs float-right space-x-2">
+          <div class="claper-chat-reactions">
             <%= if @reaction_enabled do %>
               <%= if not Enum.member?(@liked_posts, @post.id) do %>
                 <button
                   phx-click="react"
                   phx-value-type="👍"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-white items-center"
+                  class="claper-chat-reaction"
+                  aria-label={gettext("Like message")}
+                  aria-pressed="false"
                 >
-                  <img src="/images/icons/thumb.svg" class="h-4" />
+                  <img src="/images/icons/thumb.svg" class="h-4" alt="" />
                   <%= if @post.like_count > 0 do %>
                     <span class="ml-1">{@post.like_count}</span>
                   <% end %>
@@ -197,10 +184,12 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   phx-click="unreact"
                   phx-value-type="👍"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-gray-100 items-center"
+                  class="claper-chat-reaction is-active"
+                  aria-label={gettext("Remove like from message")}
+                  aria-pressed="true"
                 >
-                  <span class="">
-                    <img src="/images/icons/thumb.svg" class="h-4" />
+                  <span>
+                    <img src="/images/icons/thumb.svg" class="h-4" alt="" />
                   </span>
                   <%= if @post.like_count > 0 do %>
                     <span class="ml-1">{@post.like_count}</span>
@@ -212,9 +201,11 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   phx-click="react"
                   phx-value-type="❤️"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-white items-center"
+                  class="claper-chat-reaction"
+                  aria-label={gettext("Love message")}
+                  aria-pressed="false"
                 >
-                  <img src="/images/icons/heart.svg" class="h-4" />
+                  <img src="/images/icons/heart.svg" class="h-4" alt="" />
                   <%= if @post.love_count > 0 do %>
                     <span class="ml-1">{@post.love_count}</span>
                   <% end %>
@@ -224,9 +215,11 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   phx-click="unreact"
                   phx-value-type="❤️"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-gray-100 items-center"
+                  class="claper-chat-reaction is-active"
+                  aria-label={gettext("Remove love from message")}
+                  aria-pressed="true"
                 >
-                  <img src="/images/icons/heart.svg" class="h-4" />
+                  <img src="/images/icons/heart.svg" class="h-4" alt="" />
                   <%= if @post.love_count > 0 do %>
                     <span class="ml-1">{@post.love_count}</span>
                   <% end %>
@@ -237,9 +230,11 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   phx-click="react"
                   phx-value-type="😂"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-white items-center"
+                  class="claper-chat-reaction"
+                  aria-label={gettext("Laugh at message")}
+                  aria-pressed="false"
                 >
-                  <img src="/images/icons/laugh.svg" class="h-4" />
+                  <img src="/images/icons/laugh.svg" class="h-4" alt="" />
                   <%= if @post.lol_count > 0 do %>
                     <span class="ml-1">{@post.lol_count}</span>
                   <% end %>
@@ -249,9 +244,11 @@ defmodule ClaperWeb.EventLive.PostComponent do
                   phx-click="unreact"
                   phx-value-type="😂"
                   phx-value-post-id={@post.uuid}
-                  class="flex rounded-full px-3 py-1 border border-gray-300 bg-gray-100 items-center"
+                  class="claper-chat-reaction is-active"
+                  aria-label={gettext("Remove laugh from message")}
+                  aria-pressed="true"
                 >
-                  <img src="/images/icons/laugh.svg" class="h-4" />
+                  <img src="/images/icons/laugh.svg" class="h-4" alt="" />
                   <%= if @post.lol_count > 0 do %>
                     <span class="ml-1">{@post.lol_count}</span>
                   <% end %>

@@ -121,6 +121,9 @@ defmodule ClaperWeb.EventLiveTest do
 
       assert html =~ "Be the first to react !"
       assert html =~ presentation_file.event.name
+      assert html =~ ~s(class="claper-chat-screen)
+      assert html =~ ~s(class="claper-chat-feed)
+      assert html =~ ~s(class="claper-chat-composer-card)
     end
 
     test "shows agenda link in the audience hamburger menu", %{
@@ -1075,16 +1078,45 @@ defmodule ClaperWeb.EventLiveTest do
           speaker_image_url: "https://nextgensummit.co/speakers/laura-jones.jpg"
         })
 
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 18:00:00],
+        title: "Building & Funding Great Companies — Fireside Chat",
+        speaker_name: "Praveen Varshney + Keith Ippel + Pankaj Bagga + Jas Kaur",
+        speaker_title: "Capital, impact, private banking, and founder ecosystem perspectives",
+        speaker_image_url:
+          "https://nextgensummit.co/speakers/praveen-varshney.jpg " <>
+            "https://nextgensummit.co/speakers/keith-ippel.webp " <>
+            "https://nextgensummit.co/team/pankaj-bagga.webp " <>
+            "https://nextgensummit.co/speakers/jas-kaur.webp",
+        speaker_linkedin_url:
+          "https://ca.linkedin.com/in/praveenvarshney " <>
+            "https://ca.linkedin.com/in/keithippel " <>
+            "https://ca.linkedin.com/in/pankaj-bagga " <>
+            "https://www.linkedin.com/search/results/people/?keywords=Jas%20Kaur%20Scotia%20Wealth%20Management"
+      })
+
       {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
 
       assert html =~ event.name
       assert html =~ first.title
       assert html =~ second.title
+      assert html =~ "Building &amp; Funding Great Companies — Fireside Chat"
       assert html =~ "Jun 01, 10:00"
 
       # Speaker headshot and title/company render on the classic agenda too.
       assert html =~ "https://nextgensummit.co/speakers/laura-jones.jpg"
       assert html =~ "President &amp; CEO, BC Business Council"
+
+      # Panels use individual square-cropped portraits with LinkedIn actions.
+      assert html =~ ~s(class="agenda-speaker-grid")
+      assert html =~ ~s(phx-hook="AgendaFocus")
+      assert html =~ ~s(data-agenda-starts-at=)
+      assert html =~ ~s(data-agenda-duration="30")
+      assert html =~ "Happening now"
+      assert html =~ ~s(alt="Praveen Varshney")
+      assert html =~ ~s(href="https://ca.linkedin.com/in/praveenvarshney")
+      assert html =~ ~s(aria-label="Find Jas Kaur on LinkedIn")
     end
 
     test "does not expose agenda management controls to audience users", %{

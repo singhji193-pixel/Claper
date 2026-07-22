@@ -247,6 +247,8 @@
               </section>
             <% :session -> %>
               <%= if @session_item do %>
+                <% speaker_images = Claper.Agendas.AgendaItem.image_list(@session_item) %>
+                <% speaker_panel? = length(speaker_images) > 2 %>
                 <section class={[
                   "ngs-detail-head",
                   "ngs-track-#{track_tone(@session_item.track_name || @session_item.session_type || "all")}"
@@ -258,10 +260,20 @@
                     {session_kicker(@session_item)}
                   </span>
                   <h2>{@session_item.title}</h2>
-                  <div :if={@session_item.speaker_name} class="ngs-speaker-row is-detail">
-                    <span :if={@session_item.speaker_image_url} class="ngs-headshot-line">
+                  <div
+                    :if={@session_item.speaker_name}
+                    class={["ngs-speaker-row is-detail", speaker_panel? && "is-panel"]}
+                  >
+                    <span
+                      :if={speaker_images != []}
+                      class={[
+                        "ngs-headshot-line",
+                        speaker_panel? && "is-panel",
+                        length(speaker_images) > 4 && "is-wide"
+                      ]}
+                    >
                       <img
-                        :for={url <- Claper.Agendas.AgendaItem.image_list(@session_item)}
+                        :for={url <- speaker_images}
                         src={url}
                         alt={@session_item.speaker_name}
                         loading="lazy"
@@ -813,6 +825,11 @@
               </section>
             <% _ -> %>
               <% next_item = next_agenda_item(@agenda_items) %>
+              <% next_item_images =
+                if next_item,
+                  do: Claper.Agendas.AgendaItem.image_list(next_item),
+                  else: [] %>
+              <% next_item_panel? = length(next_item_images) > 2 %>
               <section class="ngs-home-hero home-hero">
                 <div class="ngs-brandrow brandrow">
                   <div class="ngs-brandmark brandmark">
@@ -915,10 +932,20 @@
                 >
                   {next_item.title}
                 </.link>
-                <div :if={next_item.speaker_name} class="ngs-speaker-row">
-                  <span :if={next_item.speaker_image_url} class="ngs-headshot-line">
+                <div
+                  :if={next_item.speaker_name}
+                  class={["ngs-speaker-row", next_item_panel? && "is-panel"]}
+                >
+                  <span
+                    :if={next_item_images != []}
+                    class={[
+                      "ngs-headshot-line",
+                      next_item_panel? && "is-panel",
+                      length(next_item_images) > 4 && "is-wide"
+                    ]}
+                  >
                     <img
-                      :for={url <- Claper.Agendas.AgendaItem.image_list(next_item)}
+                      :for={url <- next_item_images}
                       src={url}
                       alt=""
                       loading="lazy"

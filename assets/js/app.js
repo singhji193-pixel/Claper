@@ -99,6 +99,72 @@ Hooks.ScrollBottom = {
   },
 };
 
+Hooks.AgendaFocus = {
+  mounted() {
+    this.hasFocusedSession = false;
+    this.refreshCurrentSession(true);
+    this.refreshTimer = window.setInterval(
+      () => this.refreshCurrentSession(false),
+      30000,
+    );
+  },
+  updated() {
+    this.refreshCurrentSession(false);
+  },
+  destroyed() {
+    window.clearInterval(this.refreshTimer);
+    window.clearTimeout(this.focusTimer);
+  },
+  refreshCurrentSession(shouldFocus) {
+    const now = Date.now();
+    const sessions = Array.from(
+      this.el.querySelectorAll("[data-agenda-starts-at]"),
+    );
+    const currentSessions = sessions.filter((session) => {
+      const startsAt = Date.parse(session.dataset.agendaStartsAt);
+      const duration = Number(session.dataset.agendaDuration);
+
+      return (
+        Number.isFinite(startsAt) &&
+        Number.isFinite(duration) &&
+        duration > 0 &&
+        now >= startsAt &&
+        now < startsAt + duration * 60000
+      );
+    });
+
+    sessions.forEach((session) => {
+      const isCurrent = currentSessions.includes(session);
+      const badge = session.querySelector("[data-agenda-live-badge]");
+
+      session.classList.toggle("is-live", isCurrent);
+      if (isCurrent) {
+        session.setAttribute("aria-current", "true");
+      } else {
+        session.removeAttribute("aria-current");
+      }
+      if (badge) badge.hidden = !isCurrent;
+    });
+
+    if (
+      shouldFocus &&
+      !this.hasFocusedSession &&
+      currentSessions.length > 0 &&
+      window.location.hash === ""
+    ) {
+      this.hasFocusedSession = true;
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)")
+        .matches
+        ? "auto"
+        : "smooth";
+
+      this.focusTimer = window.setTimeout(() => {
+        currentSessions[0].scrollIntoView({ behavior, block: "center" });
+      }, 180);
+    }
+  },
+};
+
 Hooks.EmbeddedBanner = {
   mounted() {
     if (window !== window.parent) {
@@ -335,36 +401,58 @@ Hooks.SearchableSelect = {
 };
 
 Hooks.PostForm = {
-  onPress(e, submitBtn, TA) {
+  syncComposer(submitBtn, TA) {
+    const isValid = TA.value.length > 0 && TA.value.length < 256;
+
+    submitBtn.classList.toggle("opacity-50", !isValid);
+    submitBtn.classList.toggle("opacity-100", isValid);
+    submitBtn.disabled = !isValid;
+    submitBtn.setAttribute("aria-disabled", String(!isValid));
+
+    TA.style.height = "auto";
+    TA.style.height = `${Math.min(Math.max(TA.scrollHeight, 44), 120)}px`;
+  },
+  onPress(e, submitBtn) {
     if (e.key == "Enter" && !e.shiftKey) {
       e.preventDefault();
-      submitBtn.click();
-    } else {
-      if (TA.value.length > 0 && TA.value.length < 256) {
-        submitBtn.classList.remove("opacity-50");
-        submitBtn.classList.add("opacity-100");
-        submitBtn.disabled = false;
-      } else {
-        submitBtn.classList.add("opacity-50");
-        submitBtn.classList.remove("opacity-100");
-        submitBtn.disabled = true;
-      }
+      if (!submitBtn.disabled) submitBtn.click();
     }
   },
-  onSubmit(e, TA) {
+  onSubmit(e, submitBtn, TA) {
     e.preventDefault();
-    document.getElementById("hiddenSubmit").click();
+    const hiddenSubmit = document.getElementById("hiddenSubmit");
+    if (hiddenSubmit) hiddenSubmit.click();
     TA.value = "";
+    this.syncComposer(submitBtn, TA);
+  },
+  detachComposer() {
+    if (!this.submitBtn || !this.textarea) return;
+
+    this.submitBtn.removeEventListener("click", this.handleSubmit);
+    this.textarea.removeEventListener("keydown", this.handleKeydown);
+    this.textarea.removeEventListener("input", this.handleInput);
+  },
+  attachComposer() {
+    const submitBtn = document.getElementById("submitBtn");
+    const TA = document.getElementById("postFormTA");
+    if (!submitBtn || !TA) return;
+
+    if (this.submitBtn !== submitBtn || this.textarea !== TA) {
+      this.detachComposer();
+      this.submitBtn = submitBtn;
+      this.textarea = TA;
+      this.handleSubmit = (e) => this.onSubmit(e, submitBtn, TA);
+      this.handleKeydown = (e) => this.onPress(e, submitBtn);
+      this.handleInput = () => this.syncComposer(submitBtn, TA);
+      submitBtn.addEventListener("click", this.handleSubmit);
+      TA.addEventListener("keydown", this.handleKeydown);
+      TA.addEventListener("input", this.handleInput);
+    }
+
+    this.syncComposer(submitBtn, TA);
   },
   mounted() {
-    setTimeout(() => {
-      const submitBtn = document.getElementById("submitBtn");
-      const TA = document.getElementById("postFormTA");
-      if (submitBtn && TA) {
-        submitBtn.addEventListener("click", (e) => this.onSubmit(e, TA));
-        TA.addEventListener("keydown", (e) => this.onPress(e, submitBtn, TA));
-      }
-    }, 500);
+    this.attachTimer = window.setTimeout(() => this.attachComposer(), 0);
 
     // set nickname if present
     let nickname = this.el.dataset.nickname;
@@ -373,25 +461,11 @@ Hooks.PostForm = {
     }
   },
   updated() {
-    const submitBtn = document.getElementById("submitBtn");
-    const TA = document.getElementById("postFormTA");
-    if (TA.value.length > 0 && TA.value.length < 256) {
-      submitBtn.classList.remove("opacity-50");
-      submitBtn.classList.add("opacity-100");
-      submitBtn.disabled = false;
-    } else {
-      submitBtn.classList.add("opacity-50");
-      submitBtn.classList.remove("opacity-100");
-      submitBtn.disabled = true;
-    }
+    this.attachComposer();
   },
   destroyed() {
-    const submitBtn = document.getElementById("submitBtn");
-    const TA = document.getElementById("postFormTA");
-    if (submitBtn && TA) {
-      TA.removeEventListener("keydown", (e) => this.onPress(e, submitBtn, TA));
-      submitBtn.removeEventListener("click", (e) => this.onSubmit(e, TA));
-    }
+    window.clearTimeout(this.attachTimer);
+    this.detachComposer();
   },
 };
 
@@ -561,17 +635,28 @@ Hooks.WelcomeEarly = {
   },
 };
 Hooks.ClickFeedback = {
-  clicked(e) {
-    this.el.className = "animate__animated animate__rubberBand animate__faster";
-    setTimeout(() => {
-      this.el.className = "";
+  clicked() {
+    window.clearTimeout(this.feedbackTimer);
+    this.el.classList.add(
+      "animate__animated",
+      "animate__rubberBand",
+      "animate__faster",
+    );
+    this.feedbackTimer = window.setTimeout(() => {
+      this.el.classList.remove(
+        "animate__animated",
+        "animate__rubberBand",
+        "animate__faster",
+      );
     }, 500);
   },
   mounted() {
-    this.el.addEventListener("click", (e) => this.clicked(e));
+    this.handleClick = () => this.clicked();
+    this.el.addEventListener("click", this.handleClick);
   },
   destroyed() {
-    this.el.removeEventListener("click", (e) => this.clicked(e));
+    window.clearTimeout(this.feedbackTimer);
+    this.el.removeEventListener("click", this.handleClick);
   },
 };
 Hooks.QRCode = {

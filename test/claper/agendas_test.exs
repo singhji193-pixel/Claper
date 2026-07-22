@@ -100,6 +100,47 @@ defmodule Claper.AgendasTest do
       assert "must be space-separated http(s) URLs" in errors_on(changeset).speaker_image_url
     end
 
+    test "create_agenda_item/1 aligns panelists with LinkedIn URLs and rejects other hosts" do
+      event = event_fixture()
+
+      assert {:ok, item} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 14:00:00],
+                 title: "Fireside Chat",
+                 speaker_name: "Praveen Varshney + Keith Ippel",
+                 speaker_image_url:
+                   "https://nextgensummit.co/speakers/praveen-varshney.jpg " <>
+                     "https://nextgensummit.co/speakers/keith-ippel.webp",
+                 speaker_linkedin_url:
+                   "https://ca.linkedin.com/in/praveenvarshney " <>
+                     "https://ca.linkedin.com/in/keithippel"
+               })
+
+      assert Claper.Agendas.AgendaItem.speaker_profiles(item) == [
+               %{
+                 name: "Praveen Varshney",
+                 image_url: "https://nextgensummit.co/speakers/praveen-varshney.jpg",
+                 linkedin_url: "https://ca.linkedin.com/in/praveenvarshney"
+               },
+               %{
+                 name: "Keith Ippel",
+                 image_url: "https://nextgensummit.co/speakers/keith-ippel.webp",
+                 linkedin_url: "https://ca.linkedin.com/in/keithippel"
+               }
+             ]
+
+      assert {:error, changeset} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 15:00:00],
+                 title: "Bad LinkedIn list",
+                 speaker_linkedin_url: "https://example.com/in/not-linkedin"
+               })
+
+      assert "must be space-separated LinkedIn http(s) URLs" in errors_on(changeset).speaker_linkedin_url
+    end
+
     test "list_agenda_items/1 only returns items for the requested event in agenda order" do
       event = event_fixture()
       other_event = event_fixture()

@@ -1,4 +1,4 @@
-<div class="relative min-h-screen bg-gray-100 lg:flex lg:flex-col lg:items-center">
+<div class="relative min-h-screen bg-black lg:flex lg:flex-col lg:items-center lg:bg-linear-to-tl lg:from-primary-500 lg:to-secondary-500">
   <div class="relative w-full">
     <div
       id="side-menu-shadow"
@@ -26,12 +26,18 @@
           viewBox="0 0 24 24"
           stroke-width="1.8"
           stroke="currentColor"
-          class="h-5 w-5 mr-3"
+          class="mr-3 h-5 w-5"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"
             stroke-linejoin="round"
-            d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+            d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15.75-4.5h15A1.5 1.5 0 0 1 21 6v13.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5V6A1.5 1.5 0 0 1 4.5 4.5Z"
+          />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M7.5 12.75h.008v.008H7.5v-.008Zm4.5 0h.008v.008H12v-.008Zm4.5 0h.008v.008H16.5v-.008ZM7.5 16.5h.008v.008H7.5V16.5Zm4.5 0h.008v.008H12V16.5Zm4.5 0h.008v.008H16.5V16.5Z"
           />
         </svg>
         <span>{gettext("Agenda")}</span>
@@ -90,75 +96,251 @@
         <span class="ml-1">#{@event.code}</span>
       </button>
 
-      <span class="text-white text-sm font-semibold">{gettext("Agenda")}</span>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="h-4 w-4 text-primary-400"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15.75-4.5h15A1.5 1.5 0 0 1 21 6v13.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5V6A1.5 1.5 0 0 1 4.5 4.5Z"
+            />
+          </svg>
+          {gettext("Agenda")}
+        </span>
+        <a
+          href={~p"/e/#{@event.code}"}
+          aria-label={gettext("Back to event")}
+          title={gettext("Back to event")}
+          class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 ring-1 ring-white/15 transition hover:bg-gray-800"
+        >
+          <img
+            src="/images/icons/chatbubble-ellipses-outline.svg"
+            class="h-4 w-4 brightness-0 invert"
+            alt=""
+          />
+        </a>
+      </div>
     </div>
   </div>
 
-  <main class="w-full px-4 pb-10 pt-20 lg:w-1/3">
-    <div class="bg-white rounded-xl shadow-sm p-5">
-      <p class="text-sm text-gray-500">{@event.name}</p>
-      <h1 class="text-2xl font-bold text-gray-900">{gettext("Agenda")}</h1>
-
-      <%= if Enum.empty?(@agenda_items) do %>
-        <div class="mt-8 rounded-lg border border-dashed border-gray-300 p-6 text-center">
-          <p class="font-semibold text-gray-700">{gettext("No agenda items yet")}</p>
-          <p class="mt-2 text-sm text-gray-500">
-            {gettext("The agenda will appear here when it is published.")}
-          </p>
+  <main class="agenda-main min-h-screen w-full bg-black px-4 pb-12 pt-20 lg:w-1/3 lg:px-5">
+    <section class="relative overflow-hidden rounded-xl border border-white/10 bg-gray-900 px-5 py-5 text-white shadow-xl shadow-black/30">
+      <span class="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary-500 to-secondary-500">
+      </span>
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-400">{@event.name}</p>
+          <h1 class="mt-1 text-3xl font-bold tracking-tight">{gettext("Agenda")}</h1>
         </div>
-      <% else %>
-        <div class="mt-8 space-y-6">
-          <%= for agenda_item <- @agenda_items do %>
-            <article class="relative border-l-2 border-primary-500 pl-5">
-              <span class="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-primary-500"></span>
-              <div class="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                <time>{format_agenda_time(agenda_item.starts_at, @timezone)}</time>
-                <%= if agenda_item.duration_minutes do %>
-                  <span>&middot;</span>
-                  <span>{format_duration(agenda_item.duration_minutes)}</span>
-                <% end %>
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary-500 to-secondary-500 shadow-lg shadow-primary-950/40">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.8"
+            stroke="currentColor"
+            class="h-6 w-6"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6.75 3v2.25m10.5-2.25v2.25M3.75 9h16.5m-15.75-4.5h15A1.5 1.5 0 0 1 21 6v13.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5V6A1.5 1.5 0 0 1 4.5 4.5Z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M7.5 12.75h.008v.008H7.5v-.008Zm4.5 0h.008v.008H12v-.008Zm4.5 0h.008v.008H16.5v-.008ZM7.5 16.5h.008v.008H7.5V16.5Zm4.5 0h.008v.008H12V16.5Zm4.5 0h.008v.008H16.5V16.5Z"
+            />
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <%= if Enum.empty?(@agenda_items) do %>
+      <div class="mt-4 rounded-b-xl rounded-tr-xl border border-dashed border-gray-700 bg-gray-900 p-6 text-center">
+        <p class="font-semibold text-white">{gettext("No agenda items yet")}</p>
+        <p class="mt-2 text-sm text-gray-400">
+          {gettext("The agenda will appear here when it is published.")}
+        </p>
+      </div>
+    <% else %>
+      <div id="agenda-session-list" class="mt-4 space-y-3" phx-hook="AgendaFocus">
+        <%= for agenda_item <- @agenda_items do %>
+          <% speaker_images = Claper.Agendas.AgendaItem.image_list(agenda_item) %>
+          <% speaker_profiles = Claper.Agendas.AgendaItem.speaker_profiles(agenda_item) %>
+          <% speaker_panel? = length(speaker_profiles) > 2 %>
+          <article
+            id={"agenda-item-#{agenda_item.id}"}
+            class="agenda-session relative overflow-hidden rounded-b-xl rounded-tr-xl bg-white px-4 py-4 pl-5 shadow-lg shadow-black/20"
+            data-agenda-starts-at={NaiveDateTime.to_iso8601(agenda_item.starts_at) <> "Z"}
+            data-agenda-duration={agenda_item.duration_minutes || 0}
+          >
+            <span
+              data-agenda-accent
+              class="absolute inset-y-0 left-0 w-1 bg-linear-to-b from-primary-500 to-secondary-500"
+              aria-hidden="true"
+            >
+            </span>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <div class="inline-flex items-center gap-2 text-sm font-semibold text-primary-700">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.8"
+                    stroke="currentColor"
+                    class="h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                    />
+                  </svg>
+                  <time>{format_agenda_time(agenda_item.starts_at, @timezone)}</time>
+                </div>
+                <span data-agenda-live-badge class="agenda-live-badge" hidden>
+                  <span class="agenda-live-badge__dot" aria-hidden="true"></span>
+                  {gettext("Happening now")}
+                </span>
               </div>
-              <h2 class="mt-1 text-lg font-semibold text-gray-900">{agenda_item.title}</h2>
-              <%= if agenda_item.speaker_name do %>
-                <div class="mt-2 flex items-center gap-2.5">
+              <span
+                :if={agenda_item.duration_minutes}
+                class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600"
+              >
+                {format_duration(agenda_item.duration_minutes)}
+              </span>
+            </div>
+
+            <h2 class="mt-3 text-lg font-bold leading-snug text-gray-950">{agenda_item.title}</h2>
+
+            <%= if agenda_item.speaker_name do %>
+              <%= if speaker_panel? do %>
+                <div class="mt-4">
+                  <div class="agenda-speaker-grid">
+                    <div :for={profile <- speaker_profiles} class="agenda-speaker-card">
+                      <img
+                        :if={profile.image_url}
+                        src={profile.image_url}
+                        alt={profile.name}
+                        loading="lazy"
+                        onerror="this.style.display='none'"
+                        class="agenda-speaker-portrait js-headshot"
+                      />
+                      <div class="agenda-speaker-meta">
+                        <p class="agenda-speaker-name">{profile.name}</p>
+                        <a
+                          :if={profile.linkedin_url}
+                          href={profile.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="agenda-linkedin-link"
+                          aria-label={gettext("Find %{name} on LinkedIn", name: profile.name)}
+                          title={gettext("Find %{name} on LinkedIn", name: profile.name)}
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            class="agenda-linkedin-logo"
+                            aria-hidden="true"
+                          >
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <p
+                    :if={speaker_detail(agenda_item) != ""}
+                    class="mt-2.5 text-xs leading-5 text-gray-500"
+                  >
+                    {speaker_detail(agenda_item)}
+                  </p>
+                </div>
+              <% else %>
+                <div class="mt-3 flex items-center gap-2.5">
                   <span
-                    :if={agenda_item.speaker_image_url}
-                    class="flex shrink-0 flex-wrap items-center gap-y-1 max-w-full"
+                    :if={speaker_images != []}
+                    class="flex max-w-full shrink-0 flex-wrap items-center gap-y-1"
                   >
                     <img
-                      :for={url <- Claper.Agendas.AgendaItem.image_list(agenda_item)}
+                      :for={url <- speaker_images}
                       src={url}
                       alt={agenda_item.speaker_name}
                       loading="lazy"
                       onerror="this.style.display='none'"
-                      class="js-headshot h-9 w-9 cursor-zoom-in rounded-full object-cover border-2 border-white ring-1 ring-gray-200 -ml-1.5 first:ml-0"
+                      class="agenda-speaker-portrait agenda-speaker-portrait--compact js-headshot -ml-1.5 first:ml-0"
                     />
                   </span>
-                  <div>
-                    <p class="text-sm font-medium text-primary-700">
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm font-semibold leading-5 text-primary-700">
                       {agenda_item.speaker_name}
                     </p>
                     <%= if speaker_detail(agenda_item) != "" do %>
-                      <p class="text-xs text-gray-500">{speaker_detail(agenda_item)}</p>
+                      <p class="text-xs leading-5 text-gray-500">{speaker_detail(agenda_item)}</p>
                     <% end %>
                   </div>
+                  <a
+                    :for={profile <- speaker_profiles}
+                    :if={profile.linkedin_url}
+                    href={profile.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="agenda-linkedin-link"
+                    aria-label={gettext("Find %{name} on LinkedIn", name: profile.name)}
+                    title={gettext("Find %{name} on LinkedIn", name: profile.name)}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      class="agenda-linkedin-logo"
+                      aria-hidden="true"
+                    >
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
+                    </svg>
+                  </a>
                 </div>
               <% end %>
-              <%= if agenda_item.track_name || agenda_item.location_name do %>
-                <p class="mt-1 text-sm text-gray-500">
-                  {Enum.reject([agenda_item.track_name, agenda_item.location_name], &is_nil/1)
-                  |> Enum.join(" · ")}
-                </p>
-              <% end %>
-              <%= if agenda_item.description do %>
-                <p class="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
-                  {agenda_item.description}
-                </p>
-              <% end %>
-            </article>
-          <% end %>
-        </div>
-      <% end %>
-    </div>
+            <% end %>
+
+            <div
+              :if={agenda_item.track_name || agenda_item.location_name}
+              class="mt-3 flex flex-wrap gap-2"
+            >
+              <span
+                :if={agenda_item.track_name}
+                class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-800"
+              >
+                {agenda_item.track_name}
+              </span>
+              <span
+                :if={agenda_item.location_name}
+                class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600"
+              >
+                {agenda_item.location_name}
+              </span>
+            </div>
+
+            <%= if agenda_item.description do %>
+              <p class="mt-3 whitespace-pre-line border-t border-gray-100 pt-3 text-sm leading-6 text-gray-600">
+                {agenda_item.description}
+              </p>
+            <% end %>
+          </article>
+        <% end %>
+      </div>
+    <% end %>
   </main>
 </div>
