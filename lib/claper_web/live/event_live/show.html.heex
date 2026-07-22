@@ -69,13 +69,36 @@
         </a>
       </div>
       <div class="flex justify-between items-center px-5 py-3">
-        <button
-          phx-click={toggle_side_menu()}
-          class="bg-black rounded-full text-sm px-3 py-1 bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] text-white uppercase flex items-center"
-        >
-          <img src="/images/icons/menu-outline.svg" class="h-6" />
-          <span class="ml-1">#{@event.code}</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            phx-click={toggle_side_menu()}
+            class="bg-black rounded-full text-sm px-3 py-1 bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] text-white uppercase flex items-center"
+          >
+            <img src="/images/icons/menu-outline.svg" class="h-6" />
+            <span class="ml-1">#{@event.code}</span>
+          </button>
+
+          <a
+            href={~p"/e/#{@event.code}/agenda"}
+            class="bg-black rounded-full text-sm px-3 py-1 bg-linear-to-tl from-primary-500 to-secondary-500 bg-size-[200%_200%] bg-position-[0%_0%] text-white uppercase flex items-center"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.8"
+              stroke="currentColor"
+              class="h-4 w-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"
+              />
+            </svg>
+            <span class="ml-1">{gettext("Agenda")}</span>
+          </a>
+        </div>
 
         <div class="inline-flex justify-between items-center text-white text-sm">
           <img src="/images/icons/online-users.svg" class="h-6 mr-2" />

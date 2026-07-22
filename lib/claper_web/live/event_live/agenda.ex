@@ -50,4 +50,10 @@ defmodule ClaperWeb.EventLive.Agenda do
 
   def format_duration(nil), do: nil
   def format_duration(minutes), do: gettext("%{count} min", count: minutes)
+
+  def speaker_detail(agenda_item) do
+    [agenda_item.speaker_title, agenda_item.speaker_company]
+    |> Enum.reject(&(is_nil(&1) or &1 == ""))
+    |> Enum.join(", ")
+  end
 end

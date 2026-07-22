@@ -1054,7 +1054,11 @@ defmodule ClaperWeb.EventLiveTest do
         agenda_item_fixture(%{
           event: event,
           starts_at: ~N[2026-06-01 16:00:00],
-          title: "First session"
+          title: "First session",
+          speaker_name: "Laura Jones",
+          speaker_title: "President & CEO",
+          speaker_company: "BC Business Council",
+          speaker_image_url: "https://nextgensummit.co/speakers/laura-jones.jpg"
         })
 
       {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
@@ -1063,6 +1067,10 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ first.title
       assert html =~ second.title
       assert html =~ "Jun 01, 10:00"
+
+      # Speaker headshot and title/company render on the classic agenda too.
+      assert html =~ "https://nextgensummit.co/speakers/laura-jones.jpg"
+      assert html =~ "President &amp; CEO, BC Business Council"
     end
 
     test "does not expose agenda management controls to audience users", %{

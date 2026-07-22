@@ -120,9 +120,24 @@
               </div>
               <h2 class="mt-1 text-lg font-semibold text-gray-900">{agenda_item.title}</h2>
               <%= if agenda_item.speaker_name do %>
-                <p class="mt-1 text-sm font-medium text-primary-700">
-                  {agenda_item.speaker_name}
-                </p>
+                <div class="mt-2 flex items-center gap-2.5">
+                  <img
+                    :if={agenda_item.speaker_image_url}
+                    src={agenda_item.speaker_image_url}
+                    alt=""
+                    loading="lazy"
+                    onerror="this.style.display='none'"
+                    class="h-9 w-9 rounded-full object-cover border border-gray-200"
+                  />
+                  <div>
+                    <p class="text-sm font-medium text-primary-700">
+                      {agenda_item.speaker_name}
+                    </p>
+                    <%= if speaker_detail(agenda_item) != "" do %>
+                      <p class="text-xs text-gray-500">{speaker_detail(agenda_item)}</p>
+                    <% end %>
+                  </div>
+                </div>
               <% end %>
               <%= if agenda_item.track_name || agenda_item.location_name do %>
                 <p class="mt-1 text-sm text-gray-500">
