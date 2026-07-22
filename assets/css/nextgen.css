@@ -980,18 +980,25 @@
   background: var(--ngs-champagne);
 }
 
+.nextgen-summit-liveview .ngs-headshot {
+  cursor: zoom-in;
+}
+
 .nextgen-summit-liveview .ngs-headshot-line {
   flex: none;
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 4px;
+  max-width: 100%;
 }
 
 .nextgen-summit-liveview .ngs-headshot-line .ngs-headshot + .ngs-headshot {
-  margin-left: -9px;
+  margin-left: -6px;
 }
 
 .nextgen-summit-liveview .ngs-headshot-line .ngs-headshot.is-large + .ngs-headshot.is-large {
-  margin-left: -14px;
+  margin-left: -10px;
 }
 
 .nextgen-summit-liveview .ngs-headshot.is-large {

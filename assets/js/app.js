@@ -807,3 +807,47 @@ if (
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   });
 }
+
+// Speaker headshot zoom: click any agenda headshot to see a larger round
+// cutout. Delegated so it survives LiveView patches; overlay closes on any
+// click or Escape.
+(() => {
+  let overlay = null;
+
+  const close = () => {
+    if (overlay) {
+      overlay.remove();
+      overlay = null;
+    }
+  };
+
+  document.addEventListener("click", (e) => {
+    const img = e.target.closest("img.ngs-headshot, img.js-headshot");
+    if (!img) return;
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+
+    overlay = document.createElement("div");
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-label", img.alt || "Speaker photo");
+    overlay.style.cssText =
+      "position:fixed;inset:0;z-index:9999;display:flex;align-items:center;" +
+      "justify-content:center;background:rgba(10,8,6,0.72);cursor:zoom-out;";
+
+    const big = document.createElement("img");
+    big.src = img.src;
+    big.alt = img.alt || "";
+    big.style.cssText =
+      "width:min(60vw,240px);height:min(60vw,240px);border-radius:9999px;" +
+      "object-fit:cover;border:3px solid #fff;box-shadow:0 12px 40px rgba(0,0,0,0.45);";
+
+    overlay.appendChild(big);
+    overlay.addEventListener("click", close);
+    document.body.appendChild(overlay);
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
+})();

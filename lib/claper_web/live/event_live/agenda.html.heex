@@ -121,14 +121,17 @@
               <h2 class="mt-1 text-lg font-semibold text-gray-900">{agenda_item.title}</h2>
               <%= if agenda_item.speaker_name do %>
                 <div class="mt-2 flex items-center gap-2.5">
-                  <span :if={agenda_item.speaker_image_url} class="flex items-center">
+                  <span
+                    :if={agenda_item.speaker_image_url}
+                    class="flex shrink-0 flex-wrap items-center gap-y-1 max-w-full"
+                  >
                     <img
                       :for={url <- Claper.Agendas.AgendaItem.image_list(agenda_item)}
                       src={url}
-                      alt=""
+                      alt={agenda_item.speaker_name}
                       loading="lazy"
                       onerror="this.style.display='none'"
-                      class="h-9 w-9 rounded-full object-cover border-2 border-white ring-1 ring-gray-200 -ml-2 first:ml-0"
+                      class="js-headshot h-9 w-9 cursor-zoom-in rounded-full object-cover border-2 border-white ring-1 ring-gray-200 -ml-1.5 first:ml-0"
                     />
                   </span>
                   <div>
