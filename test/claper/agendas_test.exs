@@ -108,7 +108,7 @@ defmodule Claper.AgendasTest do
                  event_id: event.id,
                  starts_at: ~N[2026-06-01 14:00:00],
                  title: "Fireside Chat",
-                 speaker_name: "Praveen Varshney + Keith Ippel",
+                 speaker_name: "Praveen Varshney · Keith Ippel",
                  speaker_image_url:
                    "https://nextgensummit.co/speakers/praveen-varshney.jpg " <>
                      "https://nextgensummit.co/speakers/keith-ippel.webp",

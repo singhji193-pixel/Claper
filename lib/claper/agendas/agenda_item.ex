@@ -114,7 +114,7 @@ defmodule Claper.Agendas.AgendaItem do
   def linkedin_list(value) when is_binary(value), do: String.split(value, ~r/\s+/, trim: true)
 
   defp name_list(nil), do: []
-  defp name_list(value), do: String.split(value, ~r/\s+\+\s+/, trim: true)
+  defp name_list(value), do: String.split(value, ~r/\s+(?:\+|·)\s+/u, trim: true)
 
   defp validate_speaker_image_urls(changeset) do
     validate_change(changeset, :speaker_image_url, fn :speaker_image_url, value ->
