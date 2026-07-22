@@ -64,13 +64,31 @@ defmodule Claper.Agendas.AgendaItem do
     |> validate_length(:speaker_name, max: 255)
     |> validate_length(:speaker_title, max: 255)
     |> validate_length(:speaker_company, max: 255)
-    |> validate_length(:speaker_image_url, max: 255)
-    |> validate_format(:speaker_image_url, ~r{^https?://}, message: "must be an http(s) URL")
+    |> validate_length(:speaker_image_url, max: 2000)
+    |> validate_speaker_image_urls()
     |> validate_length(:location_name, max: 255)
     |> validate_length(:track_name, max: 120)
     |> validate_length(:session_type, max: 120)
     |> validate_number(:duration_minutes, greater_than: 0, less_than_or_equal_to: 1440)
     |> validate_number(:position, greater_than_or_equal_to: 0)
     |> assoc_constraint(:event)
+  end
+
+  @doc """
+  Splits the space-separated `speaker_image_url` value into a list of URLs.
+  A single-speaker session stores one URL; panels store one per panelist.
+  """
+  def image_list(%__MODULE__{speaker_image_url: value}), do: image_list(value)
+  def image_list(nil), do: []
+  def image_list(value) when is_binary(value), do: String.split(value, ~r/\s+/, trim: true)
+
+  defp validate_speaker_image_urls(changeset) do
+    validate_change(changeset, :speaker_image_url, fn :speaker_image_url, value ->
+      if value |> image_list() |> Enum.all?(&String.match?(&1, ~r{^https?://})) do
+        []
+      else
+        [speaker_image_url: "must be space-separated http(s) URLs"]
+      end
+    end)
   end
 end

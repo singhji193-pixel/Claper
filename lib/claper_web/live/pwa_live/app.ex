@@ -963,14 +963,16 @@ defmodule ClaperWeb.PwaLive.App do
         </.link>
 
         <div :if={@item.speaker_name} class="ngs-speaker-row">
-          <img
-            :if={@item.speaker_image_url}
-            src={@item.speaker_image_url}
-            alt=""
-            loading="lazy"
-            onerror="this.style.display='none'"
-            class="ngs-headshot"
-          />
+          <span :if={@item.speaker_image_url} class="ngs-headshot-line">
+            <img
+              :for={url <- Claper.Agendas.AgendaItem.image_list(@item)}
+              src={url}
+              alt=""
+              loading="lazy"
+              onerror="this.style.display='none'"
+              class="ngs-headshot"
+            />
+          </span>
           <p class="ngs-session-speaker">{speaker_line(@item)}</p>
         </div>
 

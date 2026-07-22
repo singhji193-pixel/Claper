@@ -223,6 +223,16 @@ defmodule ClaperWeb.EventLiveTest do
         duration_minutes: 20
       })
 
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 18:00:00],
+        title: "Panel with two guests",
+        speaker_name: "Praveen Varshney + Keith Ippel",
+        speaker_image_url:
+          "https://nextgensummit.co/speakers/praveen-varshney.jpg " <>
+            "https://nextgensummit.co/speakers/keith-ippel.webp"
+      })
+
       conn = sign_in_attendee(conn, event)
 
       {:ok, _pwa_live, html} = live(conn, ~p"/app/#{event.code}/agenda")
@@ -239,6 +249,10 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~s(class="ngs-headshot")
       assert html =~ "https://nextgensummit.co/speakers/avery-singh.jpg"
       refute html =~ ~s(<img src="" class="ngs-headshot")
+
+      # Panels render every space-separated headshot in the line.
+      assert html =~ "https://nextgensummit.co/speakers/praveen-varshney.jpg"
+      assert html =~ "https://nextgensummit.co/speakers/keith-ippel.webp"
     end
 
     test "renders PWA session detail and lets signed-in attendees save a session", %{

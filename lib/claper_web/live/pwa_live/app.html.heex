@@ -259,14 +259,16 @@
                   </span>
                   <h2>{@session_item.title}</h2>
                   <div :if={@session_item.speaker_name} class="ngs-speaker-row is-detail">
-                    <img
-                      :if={@session_item.speaker_image_url}
-                      src={@session_item.speaker_image_url}
-                      alt={@session_item.speaker_name}
-                      loading="lazy"
-                      onerror="this.style.display='none'"
-                      class="ngs-headshot is-large"
-                    />
+                    <span :if={@session_item.speaker_image_url} class="ngs-headshot-line">
+                      <img
+                        :for={url <- Claper.Agendas.AgendaItem.image_list(@session_item)}
+                        src={url}
+                        alt={@session_item.speaker_name}
+                        loading="lazy"
+                        onerror="this.style.display='none'"
+                        class="ngs-headshot is-large"
+                      />
+                    </span>
                     <p>{speaker_line(@session_item)}</p>
                   </div>
                   <div class="ngs-detail-stats">
@@ -914,14 +916,16 @@
                   {next_item.title}
                 </.link>
                 <div :if={next_item.speaker_name} class="ngs-speaker-row">
-                  <img
-                    :if={next_item.speaker_image_url}
-                    src={next_item.speaker_image_url}
-                    alt=""
-                    loading="lazy"
-                    onerror="this.style.display='none'"
-                    class="ngs-headshot"
-                  />
+                  <span :if={next_item.speaker_image_url} class="ngs-headshot-line">
+                    <img
+                      :for={url <- Claper.Agendas.AgendaItem.image_list(next_item)}
+                      src={url}
+                      alt=""
+                      loading="lazy"
+                      onerror="this.style.display='none'"
+                      class="ngs-headshot"
+                    />
+                  </span>
                   <p>{speaker_line(next_item)}</p>
                 </div>
                 <div class="ngs-nextup-meta">

@@ -65,7 +65,39 @@ defmodule Claper.AgendasTest do
                  speaker_image_url: "javascript:alert(1)"
                })
 
-      assert "must be an http(s) URL" in errors_on(changeset).speaker_image_url
+      assert "must be space-separated http(s) URLs" in errors_on(changeset).speaker_image_url
+    end
+
+    test "create_agenda_item/1 accepts a space-separated headshot list for panels" do
+      event = event_fixture()
+
+      urls =
+        "https://nextgensummit.co/speakers/praveen-varshney.jpg " <>
+          "https://nextgensummit.co/speakers/keith-ippel.webp"
+
+      assert {:ok, item} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 14:00:00],
+                 title: "Fireside Chat",
+                 speaker_name: "Praveen Varshney + Keith Ippel",
+                 speaker_image_url: urls
+               })
+
+      assert Claper.Agendas.AgendaItem.image_list(item) == [
+               "https://nextgensummit.co/speakers/praveen-varshney.jpg",
+               "https://nextgensummit.co/speakers/keith-ippel.webp"
+             ]
+
+      assert {:error, changeset} =
+               Agendas.create_agenda_item(%{
+                 event_id: event.id,
+                 starts_at: ~N[2026-06-01 15:00:00],
+                 title: "Bad list",
+                 speaker_image_url: "https://ok.example/a.jpg notaurl"
+               })
+
+      assert "must be space-separated http(s) URLs" in errors_on(changeset).speaker_image_url
     end
 
     test "list_agenda_items/1 only returns items for the requested event in agenda order" do
