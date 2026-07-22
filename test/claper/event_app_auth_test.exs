@@ -200,6 +200,31 @@ defmodule Claper.EventAppAuthTest do
                attendee.interaction_key
     end
 
+    test "claim_legacy_identity is a no-op when the legacy identifier is the attendee's own key" do
+      # Re-login on the same device: the session already stores the attendee's
+      # interaction_key as the "legacy" identifier. Must not crash and must not
+      # claim anything.
+      event = event_fixture()
+      ticket_fixture(event, %{attendee_email: "avery@example.com"})
+
+      assert {:ok, _result} =
+               EventApp.request_login_code(event.code, "avery@example.com", code: "4821")
+
+      assert {:ok, %{attendee: attendee}} =
+               EventApp.verify_login_code(event.code, "avery@example.com", "4821")
+
+      assert {:ok, %{claimed: claimed}} =
+               EventApp.claim_legacy_identity(event.id, attendee, attendee.interaction_key)
+
+      assert claimed == %{
+               poll_votes: 0,
+               quiz_responses: 0,
+               form_submits: 0,
+               posts: 0,
+               reactions: 0
+             }
+    end
+
     test "returns a safe ticket wallet for a signed-in attendee" do
       event = event_fixture()
 

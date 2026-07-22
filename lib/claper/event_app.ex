@@ -170,7 +170,11 @@ defmodule Claper.EventApp do
         %{bingo_player: bingo_player, claimed: claimed}
       end)
     else
-      false ->
+      # Nothing to claim: either no legacy identifier is present (false from
+      # present?) or it is already the attendee's own key (true from ==), which
+      # happens on every re-login because verify stores the interaction_key in
+      # the session.
+      _ ->
         {:ok,
          %{
            bingo_player: Bingos.get_player(event_id, attendee.interaction_key),
