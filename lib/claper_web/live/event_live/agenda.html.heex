@@ -119,7 +119,7 @@
           href={~p"/e/#{@event.code}"}
           aria-label={gettext("Back to event")}
           title={gettext("Back to event")}
-          class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gray-900 ring-1 ring-white/15 transition hover:bg-gray-800"
+          class="agenda-chat-return inline-flex h-8 w-8 items-center justify-center rounded-full transition"
         >
           <img
             src="/images/icons/chatbubble-ellipses-outline.svg"
@@ -163,6 +163,47 @@
           </svg>
         </div>
       </div>
+
+      <section class="agenda-emcees" data-agenda-emcees aria-labelledby="agenda-emcees-title">
+        <div class="agenda-emcees__intro">
+          <p class="agenda-emcees__eyebrow">MC · {gettext("Your emcees")}</p>
+          <h2 id="agenda-emcees-title" class="agenda-emcees__title">
+            {gettext("Keeping the energy moving")}
+          </h2>
+        </div>
+        <div class="agenda-emcees__grid">
+          <%= for emcee <- emcee_profiles() do %>
+            <article class="agenda-emcee-card">
+              <a
+                href={emcee.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="agenda-emcee-card__linkedin"
+                aria-label={gettext("Find %{name} on LinkedIn", name: emcee.name)}
+                title={gettext("Find %{name} on LinkedIn", name: emcee.name)}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  class="agenda-emcee-card__linkedin-icon"
+                  aria-hidden="true"
+                >
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
+                </svg>
+              </a>
+              <img
+                src={emcee.image_url}
+                alt={emcee.name}
+                onerror="this.style.display='none'"
+                class="agenda-emcee-card__portrait js-headshot"
+                data-agenda-portrait-adjust={headroom_portrait?(emcee.name) && "headroom"}
+              />
+              <p class="agenda-emcee-card__name">{emcee.name}</p>
+              <p class="agenda-emcee-card__role">{emcee.role}</p>
+            </article>
+          <% end %>
+        </div>
+      </section>
     </section>
 
     <%= if Enum.empty?(@agenda_items) do %>
@@ -174,11 +215,28 @@
       </div>
     <% else %>
       <div id="agenda-session-list" class="mt-4 space-y-3" phx-hook="AgendaFocus">
-        <%= for agenda_item <- @agenda_items do %>
+        <%= for {agenda_item, agenda_index} <- Enum.with_index(@agenda_items) do %>
           <% speaker_images = Claper.Agendas.AgendaItem.image_list(agenda_item) %>
           <% speaker_profiles = Claper.Agendas.AgendaItem.speaker_profiles(agenda_item) %>
           <% speaker_panel? = length(speaker_profiles) > 2 %>
           <% moment = agenda_moment(agenda_item.title) %>
+          <% chapter = agenda_chapter_label(agenda_item.track_name) %>
+          <% previous_chapter =
+            if agenda_index > 0,
+              do:
+                @agenda_items
+                |> Enum.at(agenda_index - 1)
+                |> Map.get(:track_name)
+                |> agenda_chapter_label(),
+              else: nil %>
+          <div
+            :if={chapter && chapter != previous_chapter}
+            class="agenda-chapter"
+            data-agenda-chapter={chapter}
+          >
+            <span class="agenda-chapter__label">{chapter}</span>
+            <span class="agenda-chapter__line" aria-hidden="true"></span>
+          </div>
           <article
             id={"agenda-item-#{agenda_item.id}"}
             class="agenda-session relative overflow-hidden rounded-b-xl rounded-tr-xl bg-white px-4 py-4 pl-5 shadow-lg shadow-black/20"
@@ -225,6 +283,9 @@
               </span>
             </div>
 
+            <p :if={agenda_item.session_type} class="agenda-session-type">
+              {agenda_item.session_type}
+            </p>
             <h2 class="mt-3 text-lg font-bold leading-snug text-gray-950">{agenda_item.title}</h2>
 
             <div
@@ -251,6 +312,14 @@
                     <path d="M16 10h1.25a2.25 2.25 0 0 1 0 4.5H16M8 5.5c0-1 1-1.25 1-2.25M12 5.5c0-1 1-1.25 1-2.25M5 20h12" />
                   </g>
                   <g
+                    :if={moment.kind == "mastermind-lunch"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="13" r="5" />
+                    <path d="M4 3v3.5A1.5 1.5 0 0 0 5.5 8h0A1.5 1.5 0 0 0 7 6.5V3M5.5 3v18M20 3c-1.75 2.25-2 4.75-2 7h2v11M20 3v7" />
+                  </g>
+                  <g
                     :if={moment.kind == "networking-break"}
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -259,7 +328,7 @@
                     <path d="M3.5 19c.35-3.4 2.2-5.25 5.5-5.25S14.15 15.6 14.5 19M16.25 5.75a2.5 2.5 0 0 1 0 4.5M16 13.75c2.75 0 4.2 1.7 4.5 4.25" />
                   </g>
                   <g
-                    :if={moment.kind == "under-30-awards"}
+                    :if={moment.kind == "nextgen-honouree"}
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   >
@@ -285,7 +354,6 @@
                 </svg>
               </span>
               <span class="agenda-moment__copy">
-                <span class="agenda-moment__eyebrow">{moment.eyebrow}</span>
                 <span class="agenda-moment__label">{moment.label}</span>
               </span>
               <span class="agenda-moment__signal" aria-hidden="true"></span>
@@ -295,37 +363,84 @@
               <%= if speaker_panel? do %>
                 <div class="mt-4">
                   <div class="agenda-speaker-grid">
-                    <div :for={profile <- speaker_profiles} class="agenda-speaker-card">
-                      <img
-                        :if={profile.image_url}
-                        src={profile.image_url}
-                        alt={profile.name}
-                        loading="lazy"
-                        onerror="this.style.display='none'"
-                        class="agenda-speaker-portrait js-headshot"
-                      />
-                      <div class="agenda-speaker-meta">
-                        <p class="agenda-speaker-name">{profile.name}</p>
-                        <a
-                          :if={profile.linkedin_url}
-                          href={profile.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="agenda-linkedin-link"
-                          aria-label={gettext("Find %{name} on LinkedIn", name: profile.name)}
-                          title={gettext("Find %{name} on LinkedIn", name: profile.name)}
-                        >
-                          <svg
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="agenda-linkedin-logo"
-                            aria-hidden="true"
+                    <%= for profile <- speaker_profiles do %>
+                      <% profile_link = speaker_profile_link(profile) %>
+                      <% profile_role = speaker_role(agenda_item, profile) %>
+                      <div
+                        class={[
+                          "agenda-speaker-card",
+                          profile_role && profile_role.featured &&
+                            "agenda-speaker-card--featured",
+                          profile_role && "agenda-speaker-card--#{profile_role.kind}"
+                        ]}
+                        data-agenda-speaker-role={profile_role && profile_role.kind}
+                      >
+                        <img
+                          :if={profile.image_url}
+                          src={profile.image_url}
+                          alt={profile.name}
+                          loading="lazy"
+                          onerror="this.style.display='none'"
+                          class="agenda-speaker-portrait js-headshot"
+                          data-agenda-portrait-adjust={
+                            headroom_portrait?(profile.name) && "headroom"
+                          }
+                        />
+                        <div class="agenda-speaker-meta">
+                          <div class="agenda-speaker-identity">
+                            <span
+                              :if={profile_role}
+                              class={[
+                                "agenda-speaker-role",
+                                "agenda-speaker-role--#{profile_role.kind}"
+                              ]}
+                            >
+                              {profile_role.label}
+                            </span>
+                            <p class="agenda-speaker-name">{profile.name}</p>
+                          </div>
+                          <a
+                            :if={profile_link}
+                            href={profile_link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class={[
+                              "agenda-profile-link",
+                              "agenda-profile-link--#{profile_link.kind}"
+                            ]}
+                            data-agenda-profile-link={profile_link.kind}
+                            aria-label={profile_link.label}
+                            title={profile_link.label}
                           >
-                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
-                          </svg>
-                        </a>
+                            <svg
+                              :if={profile_link.kind == "linkedin"}
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="agenda-profile-icon"
+                              aria-hidden="true"
+                            >
+                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
+                            </svg>
+                            <svg
+                              :if={profile_link.kind == "website"}
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              class="agenda-profile-icon"
+                              aria-hidden="true"
+                            >
+                              <circle cx="12" cy="12" r="9" />
+                              <path
+                                d="M3.5 9h17M3.5 15h17M12 3c2.25 2.45 3.4 5.45 3.4 9S14.25 18.55 12 21M12 3C9.75 5.45 8.6 8.45 8.6 12s1.15 6.55 3.4 9"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              />
+                            </svg>
+                          </a>
+                        </div>
                       </div>
-                    </div>
+                    <% end %>
                   </div>
                   <p
                     :if={speaker_detail(agenda_item) != ""}
@@ -347,6 +462,9 @@
                       loading="lazy"
                       onerror="this.style.display='none'"
                       class="agenda-speaker-portrait agenda-speaker-portrait--compact js-headshot -ml-1.5 first:ml-0"
+                      data-agenda-portrait-adjust={
+                        headroom_portrait?(agenda_item.speaker_name) && "headroom"
+                      }
                     />
                   </span>
                   <div class="min-w-0 flex-1">
@@ -357,43 +475,54 @@
                       <p class="text-xs leading-5 text-gray-500">{speaker_detail(agenda_item)}</p>
                     <% end %>
                   </div>
-                  <a
-                    :for={profile <- speaker_profiles}
-                    :if={profile.linkedin_url}
-                    href={profile.linkedin_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="agenda-linkedin-link"
-                    aria-label={gettext("Find %{name} on LinkedIn", name: profile.name)}
-                    title={gettext("Find %{name} on LinkedIn", name: profile.name)}
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      class="agenda-linkedin-logo"
-                      aria-hidden="true"
+                  <%= for profile <- speaker_profiles do %>
+                    <% profile_link = speaker_profile_link(profile) %>
+                    <a
+                      :if={profile_link}
+                      href={profile_link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class={[
+                        "agenda-profile-link",
+                        "agenda-profile-link--#{profile_link.kind}"
+                      ]}
+                      data-agenda-profile-link={profile_link.kind}
+                      aria-label={profile_link.label}
+                      title={profile_link.label}
                     >
-                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
-                    </svg>
-                  </a>
+                      <svg
+                        :if={profile_link.kind == "linkedin"}
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        class="agenda-profile-icon"
+                        aria-hidden="true"
+                      >
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286ZM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 4.127 0c0 1.14-.925 2.065-2.064 2.065Zm1.782 13.019H3.555V9h3.564v11.452ZM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003Z" />
+                      </svg>
+                      <svg
+                        :if={profile_link.kind == "website"}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        class="agenda-profile-icon"
+                        aria-hidden="true"
+                      >
+                        <circle cx="12" cy="12" r="9" />
+                        <path
+                          d="M3.5 9h17M3.5 15h17M12 3c2.25 2.45 3.4 5.45 3.4 9S14.25 18.55 12 21M12 3C9.75 5.45 8.6 8.45 8.6 12s1.15 6.55 3.4 9"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </a>
+                  <% end %>
                 </div>
               <% end %>
             <% end %>
 
-            <div
-              :if={agenda_item.track_name || agenda_item.location_name}
-              class="mt-3 flex flex-wrap gap-2"
-            >
-              <span
-                :if={agenda_item.track_name}
-                class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-800"
-              >
-                {agenda_item.track_name}
-              </span>
-              <span
-                :if={agenda_item.location_name}
-                class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600"
-              >
+            <div :if={agenda_item.location_name} class="mt-3 flex flex-wrap gap-2">
+              <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
                 {agenda_item.location_name}
               </span>
             </div>
@@ -407,5 +536,28 @@
         <% end %>
       </div>
     <% end %>
+
+    <section class="agenda-eco-note" data-agenda-eco-note aria-labelledby="agenda-eco-note-title">
+      <div class="agenda-eco-note__copy">
+        <p class="agenda-eco-note__eyebrow">{gettext("Our eco-friendly choice")}</p>
+        <h2 id="agenda-eco-note-title" class="agenda-eco-note__title">
+          {gettext("More ideas. Less paper. More room for the planet.")}
+        </h2>
+        <p class="agenda-eco-note__body">
+          {gettext(
+            "NextGEN chose a living digital agenda instead of a printed one—saving paper, ink, and unnecessary waste. Thank you for helping us leave more trees standing and less behind."
+          )}
+        </p>
+      </div>
+      <div class="agenda-eco-note__visual" aria-hidden="true">
+        <img
+          src="/images/agenda-eco-tile.webp"
+          alt=""
+          class="agenda-eco-note__illustration"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </section>
   </main>
 </div>

@@ -70,7 +70,7 @@ defmodule Claper.Agendas.AgendaItem do
     |> validate_length(:speaker_image_url, max: 2000)
     |> validate_speaker_image_urls()
     |> validate_length(:speaker_linkedin_url, max: 2000)
-    |> validate_speaker_linkedin_urls()
+    |> validate_speaker_profile_urls()
     |> validate_length(:location_name, max: 255)
     |> validate_length(:track_name, max: 120)
     |> validate_length(:session_type, max: 120)
@@ -88,7 +88,7 @@ defmodule Claper.Agendas.AgendaItem do
   def image_list(value) when is_binary(value), do: String.split(value, ~r/\s+/, trim: true)
 
   @doc """
-  Returns panelist names, images, and LinkedIn URLs aligned by their entered order.
+  Returns panelist names, images, and profile URLs aligned by their entered order.
   """
   def speaker_profiles(%__MODULE__{} = agenda_item) do
     images = image_list(agenda_item)
@@ -113,6 +113,16 @@ defmodule Claper.Agendas.AgendaItem do
   def linkedin_list(nil), do: []
   def linkedin_list(value) when is_binary(value), do: String.split(value, ~r/\s+/, trim: true)
 
+  def profile_link_kind(nil), do: nil
+
+  def profile_link_kind(value) when is_binary(value) do
+    cond do
+      linkedin_url?(value) -> :linkedin
+      profile_url?(value) -> :website
+      true -> nil
+    end
+  end
+
   defp name_list(nil), do: []
   defp name_list(value), do: String.split(value, ~r/\s+(?:\+|·)\s+/u, trim: true)
 
@@ -126,14 +136,24 @@ defmodule Claper.Agendas.AgendaItem do
     end)
   end
 
-  defp validate_speaker_linkedin_urls(changeset) do
+  defp validate_speaker_profile_urls(changeset) do
     validate_change(changeset, :speaker_linkedin_url, fn :speaker_linkedin_url, value ->
-      if value |> linkedin_list() |> Enum.all?(&linkedin_url?/1) do
+      if value |> linkedin_list() |> Enum.all?(&profile_url?/1) do
         []
       else
-        [speaker_linkedin_url: "must be space-separated LinkedIn http(s) URLs"]
+        [speaker_linkedin_url: "must be space-separated http(s) URLs"]
       end
     end)
+  end
+
+  defp profile_url?(value) do
+    case URI.parse(value) do
+      %URI{scheme: scheme, host: host} when scheme in ["http", "https"] and is_binary(host) ->
+        true
+
+      _other ->
+        false
+    end
   end
 
   defp linkedin_url?(value) do

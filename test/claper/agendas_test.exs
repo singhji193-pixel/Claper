@@ -100,7 +100,7 @@ defmodule Claper.AgendasTest do
       assert "must be space-separated http(s) URLs" in errors_on(changeset).speaker_image_url
     end
 
-    test "create_agenda_item/1 aligns panelists with LinkedIn URLs and rejects other hosts" do
+    test "create_agenda_item/1 aligns panelists with profile URLs and rejects unsafe URLs" do
       event = event_fixture()
 
       assert {:ok, item} =
@@ -114,7 +114,7 @@ defmodule Claper.AgendasTest do
                      "https://nextgensummit.co/speakers/keith-ippel.webp",
                  speaker_linkedin_url:
                    "https://ca.linkedin.com/in/praveenvarshney " <>
-                     "https://ca.linkedin.com/in/keithippel"
+                     "https://www.languagespace.ca"
                })
 
       assert Claper.Agendas.AgendaItem.speaker_profiles(item) == [
@@ -126,19 +126,26 @@ defmodule Claper.AgendasTest do
                %{
                  name: "Keith Ippel",
                  image_url: "https://nextgensummit.co/speakers/keith-ippel.webp",
-                 linkedin_url: "https://ca.linkedin.com/in/keithippel"
+                 linkedin_url: "https://www.languagespace.ca"
                }
              ]
+
+      assert Claper.Agendas.AgendaItem.profile_link_kind(
+               "https://ca.linkedin.com/in/praveenvarshney"
+             ) == :linkedin
+
+      assert Claper.Agendas.AgendaItem.profile_link_kind("https://www.languagespace.ca") ==
+               :website
 
       assert {:error, changeset} =
                Agendas.create_agenda_item(%{
                  event_id: event.id,
                  starts_at: ~N[2026-06-01 15:00:00],
-                 title: "Bad LinkedIn list",
-                 speaker_linkedin_url: "https://example.com/in/not-linkedin"
+                 title: "Bad profile list",
+                 speaker_linkedin_url: "javascript:alert(1)"
                })
 
-      assert "must be space-separated LinkedIn http(s) URLs" in errors_on(changeset).speaker_linkedin_url
+      assert "must be space-separated http(s) URLs" in errors_on(changeset).speaker_linkedin_url
     end
 
     test "list_agenda_items/1 only returns items for the requested event in agenda order" do

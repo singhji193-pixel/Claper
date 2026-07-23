@@ -136,6 +136,8 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~p"/e/#{presentation_file.event.code}/agenda"
       assert html =~ "Bingo"
       assert html =~ ~p"/e/#{presentation_file.event.code}/bingo"
+      assert html =~ ~s(class="claper-chat-menu-scrim)
+      assert html =~ ~s(class="claper-chat-menu-panel)
     end
   end
 
@@ -1096,13 +1098,44 @@ defmodule ClaperWeb.EventLiveTest do
             "https://www.linkedin.com/search/results/people/?keywords=Jas%20Kaur%20Scotia%20Wealth%20Management"
       })
 
-      {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 19:00:00],
+        title: "Own The Future — AI, Growth & Global Market",
+        speaker_name: "Navdha Sharma + Parsa Riahi + Suhana Gaba",
+        speaker_image_url:
+          "https://nextgensummit.co/speakers/navdha-sharma.jpg " <>
+            "https://nextgensummit.co/speakers/parsa-riahi.jpg " <>
+            "https://ik.imagekit.io/q1on62noxn/suhana-gaba.jpeg",
+        speaker_linkedin_url:
+          "https://www.linkedin.com/in/navdha-sharma-6114a1167 " <>
+            "https://ca.linkedin.com/in/parsa-riahi " <>
+            "https://www.languagespace.ca"
+      })
+
+      {:ok, agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
 
       assert html =~ event.name
       assert html =~ first.title
       assert html =~ second.title
+      assert html =~ ~s(class="agenda-chat-return)
       assert html =~ "Building &amp; Funding Great Companies — Fireside Chat"
       assert html =~ "Jun 01, 10:00"
+
+      # Emcees are spotlighted together beneath the agenda heading.
+      assert html =~ ~s(data-agenda-emcees)
+      assert html =~ ~s(class="agenda-emcees__grid")
+      assert html =~ "Badhri Narayanan"
+      assert html =~ "Morning Catalyst"
+      assert html =~ ~s(href="https://ca.linkedin.com/in/badhri-narayanan")
+      assert html =~ "Brittany Michalchuk"
+      assert html =~ "Afternoon Spark"
+      assert html =~ ~s(href="https://ca.linkedin.com/in/brittanymichalchuk")
+
+      assert has_element?(
+               agenda_live,
+               "img[alt='Brittany Michalchuk'][data-agenda-portrait-adjust='headroom']"
+             )
 
       # Speaker headshot and title/company render on the classic agenda too.
       assert html =~ "https://nextgensummit.co/speakers/laura-jones.jpg"
@@ -1117,6 +1150,136 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~s(alt="Praveen Varshney")
       assert html =~ ~s(href="https://ca.linkedin.com/in/praveenvarshney")
       assert html =~ ~s(aria-label="Find Jas Kaur on LinkedIn")
+
+      assert html =~
+               ~s(class="agenda-speaker-card agenda-speaker-card--featured agenda-speaker-card--moderator")
+
+      assert html =~ ~s(data-agenda-speaker-role="moderator")
+      assert html =~ ~s(data-agenda-profile-link="website")
+      assert html =~ ~s(aria-label="Visit Suhana Gaba&#39;s website")
+
+      assert has_element?(
+               agenda_live,
+               "img[alt='Pankaj Bagga'][data-agenda-portrait-adjust='headroom']"
+             )
+
+      assert has_element?(
+               agenda_live,
+               "img[alt='Navdha Sharma'][data-agenda-portrait-adjust='headroom']"
+             )
+
+      assert has_element?(
+               agenda_live,
+               "img[alt='Suhana Gaba'][data-agenda-portrait-adjust='headroom']"
+             )
+
+      assert html =~ ~s(data-agenda-eco-note)
+      assert html =~ "More ideas. Less paper. More room for the planet."
+      assert html =~ "leave more trees standing and less behind"
+    end
+
+    test "structures tracks as chapter headers and keeps session types with their titles", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      opening =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 16:00:00],
+          title: "Opening session",
+          track_name: "Morning Catalyst",
+          session_type: "Welcome Address"
+        })
+
+      agenda_item_fixture(%{
+        event: event,
+        starts_at: ~N[2026-06-01 17:00:00],
+        title: "Morning keynote",
+        track_name: "The Morning Catalyst",
+        session_type: "Keynote"
+      })
+
+      afternoon =
+        agenda_item_fixture(%{
+          event: event,
+          starts_at: ~N[2026-06-01 18:00:00],
+          title: "Afternoon session",
+          track_name: "Afternoon",
+          session_type: "Franchising"
+        })
+
+      {:ok, agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
+
+      assert length(Regex.scan(~r/data-agenda-chapter="The Morning Catalyst"/, html)) == 1
+      assert html =~ ~s(data-agenda-chapter="Afternoon Programming")
+
+      assert has_element?(
+               agenda_live,
+               "#agenda-item-#{opening.id} .agenda-session-type",
+               "Welcome Address"
+             )
+
+      assert has_element?(
+               agenda_live,
+               "#agenda-item-#{afternoon.id} .agenda-session-type",
+               "Franchising"
+             )
+    end
+
+    test "distinguishes moderators and the pitch opener in speaker grids", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      fireside =
+        agenda_item_fixture(%{
+          event: event,
+          title: "Building & Funding Great Companies — Fireside Chat",
+          speaker_name: "Praveen Varshney + Keith Ippel + Beata Jirava"
+        })
+
+      crucible =
+        agenda_item_fixture(%{
+          event: event,
+          title: "The Crucible — NextGEN Pitch 2026",
+          speaker_name: "Beata Jirava + Vivek Dhume + Nazreen Mohammed"
+        })
+
+      {:ok, agenda_live, _html} = live(conn, ~p"/e/#{event.code}/agenda")
+
+      fireside_moderator =
+        "#agenda-item-#{fireside.id} .agenda-speaker-card--featured[data-agenda-speaker-role='moderator']"
+
+      crucible_moderator =
+        "#agenda-item-#{crucible.id} .agenda-speaker-card--featured[data-agenda-speaker-role='moderator']"
+
+      pitch_opener =
+        "#agenda-item-#{crucible.id} .agenda-speaker-card--featured.agenda-speaker-card--pitch-opener[data-agenda-speaker-role='pitch-opener']"
+
+      assert has_element?(agenda_live, fireside_moderator)
+      assert has_element?(agenda_live, "#{fireside_moderator} .agenda-speaker-role", "Moderator")
+
+      assert has_element?(
+               agenda_live,
+               "#{fireside_moderator} .agenda-speaker-name",
+               "Beata Jirava"
+             )
+
+      assert has_element?(agenda_live, crucible_moderator)
+      assert has_element?(agenda_live, "#{crucible_moderator} .agenda-speaker-role", "Moderator")
+
+      assert has_element?(
+               agenda_live,
+               "#{crucible_moderator} .agenda-speaker-name",
+               "Beata Jirava"
+             )
+
+      assert has_element?(agenda_live, pitch_opener)
+      assert has_element?(agenda_live, "#{pitch_opener} .agenda-speaker-role", "Pitch opener")
+      assert has_element?(agenda_live, "#{pitch_opener} .agenda-speaker-name", "Nazreen Mohammed")
     end
 
     test "adds branded visual markers to speakerless agenda moments", %{
@@ -1127,8 +1290,9 @@ defmodule ClaperWeb.EventLiveTest do
 
       [
         "Registration & Morning Coffee",
+        "Mastermind Lunch",
         "Networking Break",
-        "30 Under 30 Awards",
+        "The NextGEN Honour Awards — Class of 2026",
         "Pitch Winner Announcement",
         "Networking Reception"
       ]
@@ -1145,13 +1309,15 @@ defmodule ClaperWeb.EventLiveTest do
       {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
 
       assert html =~ ~s(data-agenda-moment="registration")
+      assert html =~ ~s(data-agenda-moment="mastermind-lunch")
       assert html =~ ~s(data-agenda-moment="networking-break")
-      assert html =~ ~s(data-agenda-moment="under-30-awards")
+      assert html =~ ~s(data-agenda-moment="nextgen-honouree")
       assert html =~ ~s(data-agenda-moment="pitch-winner")
       assert html =~ ~s(data-agenda-moment="networking-reception")
       assert html =~ ~s(data-agenda-icon="registration")
+      assert html =~ ~s(data-agenda-icon="mastermind-lunch")
       assert html =~ ~s(data-agenda-icon="networking-break")
-      assert html =~ ~s(data-agenda-icon="under-30-awards")
+      assert html =~ ~s(data-agenda-icon="nextgen-honouree")
       assert html =~ ~s(data-agenda-icon="pitch-winner")
       assert html =~ ~s(data-agenda-icon="networking-reception")
     end
