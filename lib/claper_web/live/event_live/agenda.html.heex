@@ -178,6 +178,7 @@
           <% speaker_images = Claper.Agendas.AgendaItem.image_list(agenda_item) %>
           <% speaker_profiles = Claper.Agendas.AgendaItem.speaker_profiles(agenda_item) %>
           <% speaker_panel? = length(speaker_profiles) > 2 %>
+          <% moment = agenda_moment(agenda_item.title) %>
           <article
             id={"agenda-item-#{agenda_item.id}"}
             class="agenda-session relative overflow-hidden rounded-b-xl rounded-tr-xl bg-white px-4 py-4 pl-5 shadow-lg shadow-black/20"
@@ -225,6 +226,70 @@
             </div>
 
             <h2 class="mt-3 text-lg font-bold leading-snug text-gray-950">{agenda_item.title}</h2>
+
+            <div
+              :if={speaker_profiles == [] && moment}
+              data-agenda-moment={moment.kind}
+              class={["agenda-moment", "agenda-moment--#{moment.kind}"]}
+            >
+              <span class="agenda-moment__icon-shell" aria-hidden="true">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  class="agenda-moment__icon"
+                  data-agenda-icon={moment.kind}
+                >
+                  <g
+                    :if={moment.kind == "registration"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 8h11v5.25A4.75 4.75 0 0 1 11.25 18h-1.5A4.75 4.75 0 0 1 5 13.25V8Z" />
+                    <path d="M16 10h1.25a2.25 2.25 0 0 1 0 4.5H16M8 5.5c0-1 1-1.25 1-2.25M12 5.5c0-1 1-1.25 1-2.25M5 20h12" />
+                  </g>
+                  <g
+                    :if={moment.kind == "networking-break"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="9" cy="8" r="3" />
+                    <path d="M3.5 19c.35-3.4 2.2-5.25 5.5-5.25S14.15 15.6 14.5 19M16.25 5.75a2.5 2.5 0 0 1 0 4.5M16 13.75c2.75 0 4.2 1.7 4.5 4.25" />
+                  </g>
+                  <g
+                    :if={moment.kind == "under-30-awards"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m8 3 4 5 4-5M12 8a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z" />
+                    <path d="m12 11 1 2.05 2.25.33-1.63 1.59.38 2.25-2-1.06-2 1.06.38-2.25-1.63-1.59 2.25-.33L12 11Z" />
+                  </g>
+                  <g
+                    :if={moment.kind == "pitch-winner"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M8 4h8v3.25C16 11 14.25 13 12 13s-4-2-4-5.75V4Z" />
+                    <path d="M8 6H5v1.25c0 2.25 1.2 3.75 3.25 4.25M16 6h3v1.25c0 2.25-1.2 3.75-3.25 4.25M12 13v4M9 20h6M10 17h4" />
+                  </g>
+                  <g
+                    :if={moment.kind == "networking-reception"}
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m12 3 1.25 4.25L17.5 8.5l-4.25 1.25L12 14l-1.25-4.25L6.5 8.5l4.25-1.25L12 3Z" />
+                    <path d="m18.5 14 .65 2.35 2.35.65-2.35.65L18.5 20l-.65-2.35L15.5 17l2.35-.65.65-2.35ZM5 3.5l.45 1.55L7 5.5l-1.55.45L5 7.5l-.45-1.55L3 5.5l1.55-.45L5 3.5Z" />
+                  </g>
+                </svg>
+              </span>
+              <span class="agenda-moment__copy">
+                <span class="agenda-moment__eyebrow">{moment.eyebrow}</span>
+                <span class="agenda-moment__label">{moment.label}</span>
+              </span>
+              <span class="agenda-moment__signal" aria-hidden="true"></span>
+            </div>
 
             <%= if agenda_item.speaker_name do %>
               <%= if speaker_panel? do %>

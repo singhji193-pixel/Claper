@@ -1119,6 +1119,43 @@ defmodule ClaperWeb.EventLiveTest do
       assert html =~ ~s(aria-label="Find Jas Kaur on LinkedIn")
     end
 
+    test "adds branded visual markers to speakerless agenda moments", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      event = presentation_file.event
+
+      [
+        "Registration & Morning Coffee",
+        "Networking Break",
+        "30 Under 30 Awards",
+        "Pitch Winner Announcement",
+        "Networking Reception"
+      ]
+      |> Enum.with_index()
+      |> Enum.each(fn {title, index} ->
+        agenda_item_fixture(%{
+          event: event,
+          title: title,
+          speaker_name: nil,
+          starts_at: NaiveDateTime.add(~N[2026-06-01 15:00:00], index, :hour)
+        })
+      end)
+
+      {:ok, _agenda_live, html} = live(conn, ~p"/e/#{event.code}/agenda")
+
+      assert html =~ ~s(data-agenda-moment="registration")
+      assert html =~ ~s(data-agenda-moment="networking-break")
+      assert html =~ ~s(data-agenda-moment="under-30-awards")
+      assert html =~ ~s(data-agenda-moment="pitch-winner")
+      assert html =~ ~s(data-agenda-moment="networking-reception")
+      assert html =~ ~s(data-agenda-icon="registration")
+      assert html =~ ~s(data-agenda-icon="networking-break")
+      assert html =~ ~s(data-agenda-icon="under-30-awards")
+      assert html =~ ~s(data-agenda-icon="pitch-winner")
+      assert html =~ ~s(data-agenda-icon="networking-reception")
+    end
+
     test "does not expose agenda management controls to audience users", %{
       conn: conn,
       presentation_file: presentation_file

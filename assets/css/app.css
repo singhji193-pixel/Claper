@@ -671,6 +671,126 @@
   }
 }
 
+.agenda-moment {
+  --agenda-moment-start: #e85d27;
+  --agenda-moment-end: #c74483;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-height: 62px;
+  gap: 12px;
+  margin-top: 13px;
+  padding: 10px 13px 10px 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fffaf7 0%, #f8f3ee 100%);
+  border: 1px solid #eee4dc;
+  border-radius: 14px;
+}
+
+.agenda-moment::before {
+  position: absolute;
+  z-index: -1;
+  top: -42px;
+  right: -28px;
+  width: 132px;
+  height: 132px;
+  content: "";
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--agenda-moment-end) 14%, transparent) 0%,
+    transparent 68%
+  );
+}
+
+.agenda-moment__icon-shell {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  color: #ffffff;
+  background: linear-gradient(
+    145deg,
+    var(--agenda-moment-start) 0%,
+    var(--agenda-moment-end) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 13px;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--agenda-moment-start) 24%, transparent);
+}
+
+.agenda-moment__icon {
+  width: 23px;
+  height: 23px;
+}
+
+.agenda-moment__copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.agenda-moment__eyebrow {
+  color: var(--agenda-moment-start);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.agenda-moment__label {
+  margin-top: 3px;
+  color: #443b34;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.agenda-moment__signal {
+  flex: none;
+  width: 36px;
+  height: 20px;
+  opacity: 0.5;
+  background-image: radial-gradient(
+    circle,
+    var(--agenda-moment-end) 1.5px,
+    transparent 1.75px
+  );
+  background-position: center;
+  background-size: 9px 9px;
+}
+
+.agenda-moment--registration {
+  --agenda-moment-start: #e95e2b;
+  --agenda-moment-end: #f39a42;
+}
+
+.agenda-moment--networking-break {
+  --agenda-moment-start: #df572b;
+  --agenda-moment-end: #c4477f;
+}
+
+.agenda-moment--under-30-awards {
+  --agenda-moment-start: #b97908;
+  --agenda-moment-end: #e95e2b;
+}
+
+.agenda-moment--pitch-winner {
+  --agenda-moment-start: #a96805;
+  --agenda-moment-end: #df572b;
+  background: linear-gradient(135deg, #fffaf0 0%, #faf1e7 100%);
+  border-color: #ead9bb;
+}
+
+.agenda-moment--networking-reception {
+  --agenda-moment-start: #df572b;
+  --agenda-moment-end: #a63f86;
+}
+
 .agenda-speaker-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -51,6 +51,53 @@ defmodule ClaperWeb.EventLive.Agenda do
   def format_duration(nil), do: nil
   def format_duration(minutes), do: gettext("%{count} min", count: minutes)
 
+  def agenda_moment(title) when is_binary(title) do
+    normalized_title = title |> String.trim() |> String.downcase()
+
+    cond do
+      String.contains?(normalized_title, "registration") ->
+        %{
+          kind: "registration",
+          eyebrow: gettext("Welcome"),
+          label: gettext("Check in, connect, and grab a coffee")
+        }
+
+      String.contains?(normalized_title, "networking break") or
+          String.contains?(normalized_title, "brainstorm break") ->
+        %{
+          kind: "networking-break",
+          eyebrow: gettext("Connect"),
+          label: gettext("Recharge between sessions")
+        }
+
+      String.contains?(normalized_title, "under 30") ->
+        %{
+          kind: "under-30-awards",
+          eyebrow: gettext("Recognition"),
+          label: gettext("Celebrating rising leaders")
+        }
+
+      String.contains?(normalized_title, "pitch winner") ->
+        %{
+          kind: "pitch-winner",
+          eyebrow: gettext("Finale"),
+          label: gettext("The winning pitch is revealed")
+        }
+
+      String.contains?(normalized_title, "networking reception") ->
+        %{
+          kind: "networking-reception",
+          eyebrow: gettext("Reception"),
+          label: gettext("Continue the conversation")
+        }
+
+      true ->
+        nil
+    end
+  end
+
+  def agenda_moment(_title), do: nil
+
   def speaker_detail(agenda_item) do
     [agenda_item.speaker_title, agenda_item.speaker_company]
     |> Enum.reject(&(is_nil(&1) or &1 == ""))
