@@ -141,6 +141,52 @@ defmodule ClaperWeb.EventLiveTest do
     end
   end
 
+  describe "Presenter" do
+    setup [:register_and_log_in_user, :create_event]
+
+    test "renders the NextGEN sponsor lockup on the join screen", %{
+      conn: conn,
+      presentation_file: presentation_file
+    } do
+      {:ok, _presenter_live, html} =
+        live(conn, ~p"/e/#{presentation_file.event.code}/presenter")
+
+      assert html =~ "Join the room"
+      assert html =~ "Welcome to NextGEN"
+      assert html =~ "NextGEN Business Summit 2026"
+      assert html =~ "Anvil Centre, New Westminster"
+      assert html =~ "With support from"
+      assert html =~ "In collaboration with"
+      refute html =~ "Sponsored by"
+      assert html =~ "/fonts/nextgen/fraunces-variable.woff2"
+      assert html =~ "/fonts/nextgen/poppins-400.woff2"
+      assert html =~ "/fonts/nextgen/jetbrains-mono-variable.woff2"
+      refute html =~ "Cormorant+Garamond"
+      refute html =~ "family=Manrope"
+      assert html =~ ~s(data-nextgen-sponsor-lockup)
+      assert html =~ ~s(phx-hook="SponsorReveal")
+      assert html =~ ~s(class="cr-stage")
+      assert html =~ ~s(class="cr-card cr-card--l")
+      assert html =~ ~s(data-active-sponsor-logo)
+      assert html =~ ~s(data-sponsor-name="Coreorbit")
+      assert html =~ ~s(data-sponsor-role="Presenting Sponsor")
+      assert html =~ ~s(src="/images/nextgen/sponsors/coreorbit-logo.webp")
+      assert html =~ ~s(data-sponsor-name="Shutter Point")
+      assert html =~ ~s(data-sponsor-role="Official Photo Booth Experience Partner")
+      assert html =~ ~s(src="/images/nextgen/sponsors/shutter-point-logo.webp")
+      assert html =~ ~s(data-sponsor-name="Jassal Signs")
+      assert html =~ ~s(src="/images/nextgen/sponsors/jassal-signs-logo.webp")
+      assert html =~ ~s(data-sponsor-name="AEPG")
+      assert html =~ ~s(src="/images/nextgen/sponsors/aepg-logo.png")
+      assert html =~ ~s(data-sponsor-name="Surrey &amp; White Rock Board of Trade")
+      assert html =~ ~s(data-sponsor-name="Internet Masterminds")
+      assert html =~ ~s(src="/images/nextgen/partners/speatbc-crest.webp")
+      assert length(Regex.scan(~r/data-sponsor-name=/, html)) == 25
+      refute html =~ ~s(data-sponsor-lockup-canvas)
+      refute html =~ ~s(src="/assets/sponsor_orbit.js")
+    end
+  end
+
   describe "PWA shell" do
     setup [:register_and_log_in_user, :create_event]
 

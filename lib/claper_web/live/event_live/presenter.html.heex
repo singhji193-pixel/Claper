@@ -1,6 +1,6 @@
 <style>
   body {
-    background: black;
+    background: #060605;
   }
 
   iframe {
@@ -12,6 +12,7 @@
 <div
   id="presenter"
   phx-hook="Presenter"
+  style="width: 100%; height: 100dvh; overflow: hidden;"
   data-max-page={@event.presentation_file.length || 0}
   data-hash={@event.presentation_file.hash}
   data-current-page={@state.position}
@@ -21,26 +22,167 @@
     id="joinScreen"
     class={"#{if @state.join_screen_visible, do: "opacity-100 z-40", else: "opacity-0"} h-full w-full flex flex-col justify-center bg-black absolute transition-opacity"}
   >
-    <div class="h-full bg-white text-black text-center flex flex-col items-center justify-center">
-      <span class="font-semibold mb-10 sm:text-3xl md:text-4xl lg:text-6xl">
-        {gettext("Scan to interact in real-time")}
-      </span>
-      <div
-        phx-hook="QRCode"
-        data-code={@event.code}
-        data-dynamic="true"
-        id="qr"
-        phx-update="ignore"
-        class="rounded-lg mx-auto flex items-center justify-center mb-14"
-      >
-      </div>
-      <span class="font-semibold mb-10 sm:text-3xl md:text-4xl lg:text-6xl">
-        {gettext("Or go to %{url} and use the code:", url: @host)}
-      </span>
-      <span class="font-semibold mb-10 sm:text-5xl md:text-6xl lg:text-8xl">
-        #{String.upcase(@event.code)}
-      </span>
-    </div>
+    <ClaperWeb.CollabReveal.swing_doors
+      id="nextgen-sponsor-reveal"
+      logo_a="/images/nextgen/logo-transparent-dark.png"
+      logo_a_alt="NextGEN Business Summit"
+      join_url={@host}
+      join_code={"#" <> String.upcase(@event.code)}
+      data-nextgen-sponsor-lockup
+      data-preview={to_string(@iframe)}
+      phx-update="ignore"
+    >
+      <:sponsor
+        name="Coreorbit"
+        role="Presenting Sponsor"
+        logo="/images/nextgen/sponsors/coreorbit-logo.webp"
+        dark={true}
+      />
+      <:sponsor
+        name="COEngine"
+        role="Official Technology, AI & Infrastructure Partner"
+        logo="/images/nextgen/sponsors/coengine-dark-logo.webp"
+      />
+      <:sponsor
+        name="GrantHub"
+        role="Official Door Prize Partner"
+        logo="/images/nextgen/sponsors/granthub-logo.webp"
+      />
+      <:sponsor
+        name="PacTech"
+        role="Official Door Prize Program Partner"
+        logo="/images/nextgen/sponsors/pactech-logo.webp"
+        dark={true}
+      />
+      <:sponsor
+        name="MB Consulting & Support Services"
+        role="Raffle Prize Contributor"
+        logo="/images/nextgen/sponsors/mb-consulting-logo.webp"
+      />
+      <:sponsor
+        name="Sandler"
+        role="Door Prize Contributor"
+        logo="/images/nextgen/sponsors/sandler-logo.webp"
+      />
+      <:sponsor
+        name="Launch BC"
+        role="Official Awards Partner"
+        logo="/images/nextgen/sponsors/launchbc-logo.webp"
+      />
+      <:sponsor
+        name="Varshney Capital"
+        role="Pitch Prize Partner"
+        logo="/images/nextgen/sponsors/varshney-capital-logo.webp"
+      />
+      <:sponsor
+        name="Manohar Bakery"
+        role="Official Gifting Partner"
+        logo="/images/nextgen/sponsors/manohar-bakery-logo.webp"
+      />
+      <:sponsor
+        name="Café Caté"
+        role="Summit Sponsor"
+        logo="/images/nextgen/sponsors/cafe-cate-logo.webp"
+      />
+      <:sponsor
+        name="Fitness with Thrishala"
+        role="Official Wellness Partner"
+        logo="/images/nextgen/sponsors/fitness-with-thrishala-logo.webp"
+      />
+      <:sponsor
+        name="Aftershock Roadshow"
+        role="Official AV Partner"
+        logo="/images/nextgen/sponsors/aftershock-roadshow-logo.webp"
+      />
+      <:sponsor
+        name="Paras Rathi Productions"
+        role="Exclusive Founding Production Partner"
+        logo="/images/nextgen/sponsors/paras-rathi-productions-logo.webp"
+      />
+      <:sponsor
+        name="Fierce and Fearless Magazine"
+        role="Official Publication Partner"
+        logo="/images/nextgen/sponsors/fierce-fearless-entrepreneur-logo.webp"
+      />
+      <:sponsor
+        name="Spring Activator"
+        role="Official Program Partner"
+        logo="/images/nextgen/sponsors/spring-logo.svg"
+      />
+      <:sponsor
+        name="Hiba The Galaxy"
+        role="Official Swag Bag & Merchandise Partner"
+        logo="/images/nextgen/sponsors/hiba-the-galaxy-logo.webp"
+      />
+      <:sponsor
+        name="Shutter Point"
+        role="Official Photo Booth Experience Partner"
+        logo="/images/nextgen/sponsors/shutter-point-logo.webp"
+        dark={true}
+      />
+      <:sponsor
+        name="Jassal Signs"
+        role="Community Sponsor"
+        logo="/images/nextgen/sponsors/jassal-signs-logo.webp"
+        dark={true}
+      />
+      <:sponsor
+        name="AEPG"
+        role="Community Sponsor"
+        logo="/images/nextgen/sponsors/aepg-logo.png"
+      />
+      <:sponsor
+        name="Surrey & White Rock Board of Trade"
+        role="Marketing Partner"
+        logo="/images/nextgen/partners/swrbot-logo.svg"
+        kind="partner"
+      />
+      <:sponsor
+        name="SPEATBC"
+        role="Community Partner"
+        logo="/images/nextgen/partners/speatbc-crest.webp"
+        dark={true}
+        kind="partner"
+      />
+      <:sponsor
+        name="Burnaby Board of Trade"
+        role="Business Community Partner"
+        logo="/images/nextgen/partners/bbot-logo.webp"
+        kind="partner"
+      />
+      <:sponsor
+        name="BDC"
+        role="Resource Partner"
+        logo="/images/nextgen/partners/bdc-logo.svg"
+        kind="partner"
+      />
+      <:sponsor
+        name="Business in Vancouver"
+        role="Media Partner"
+        logo="/images/nextgen/partners/business-in-vancouver-logo.webp"
+        kind="partner"
+      />
+      <:sponsor
+        name="Internet Masterminds"
+        role="Business Community Partner"
+        logo="/images/nextgen/partners/internet-masterminds-logo.png"
+        kind="partner"
+      />
+
+      <:qr>
+        <div
+          phx-hook="QRCode"
+          data-code={@event.code}
+          data-size={if @iframe, do: "150", else: "300"}
+          id="qr"
+          phx-update="ignore"
+          class="cr-qr-content"
+          role="img"
+          aria-label="QR code to join this event"
+        >
+        </div>
+      </:qr>
+    </ClaperWeb.CollabReveal.swing_doors>
   </div>
   <!-- POLL -->
   <%= if @current_poll do %>

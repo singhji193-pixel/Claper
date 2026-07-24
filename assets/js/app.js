@@ -739,6 +739,59 @@ Hooks.QRCode = {
   destroyed() {},
 };
 
+Hooks.SponsorReveal = {
+  mounted() {
+    this.sponsors = Array.from(
+      this.el.querySelectorAll("[data-collab-sponsor]"),
+    );
+    this.card = this.el.querySelector("[data-active-sponsor-card]");
+    this.logo = this.el.querySelector("[data-active-sponsor-logo]");
+    this.name = this.el.querySelector("[data-active-sponsor-name]");
+    this.role = this.el.querySelector("[data-active-sponsor-role]");
+    this.label = this.el.querySelector("[data-active-sponsor-label]");
+    this.index = 0;
+
+    this.showSponsor = (index) => {
+      const sponsor = this.sponsors[index];
+      if (!sponsor || !this.card || !this.logo) return;
+
+      this.index = index;
+      this.logo.src = sponsor.dataset.sponsorLogo;
+      this.logo.alt = `${sponsor.dataset.sponsorName} logo`;
+      this.card.classList.toggle(
+        "is-dark",
+        sponsor.dataset.sponsorDark === "true",
+      );
+      if (this.name) this.name.textContent = sponsor.dataset.sponsorName;
+      if (this.role) this.role.textContent = sponsor.dataset.sponsorRole;
+      if (this.label) {
+        this.label.textContent =
+          sponsor.dataset.sponsorKind === "partner"
+            ? this.el.dataset.partnerLabel
+            : this.el.dataset.sponsorLabel;
+      }
+      this.el.dataset.activeSponsorIndex = String(index);
+    };
+
+    this.advanceSponsor = (event) => {
+      if (
+        event.animationName !== "crSwingR" ||
+        this.sponsors.length < 2
+      ) {
+        return;
+      }
+
+      this.showSponsor((this.index + 1) % this.sponsors.length);
+    };
+
+    this.showSponsor(0);
+    this.card?.addEventListener("animationiteration", this.advanceSponsor);
+  },
+  destroyed() {
+    this.card?.removeEventListener("animationiteration", this.advanceSponsor);
+  },
+};
+
 Hooks.BingoScanner = {
   mounted() {
     this.hasScanned = false;
