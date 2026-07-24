@@ -174,10 +174,10 @@ defmodule ClaperWeb.CollabReveal do
           z-index: 1;
           color: rgba(246, 223, 159, .96);
           font-family: var(--font-display);
-          font-size: clamp(24px, 2vw, 30px);
+          font-size: clamp(38px, 3.25vw, 46px);
           font-weight: 500;
-          line-height: .94;
-          letter-spacing: -.025em;
+          line-height: 1;
+          letter-spacing: -.035em;
           white-space: nowrap;
         }
 
@@ -657,7 +657,7 @@ defmodule ClaperWeb.CollabReveal do
           .cr-welcome {
             top: 20px;
             left: 20px;
-            font-size: 18px;
+            font-size: 26px;
           }
 
           .cr-lockup {
@@ -711,7 +711,7 @@ defmodule ClaperWeb.CollabReveal do
           .cr-welcome {
             top: 10px;
             left: 12px;
-            font-size: 14px;
+            font-size: 17px;
           }
 
           .cr-lockup {
