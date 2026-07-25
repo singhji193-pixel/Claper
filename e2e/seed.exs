@@ -157,7 +157,16 @@ settings = EventApp.get_or_create_settings(event.id)
     enabled: false,
     poll_opts: [
       %{content: "Growth", vote_count: 0},
-      %{content: "Capital", vote_count: 0}
+      %{content: "Capital", vote_count: 0},
+      %{content: "Leadership", vote_count: 0},
+      %{content: "Technology", vote_count: 0},
+      %{content: "Sales", vote_count: 0},
+      %{content: "Marketing", vote_count: 0},
+      %{content: "Operations", vote_count: 0},
+      %{content: "Talent", vote_count: 0},
+      %{content: "Innovation", vote_count: 0},
+      %{content: "Community", vote_count: 0},
+      %{content: "Sustainability", vote_count: 0}
     ]
   })
 

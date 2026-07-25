@@ -53,7 +53,7 @@ defmodule ClaperWeb.EventLive.PollComponent do
           <% end %>
         </div>
         <div>
-          <div class="flex flex-col space-y-3 overflow-y-auto max-h-[500px]">
+          <div class="flex flex-col space-y-3">
             <%= if (length @poll.poll_opts) > 0 do %>
               <%= for {opt, idx} <- Enum.with_index(@poll.poll_opts) do %>
                 <%= if (length @current_poll_vote) > 0 do %>
